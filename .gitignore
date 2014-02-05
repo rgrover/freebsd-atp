@@ -1,0 +1,7 @@
+@
+Makefile
+*.ko
+*.o
+export_syms
+machine
+x86
