@@ -547,7 +547,6 @@ atp_probe(device_t self)
 
         if (uaa->usb_mode != USB_MODE_HOST)
                 return (ENXIO);
-        printf("atp: %u; uaa->info.bInterfaceClass: %u\n", __LINE__, uaa->info.bInterfaceClass);
 
         if ((uaa->info.bInterfaceClass    != UICLASS_HID) ||
             (uaa->info.bInterfaceProtocol != UIPROTO_MOUSE))
