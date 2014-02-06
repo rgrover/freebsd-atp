@@ -143,18 +143,18 @@ struct tp_header {
 
 /* trackpad finger structure - little endian */
 struct tp_finger {
-    int16_t origin;         /* zero when switching track finger */
-    int16_t abs_x;          /* absolute x coodinate */
-    int16_t abs_y;          /* absolute y coodinate */
-    int16_t rel_x;          /* relative x coodinate */
-    int16_t rel_y;          /* relative y coodinate */
-    int16_t tool_major;     /* tool area, major axis */
-    int16_t tool_minor;     /* tool area, minor axis */
-    int16_t orientation;    /* 16384 when point, else 15 bit angle */
-    int16_t touch_major;    /* touch area, major axis */
-    int16_t touch_minor;    /* touch area, minor axis */
-    int16_t unused[3];      /* zeros */
-    int16_t multi;          /* one finger: varies, more fingers: constant */
+        int16_t origin;         /* zero when switching track finger */
+        int16_t abs_x;          /* absolute x coodinate */
+        int16_t abs_y;          /* absolute y coodinate */
+        int16_t rel_x;          /* relative x coodinate */
+        int16_t rel_y;          /* relative y coodinate */
+        int16_t tool_major;     /* tool area, major axis */
+        int16_t tool_minor;     /* tool area, minor axis */
+        int16_t orientation;    /* 16384 when point, else 15 bit angle */
+        int16_t touch_major;    /* touch area, major axis */
+        int16_t touch_minor;    /* touch area, minor axis */
+        int16_t unused[3];      /* zeros */
+        int16_t multi;          /* one finger: varies, more fingers: constant */
 } __packed;
 
 /* trackpad finger data size, empirically at least ten fingers */
@@ -171,26 +171,26 @@ struct tp_finger {
 
 /* device-specific parameters */
 struct wsp_param {
-    int snratio;        /* signal-to-noise ratio */
-    int min;            /* device minimum reading */
-    int max;            /* device maximum reading */
+        int snratio;        /* signal-to-noise ratio */
+        int min;            /* device minimum reading */
+        int max;            /* device maximum reading */
 };
 
 /* TODO: name this enumeration */
 enum {
-    ATP_FLAG_WELLSPRING1,
-    ATP_FLAG_WELLSPRING2,
-    ATP_FLAG_WELLSPRING3,
-    ATP_FLAG_WELLSPRING4,
-    ATP_FLAG_WELLSPRING4A,
-    ATP_FLAG_WELLSPRING5,
-    ATP_FLAG_WELLSPRING6A,
-    ATP_FLAG_WELLSPRING6,
-    ATP_FLAG_WELLSPRING5A,
-    ATP_FLAG_WELLSPRING7,
-    ATP_FLAG_WELLSPRING7A,
-    ATP_FLAG_WELLSPRING8,
-    ATP_FLAG_MAX,
+        ATP_FLAG_WELLSPRING1,
+        ATP_FLAG_WELLSPRING2,
+        ATP_FLAG_WELLSPRING3,
+        ATP_FLAG_WELLSPRING4,
+        ATP_FLAG_WELLSPRING4A,
+        ATP_FLAG_WELLSPRING5,
+        ATP_FLAG_WELLSPRING6A,
+        ATP_FLAG_WELLSPRING6,
+        ATP_FLAG_WELLSPRING5A,
+        ATP_FLAG_WELLSPRING7,
+        ATP_FLAG_WELLSPRING7A,
+        ATP_FLAG_WELLSPRING8,
+        ATP_FLAG_MAX,
 };
 
 /* device-specific configuration */
