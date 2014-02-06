@@ -228,24 +228,24 @@ struct atp_softc {
  * Load handler that deals with the loading and unloading of a KLD.
  */
 
-// static int
-// atp_loader(struct module *m, int what, void *arg)
-// {
-//         int err = 0;
+static int
+atp_loader(struct module *m, int what, void *arg)
+{
+        int err = 0;
 
-//         switch (what) {
-//         case MOD_LOAD:                /* kldload */
-//                 uprintf("Skeleton KLD loaded.\n");
-//                 break;
-//         case MOD_UNLOAD:
-//                 uprintf("Skeleton KLD unloaded.\n");
-//                 break;
-//         default:
-//                 err = EOPNOTSUPP;
-//                 break;
-//         }
-//         return(err);
-// }
+        switch (what) {
+        case MOD_LOAD:                /* kldload */
+                uprintf("Skeleton KLD loaded.\n");
+                break;
+        case MOD_UNLOAD:
+                uprintf("Skeleton KLD unloaded.\n");
+                break;
+        default:
+                err = EOPNOTSUPP;
+                break;
+        }
+        return(err);
+}
 
 static device_method_t atp_methods[] = {
         /* Device interface */
@@ -263,6 +263,6 @@ static driver_t atp_driver = {
 
 static devclass_t atp_devclass;
 
-DRIVER_MODULE(atp, uhub, atp_driver, atp_devclass, NULL, 0);
+DRIVER_MODULE(atp, uhub, atp_driver, atp_devclass, atp_loader /* evh */, 0);
 MODULE_DEPEND(atp, usb, 1, 1, 1);
 MODULE_VERSION(atp, 1);
