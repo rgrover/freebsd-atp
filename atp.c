@@ -556,8 +556,7 @@ atp_probe(device_t self)
 
         printf("passed initial checks\n");
 
-        printf("search would return %d\n", (usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa)));
-        return (ENXIO);
+        return (usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa));
 }
 
 static int
