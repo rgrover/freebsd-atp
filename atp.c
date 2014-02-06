@@ -101,17 +101,17 @@ struct atp_softc {
 
 /* button data structure */
 struct bt_data {
-    uint8_t unknown1;       /* constant */
-    uint8_t button;         /* left button */
-    uint8_t rel_x;          /* relative x coordinate */
-    uint8_t rel_y;          /* relative y coordinate */
+        uint8_t unknown1;       /* constant */
+        uint8_t button;         /* left button */
+        uint8_t rel_x;          /* relative x coordinate */
+        uint8_t rel_y;          /* relative y coordinate */
 } __packed;
 
 /* trackpad header types */
 enum tp_type {
-    TYPE1,          /* plain trackpad */
-    TYPE2,          /* button integrated in trackpad */
-    TYPE3           /* additional header fields since June 2013 */
+        TYPE1,          /* plain trackpad */
+        TYPE2,          /* button integrated in trackpad */
+        TYPE3           /* additional header fields since June 2013 */
 };
 
 /* trackpad finger data offsets, le16-aligned */
@@ -128,17 +128,17 @@ enum tp_type {
 
 /* trackpad finger header - little endian */
 struct tp_header {
-    uint8_t flag;
-    uint8_t sn0;
-    uint16_t wFixed0;
-    uint32_t dwSn1;
-    uint32_t dwFixed1;
-    uint16_t wLength;
-    uint8_t nfinger;
-    uint8_t ibt;
-    int16_t wUnknown[6];
-    uint8_t q1;
-    uint8_t q2;
+        uint8_t  flag;
+        uint8_t  sn0;
+        uint16_t wFixed0;
+        uint32_t dwSn1;
+        uint32_t dwFixed1;
+        uint16_t wLength;
+        uint8_t  nfinger;
+        uint8_t  ibt;
+        int16_t  wUnknown[6];
+        uint8_t  q1;
+        uint8_t  q2;
 } __packed;
 
 /* trackpad finger structure - little endian */
@@ -150,18 +150,17 @@ struct tp_finger {
     int16_t rel_y;          /* relative y coodinate */
     int16_t tool_major;     /* tool area, major axis */
     int16_t tool_minor;     /* tool area, minor axis */
-    int16_t orientation;        /* 16384 when point, else 15 bit angle */
-    int16_t touch_major;        /* touch area, major axis */
-    int16_t touch_minor;        /* touch area, minor axis */
+    int16_t orientation;    /* 16384 when point, else 15 bit angle */
+    int16_t touch_major;    /* touch area, major axis */
+    int16_t touch_minor;    /* touch area, minor axis */
     int16_t unused[3];      /* zeros */
-    int16_t multi;          /* one finger: varies, more fingers:
-                     * constant */
+    int16_t multi;          /* one finger: varies, more fingers: constant */
 } __packed;
 
 /* trackpad finger data size, empirically at least ten fingers */
-#define MAX_FINGERS     16
-#define SIZEOF_FINGER       sizeof(struct tp_finger)
-#define SIZEOF_ALL_FINGERS  (MAX_FINGERS * SIZEOF_FINGER)
+#define MAX_FINGERS             16
+#define SIZEOF_FINGER           sizeof(struct tp_finger)
+#define SIZEOF_ALL_FINGERS      (MAX_FINGERS * SIZEOF_FINGER)
 #define MAX_FINGER_ORIENTATION  16384
 
 /* logical signal quality */
@@ -177,7 +176,7 @@ struct wsp_param {
     int max;            /* device maximum reading */
 };
 
-
+/* TODO: name this enumeration */
 enum {
     ATP_FLAG_WELLSPRING1,
     ATP_FLAG_WELLSPRING2,
