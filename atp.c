@@ -52,7 +52,7 @@ __FBSDID("$FreeBSD$");
 #define ATP_DRIVER_NAME "atp"
 
 /* Device methods. */
-// static device_probe_t  atp_probe;
+static device_probe_t  atp_probe;
 // static device_attach_t atp_attach;
 // static device_detach_t atp_detach;
 // static usb_callback_t  atp_intr;
@@ -99,26 +99,471 @@ struct atp_softc {
 //         struct timeval         sc_reap_ctime; /*ctime of siblings to be reaped*/
 };
 
+/* button data structure */
+struct bt_data {
+    uint8_t unknown1;       /* constant */
+    uint8_t button;         /* left button */
+    uint8_t rel_x;          /* relative x coordinate */
+    uint8_t rel_y;          /* relative y coordinate */
+} __packed;
 
-// static int
-// atp_probe(device_t self)
-// {
-        // struct usb_attach_arg *uaa = device_get_ivars(self);
+/* trackpad header types */
+enum tp_type {
+    TYPE1,          /* plain trackpad */
+    TYPE2,          /* button integrated in trackpad */
+    TYPE3           /* additional header fields since June 2013 */
+};
 
-        // if (uaa->usb_mode != USB_MODE_HOST)
+/* trackpad finger data offsets, le16-aligned */
+#define FINGER_TYPE1        (13 * 2)
+#define FINGER_TYPE2        (15 * 2)
+#define FINGER_TYPE3        (19 * 2)
+
+/* trackpad button data offsets */
+#define BUTTON_TYPE2        15
+#define BUTTON_TYPE3        23
+
+/* list of device capability bits */
+#define HAS_INTEGRATED_BUTTON   1
+
+/* trackpad finger header - little endian */
+struct tp_header {
+    uint8_t flag;
+    uint8_t sn0;
+    uint16_t wFixed0;
+    uint32_t dwSn1;
+    uint32_t dwFixed1;
+    uint16_t wLength;
+    uint8_t nfinger;
+    uint8_t ibt;
+    int16_t wUnknown[6];
+    uint8_t q1;
+    uint8_t q2;
+} __packed;
+
+/* trackpad finger structure - little endian */
+struct tp_finger {
+    int16_t origin;         /* zero when switching track finger */
+    int16_t abs_x;          /* absolute x coodinate */
+    int16_t abs_y;          /* absolute y coodinate */
+    int16_t rel_x;          /* relative x coodinate */
+    int16_t rel_y;          /* relative y coodinate */
+    int16_t tool_major;     /* tool area, major axis */
+    int16_t tool_minor;     /* tool area, minor axis */
+    int16_t orientation;        /* 16384 when point, else 15 bit angle */
+    int16_t touch_major;        /* touch area, major axis */
+    int16_t touch_minor;        /* touch area, minor axis */
+    int16_t unused[3];      /* zeros */
+    int16_t multi;          /* one finger: varies, more fingers:
+                     * constant */
+} __packed;
+
+/* trackpad finger data size, empirically at least ten fingers */
+#define MAX_FINGERS     16
+#define SIZEOF_FINGER       sizeof(struct tp_finger)
+#define SIZEOF_ALL_FINGERS  (MAX_FINGERS * SIZEOF_FINGER)
+#define MAX_FINGER_ORIENTATION  16384
+
+/* logical signal quality */
+#define SN_PRESSURE 45      /* pressure signal-to-noise ratio */
+#define SN_WIDTH    25      /* width signal-to-noise ratio */
+#define SN_COORD    250     /* coordinate signal-to-noise ratio */
+#define SN_ORIENT   10      /* orientation signal-to-noise ratio */
+
+/* device-specific parameters */
+struct wsp_param {
+    int snratio;        /* signal-to-noise ratio */
+    int min;            /* device minimum reading */
+    int max;            /* device maximum reading */
+};
+
+
+enum {
+    ATP_FLAG_WELLSPRING1,
+    ATP_FLAG_WELLSPRING2,
+    ATP_FLAG_WELLSPRING3,
+    ATP_FLAG_WELLSPRING4,
+    ATP_FLAG_WELLSPRING4A,
+    ATP_FLAG_WELLSPRING5,
+    ATP_FLAG_WELLSPRING6A,
+    ATP_FLAG_WELLSPRING6,
+    ATP_FLAG_WELLSPRING5A,
+    ATP_FLAG_WELLSPRING7,
+    ATP_FLAG_WELLSPRING7A,
+    ATP_FLAG_WELLSPRING8,
+    ATP_FLAG_MAX,
+};
+
+/* device-specific configuration */
+struct atp_dev_params {
+        uint8_t  caps;          /* device capability bitmask */
+        uint16_t bt_datalen;    /* data length of the button interface */
+        uint8_t  tp_type;       /* type of trackpad interface */
+        uint8_t  tp_offset;     /* offset to trackpad finger data */
+        uint16_t tp_datalen;    /* data length of the trackpad interface */
+        struct wsp_param p;     /* finger pressure limits */
+        struct wsp_param w;     /* finger width limits */
+        struct wsp_param x;     /* horizontal limits */
+        struct wsp_param y;     /* vertical limits */
+        struct wsp_param o;     /* orientation limits */
+};
+
+static const struct atp_dev_params atp_dev_params[ATP_FLAG_MAX] = {
+    [ATP_FLAG_WELLSPRING1] = {
+        .caps       = 0,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE1,
+        .tp_offset  = FINGER_TYPE1,
+        .tp_datalen = FINGER_TYPE1 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 256
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4824, 5342
+        },
+        .y = {
+            SN_COORD, -172, 5820
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING2] = {
+        .caps       = 0,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE1,
+        .tp_offset  = FINGER_TYPE1,
+        .tp_datalen = FINGER_TYPE1 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 256
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4824, 4824
+        },
+        .y = {
+            SN_COORD, -172, 4290
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING3] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE2,
+        .tp_offset  = FINGER_TYPE2,
+        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4460, 5166
+        },
+        .y = {
+            SN_COORD, -75, 6700
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING4] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE2,
+        .tp_offset  = FINGER_TYPE2,
+        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4620, 5140
+        },
+        .y = {
+            SN_COORD, -150, 6600
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING4A] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE2,
+        .tp_offset  = FINGER_TYPE2,
+        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4616, 5112
+        },
+        .y = {
+            SN_COORD, -142, 5234
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING5] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE2,
+        .tp_offset  = FINGER_TYPE2,
+        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4415, 5050
+        },
+        .y = {
+            SN_COORD, -55, 6680
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING6] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE2,
+        .tp_offset  = FINGER_TYPE2,
+        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4620, 5140
+        },
+        .y = {
+            SN_COORD, -150, 6600
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING5A] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE2,
+        .tp_offset  = FINGER_TYPE2,
+        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4750, 5280
+        },
+        .y = {
+            SN_COORD, -150, 6730
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING6A] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE2,
+        .tp_offset  = FINGER_TYPE2,
+        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4620, 5140
+        },
+        .y = {
+            SN_COORD, -150, 6600
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING7] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE2,
+        .tp_offset  = FINGER_TYPE2,
+        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4750, 5280
+        },
+        .y = {
+            SN_COORD, -150, 6730
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING7A] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE2,
+        .tp_offset  = FINGER_TYPE2,
+        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4750, 5280
+        },
+        .y = {
+            SN_COORD, -150, 6730
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+    [ATP_FLAG_WELLSPRING8] = {
+        .caps       = HAS_INTEGRATED_BUTTON,
+        .bt_datalen = sizeof(struct bt_data),
+        .tp_type    = TYPE3,
+        .tp_offset  = FINGER_TYPE3,
+        .tp_datalen = FINGER_TYPE3 + SIZEOF_ALL_FINGERS,
+        .p = {
+            SN_PRESSURE, 0, 300
+        },
+        .w = {
+            SN_WIDTH, 0, 2048
+        },
+        .x = {
+            SN_COORD, -4620, 5140
+        },
+        .y = {
+            SN_COORD, -150, 6600
+        },
+        .o = {
+            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        },
+    },
+};
+
+#define ATP_DEV(v,p,i) { USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) }
+
+static const STRUCT_USB_HOST_ID atp_devs[] = {
+        /* MacbookAir1.1 */
+        ATP_DEV(APPLE, WELLSPRING_ANSI, ATP_FLAG_WELLSPRING1),
+        ATP_DEV(APPLE, WELLSPRING_ISO,  ATP_FLAG_WELLSPRING1),
+        ATP_DEV(APPLE, WELLSPRING_JIS,  ATP_FLAG_WELLSPRING1),
+
+        /* MacbookProPenryn, aka wellspring2 */
+        ATP_DEV(APPLE, WELLSPRING2_ANSI, ATP_FLAG_WELLSPRING2),
+        ATP_DEV(APPLE, WELLSPRING2_ISO,  ATP_FLAG_WELLSPRING2),
+        ATP_DEV(APPLE, WELLSPRING2_JIS,  ATP_FLAG_WELLSPRING2),
+
+        /* Macbook5,1 (unibody), aka wellspring3 */
+        ATP_DEV(APPLE, WELLSPRING3_ANSI, ATP_FLAG_WELLSPRING3),
+        ATP_DEV(APPLE, WELLSPRING3_ISO,  ATP_FLAG_WELLSPRING3),
+        ATP_DEV(APPLE, WELLSPRING3_JIS,  ATP_FLAG_WELLSPRING3),
+
+        /* MacbookAir3,2 (unibody), aka wellspring4 */
+        ATP_DEV(APPLE, WELLSPRING4_ANSI, ATP_FLAG_WELLSPRING4),
+        ATP_DEV(APPLE, WELLSPRING4_ISO,  ATP_FLAG_WELLSPRING4),
+        ATP_DEV(APPLE, WELLSPRING4_JIS,  ATP_FLAG_WELLSPRING4),
+
+        /* MacbookAir3,1 (unibody), aka wellspring4 */
+        ATP_DEV(APPLE, WELLSPRING4A_ANSI, ATP_FLAG_WELLSPRING4A),
+        ATP_DEV(APPLE, WELLSPRING4A_ISO,  ATP_FLAG_WELLSPRING4A),
+        ATP_DEV(APPLE, WELLSPRING4A_JIS,  ATP_FLAG_WELLSPRING4A),
+
+        /* Macbook8 (unibody, March 2011) */
+        ATP_DEV(APPLE, WELLSPRING5_ANSI, ATP_FLAG_WELLSPRING5),
+        ATP_DEV(APPLE, WELLSPRING5_ISO,  ATP_FLAG_WELLSPRING5),
+        ATP_DEV(APPLE, WELLSPRING5_JIS,  ATP_FLAG_WELLSPRING5),
+
+        /* MacbookAir4,1 (unibody, July 2011) */
+        ATP_DEV(APPLE, WELLSPRING6A_ANSI, ATP_FLAG_WELLSPRING6A),
+        ATP_DEV(APPLE, WELLSPRING6A_ISO,  ATP_FLAG_WELLSPRING6A),
+        ATP_DEV(APPLE, WELLSPRING6A_JIS,  ATP_FLAG_WELLSPRING6A),
+
+        /* MacbookAir4,2 (unibody, July 2011) */
+        ATP_DEV(APPLE, WELLSPRING6_ANSI, ATP_FLAG_WELLSPRING6),
+        ATP_DEV(APPLE, WELLSPRING6_ISO,  ATP_FLAG_WELLSPRING6),
+        ATP_DEV(APPLE, WELLSPRING6_JIS,  ATP_FLAG_WELLSPRING6),
+
+        /* Macbook8,2 (unibody) */
+        ATP_DEV(APPLE, WELLSPRING5A_ANSI, ATP_FLAG_WELLSPRING5A),
+        ATP_DEV(APPLE, WELLSPRING5A_ISO,  ATP_FLAG_WELLSPRING5A),
+        ATP_DEV(APPLE, WELLSPRING5A_JIS,  ATP_FLAG_WELLSPRING5A),
+
+        /* MacbookPro10,1 (unibody, June 2012) */
+        /* MacbookPro11,? (unibody, June 2013) */
+        ATP_DEV(APPLE, WELLSPRING7_ANSI, ATP_FLAG_WELLSPRING7),
+        ATP_DEV(APPLE, WELLSPRING7_ISO,  ATP_FLAG_WELLSPRING7),
+        ATP_DEV(APPLE, WELLSPRING7_JIS,  ATP_FLAG_WELLSPRING7),
+
+        /* MacbookPro10,2 (unibody, October 2012) */
+        ATP_DEV(APPLE, WELLSPRING7A_ANSI, ATP_FLAG_WELLSPRING7A),
+        ATP_DEV(APPLE, WELLSPRING7A_ISO,  ATP_FLAG_WELLSPRING7A),
+        ATP_DEV(APPLE, WELLSPRING7A_JIS,  ATP_FLAG_WELLSPRING7A),
+
+        /* MacbookAir6,2 (unibody, June 2013) */
+        ATP_DEV(APPLE, WELLSPRING8_ANSI, ATP_FLAG_WELLSPRING8),
+        ATP_DEV(APPLE, WELLSPRING8_ISO,  ATP_FLAG_WELLSPRING8),
+        ATP_DEV(APPLE, WELLSPRING8_JIS,  ATP_FLAG_WELLSPRING8),
+};
+
+static int
+atp_probe(device_t self)
+{
+        struct usb_attach_arg *uaa = device_get_ivars(self);
+
+        if (uaa->usb_mode != USB_MODE_HOST)
+                return (ENXIO);
+        printf("atp: %u; uaa->info.bInterfaceClass: %u\n", __LINE__, uaa->info.bInterfaceClass);
+
+        if ((uaa->info.bInterfaceClass    != UICLASS_HID) ||
+            (uaa->info.bInterfaceProtocol != UIPROTO_MOUSE))
+                return (ENXIO);
+        // if (uaa->info.bIfaceIndex != ATP_IFACE_INDEX)
         //         return (ENXIO);
 
-        // if ((uaa->info.bInterfaceClass != UICLASS_HID) ||
-        //     (uaa->info.bInterfaceProtocol != UIPROTO_MOUSE))
-        //         return (ENXIO);
+        printf("passed initial checks\n");
 
-        // return (usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa));
-//         return (0);
-// }
+        printf("search would return %d\n", (usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa)));
+        return (ENXIO);
+}
 
-// static int
-// atp_attach(device_t dev)
-// {
+static int
+atp_attach(device_t dev)
+{
 //         struct atp_softc      *sc = device_get_softc(dev);
 //         struct usb_attach_arg *uaa = device_get_ivars(dev);
 //         usb_error_t            err;
@@ -194,12 +639,12 @@ struct atp_softc {
 
 // detach:
 //         atp_detach(dev);
-        // return (ENOMEM);
-// }
+        return (ENOMEM);
+}
 
-// static int
-// atp_detach(device_t dev)
-// {
+static int
+atp_detach(device_t dev)
+{
         // struct atp_softc *sc;
 
         // sc = device_get_softc(dev);
@@ -215,8 +660,8 @@ struct atp_softc {
 
         // mtx_destroy(&sc->sc_mutex);
 
-//         return (0);
-// }
+        return (0);
+}
 
 // void
 // atp_intr(struct usb_xfer *xfer, usb_error_t error)
@@ -228,30 +673,30 @@ struct atp_softc {
  * Load handler that deals with the loading and unloading of a KLD.
  */
 
-static int
-atp_loader(struct module *m, int what, void *arg)
-{
-        int err = 0;
+// static int
+// atp_loader(struct module *m, int what, void *arg)
+// {
+//         int err = 0;
 
-        switch (what) {
-        case MOD_LOAD:                /* kldload */
-                uprintf("Skeleton KLD loaded.\n");
-                break;
-        case MOD_UNLOAD:
-                uprintf("Skeleton KLD unloaded.\n");
-                break;
-        default:
-                err = EOPNOTSUPP;
-                break;
-        }
-        return(err);
-}
+//         switch (what) {
+//         case MOD_LOAD:                /* kldload */
+//                 uprintf("Skeleton KLD loaded.\n");
+//                 break;
+//         case MOD_UNLOAD:
+//                 uprintf("Skeleton KLD unloaded.\n");
+//                 break;
+//         default:
+//                 err = EOPNOTSUPP;
+//                 break;
+//         }
+//         return(err);
+// }
 
 static device_method_t atp_methods[] = {
         /* Device interface */
-        // DEVMETHOD(device_probe,  atp_probe),
-        // DEVMETHOD(device_attach, atp_attach),
-        // DEVMETHOD(device_detach, atp_detach),
+        DEVMETHOD(device_probe,  atp_probe),
+        DEVMETHOD(device_attach, atp_attach),
+        DEVMETHOD(device_detach, atp_detach),
         DEVMETHOD_END
 };
 
@@ -263,6 +708,6 @@ static driver_t atp_driver = {
 
 static devclass_t atp_devclass;
 
-DRIVER_MODULE(atp, uhub, atp_driver, atp_devclass, atp_loader /* evh */, 0);
+DRIVER_MODULE(atp, uhub, atp_driver, atp_devclass, NULL /*atp_loader*/ /* evh */, 0);
 MODULE_DEPEND(atp, usb, 1, 1, 1);
 MODULE_VERSION(atp, 1);
