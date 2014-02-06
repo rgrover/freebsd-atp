@@ -563,6 +563,8 @@ atp_probe(device_t self)
 static int
 atp_attach(device_t dev)
 {
+        printf("in atp_attach\n");
+        return (ENXIO);
 //         struct atp_softc      *sc = device_get_softc(dev);
 //         struct usb_attach_arg *uaa = device_get_ivars(dev);
 //         usb_error_t            err;
@@ -644,6 +646,7 @@ atp_attach(device_t dev)
 static int
 atp_detach(device_t dev)
 {
+        printf("in atp_detach\n");
         // struct atp_softc *sc;
 
         // sc = device_get_softc(dev);
