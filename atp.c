@@ -53,8 +53,8 @@ __FBSDID("$FreeBSD$");
 
 /* Device methods. */
 static device_probe_t  atp_probe;
-// static device_attach_t atp_attach;
-// static device_detach_t atp_detach;
+static device_attach_t atp_attach;
+static device_detach_t atp_detach;
 // static usb_callback_t  atp_intr;
 
 struct atp_softc {
