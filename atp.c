@@ -256,9 +256,9 @@ static device_method_t atp_methods[] = {
 };
 
 static driver_t atp_driver = {
-        .name = ATP_DRIVER_NAME,
+        .name    = ATP_DRIVER_NAME,
         .methods = atp_methods,
-        .size = sizeof(struct atp_softc)
+        .size    = sizeof(struct atp_softc)
 };
 
 static devclass_t atp_devclass;
