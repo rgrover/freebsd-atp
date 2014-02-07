@@ -208,270 +208,270 @@ struct atp_dev_params {
 };
 
 static const struct atp_dev_params atp_dev_params[ATP_FLAG_MAX] = {
-    [ATP_FLAG_WELLSPRING1] = {
-        .caps       = 0,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE1,
-        .tp_offset  = FINGER_TYPE1,
-        .tp_datalen = FINGER_TYPE1 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 256
+        [ATP_FLAG_WELLSPRING1] = {
+                .caps       = 0,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE1,
+                .tp_offset  = FINGER_TYPE1,
+                .tp_datalen = FINGER_TYPE1 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 256
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4824, 5342
+                },
+                .y = {
+                        SN_COORD, -172, 5820
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .w = {
-            SN_WIDTH, 0, 2048
+        [ATP_FLAG_WELLSPRING2] = {
+                .caps       = 0,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE1,
+                .tp_offset  = FINGER_TYPE1,
+                .tp_datalen = FINGER_TYPE1 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 256
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4824, 4824
+                },
+                .y = {
+                        SN_COORD, -172, 4290
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .x = {
-            SN_COORD, -4824, 5342
+        [ATP_FLAG_WELLSPRING3] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE2,
+                .tp_offset  = FINGER_TYPE2,
+                .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4460, 5166
+                },
+                .y = {
+                        SN_COORD, -75, 6700
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .y = {
-            SN_COORD, -172, 5820
+        [ATP_FLAG_WELLSPRING4] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE2,
+                .tp_offset  = FINGER_TYPE2,
+                .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4620, 5140
+                },
+                .y = {
+                        SN_COORD, -150, 6600
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        [ATP_FLAG_WELLSPRING4A] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE2,
+                .tp_offset  = FINGER_TYPE2,
+                .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4616, 5112
+                },
+                .y = {
+                        SN_COORD, -142, 5234
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-    },
-    [ATP_FLAG_WELLSPRING2] = {
-        .caps       = 0,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE1,
-        .tp_offset  = FINGER_TYPE1,
-        .tp_datalen = FINGER_TYPE1 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 256
+        [ATP_FLAG_WELLSPRING5] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE2,
+                .tp_offset  = FINGER_TYPE2,
+                .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4415, 5050
+                },
+                .y = {
+                        SN_COORD, -55, 6680
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .w = {
-            SN_WIDTH, 0, 2048
+        [ATP_FLAG_WELLSPRING6] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE2,
+                .tp_offset  = FINGER_TYPE2,
+                .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4620, 5140
+                },
+                .y = {
+                        SN_COORD, -150, 6600
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .x = {
-            SN_COORD, -4824, 4824
+        [ATP_FLAG_WELLSPRING5A] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE2,
+                .tp_offset  = FINGER_TYPE2,
+                .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4750, 5280
+                },
+                .y = {
+                        SN_COORD, -150, 6730
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .y = {
-            SN_COORD, -172, 4290
+        [ATP_FLAG_WELLSPRING6A] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE2,
+                .tp_offset  = FINGER_TYPE2,
+                .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4620, 5140
+                },
+                .y = {
+                        SN_COORD, -150, 6600
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+        [ATP_FLAG_WELLSPRING7] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE2,
+                .tp_offset  = FINGER_TYPE2,
+                .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4750, 5280
+                },
+                .y = {
+                        SN_COORD, -150, 6730
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-    },
-    [ATP_FLAG_WELLSPRING3] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE2,
-        .tp_offset  = FINGER_TYPE2,
-        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
+        [ATP_FLAG_WELLSPRING7A] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE2,
+                .tp_offset  = FINGER_TYPE2,
+                .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4750, 5280
+                },
+                .y = {
+                        SN_COORD, -150, 6730
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .w = {
-            SN_WIDTH, 0, 2048
+        [ATP_FLAG_WELLSPRING8] = {
+                .caps       = HAS_INTEGRATED_BUTTON,
+                .bt_datalen = sizeof(struct bt_data),
+                .tp_type    = TYPE3,
+                .tp_offset  = FINGER_TYPE3,
+                .tp_datalen = FINGER_TYPE3 + SIZEOF_ALL_FINGERS,
+                .p = {
+                        SN_PRESSURE, 0, 300
+                },
+                .w = {
+                        SN_WIDTH, 0, 2048
+                },
+                .x = {
+                        SN_COORD, -4620, 5140
+                },
+                .y = {
+                        SN_COORD, -150, 6600
+                },
+                .o = {
+                        SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+                },
         },
-        .x = {
-            SN_COORD, -4460, 5166
-        },
-        .y = {
-            SN_COORD, -75, 6700
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
-    [ATP_FLAG_WELLSPRING4] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE2,
-        .tp_offset  = FINGER_TYPE2,
-        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
-        },
-        .w = {
-            SN_WIDTH, 0, 2048
-        },
-        .x = {
-            SN_COORD, -4620, 5140
-        },
-        .y = {
-            SN_COORD, -150, 6600
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
-    [ATP_FLAG_WELLSPRING4A] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE2,
-        .tp_offset  = FINGER_TYPE2,
-        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
-        },
-        .w = {
-            SN_WIDTH, 0, 2048
-        },
-        .x = {
-            SN_COORD, -4616, 5112
-        },
-        .y = {
-            SN_COORD, -142, 5234
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
-    [ATP_FLAG_WELLSPRING5] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE2,
-        .tp_offset  = FINGER_TYPE2,
-        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
-        },
-        .w = {
-            SN_WIDTH, 0, 2048
-        },
-        .x = {
-            SN_COORD, -4415, 5050
-        },
-        .y = {
-            SN_COORD, -55, 6680
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
-    [ATP_FLAG_WELLSPRING6] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE2,
-        .tp_offset  = FINGER_TYPE2,
-        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
-        },
-        .w = {
-            SN_WIDTH, 0, 2048
-        },
-        .x = {
-            SN_COORD, -4620, 5140
-        },
-        .y = {
-            SN_COORD, -150, 6600
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
-    [ATP_FLAG_WELLSPRING5A] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE2,
-        .tp_offset  = FINGER_TYPE2,
-        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
-        },
-        .w = {
-            SN_WIDTH, 0, 2048
-        },
-        .x = {
-            SN_COORD, -4750, 5280
-        },
-        .y = {
-            SN_COORD, -150, 6730
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
-    [ATP_FLAG_WELLSPRING6A] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE2,
-        .tp_offset  = FINGER_TYPE2,
-        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
-        },
-        .w = {
-            SN_WIDTH, 0, 2048
-        },
-        .x = {
-            SN_COORD, -4620, 5140
-        },
-        .y = {
-            SN_COORD, -150, 6600
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
-    [ATP_FLAG_WELLSPRING7] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE2,
-        .tp_offset  = FINGER_TYPE2,
-        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
-        },
-        .w = {
-            SN_WIDTH, 0, 2048
-        },
-        .x = {
-            SN_COORD, -4750, 5280
-        },
-        .y = {
-            SN_COORD, -150, 6730
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
-    [ATP_FLAG_WELLSPRING7A] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE2,
-        .tp_offset  = FINGER_TYPE2,
-        .tp_datalen = FINGER_TYPE2 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
-        },
-        .w = {
-            SN_WIDTH, 0, 2048
-        },
-        .x = {
-            SN_COORD, -4750, 5280
-        },
-        .y = {
-            SN_COORD, -150, 6730
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
-    [ATP_FLAG_WELLSPRING8] = {
-        .caps       = HAS_INTEGRATED_BUTTON,
-        .bt_datalen = sizeof(struct bt_data),
-        .tp_type    = TYPE3,
-        .tp_offset  = FINGER_TYPE3,
-        .tp_datalen = FINGER_TYPE3 + SIZEOF_ALL_FINGERS,
-        .p = {
-            SN_PRESSURE, 0, 300
-        },
-        .w = {
-            SN_WIDTH, 0, 2048
-        },
-        .x = {
-            SN_COORD, -4620, 5140
-        },
-        .y = {
-            SN_COORD, -150, 6600
-        },
-        .o = {
-            SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
-        },
-    },
 };
 
 #define ATP_DEV(v,p,i) { USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) }
