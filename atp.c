@@ -52,6 +52,8 @@ __FBSDID("$FreeBSD$");
 #define USB_DEBUG_VAR atp_debug
 #include <dev/usb/usb_debug.h>
 
+#include <sys/mouse.h>
+
 #define ATP_DRIVER_NAME "atp"
 
 typedef enum interface_mode {
@@ -79,12 +81,12 @@ struct atp_softc {
         struct mtx             sc_mutex; /* for synchronization */
         struct usb_xfer       *sc_xfer[ATP_N_TRANSFER];
 
-//         struct usb_fifo_sc     sc_fifo;
+        struct usb_fifo_sc     sc_fifo;
 
 //         struct atp_dev_params *sc_params;
 
-//         mousehw_t              sc_hw;
-//         mousemode_t            sc_mode;
+        mousehw_t              sc_hw;
+        mousemode_t            sc_mode;
 //         u_int                  sc_pollrate;
 //         mousestatus_t          sc_status;
 //         u_int                  sc_state;
@@ -554,11 +556,29 @@ static const STRUCT_USB_HOST_ID atp_devs[] = {
         ATP_DEV(APPLE, WELLSPRING8_JIS,  ATP_FLAG_WELLSPRING8),
 };
 
+/*
+ * function prototypes
+ */
+static usb_fifo_cmd_t   atp_start_read;
+static usb_fifo_cmd_t   atp_stop_read;
+static usb_fifo_open_t  atp_open;
+static usb_fifo_close_t atp_close;
+static usb_fifo_ioctl_t atp_ioctl;
+
+static struct usb_fifo_methods atp_fifo_methods = {
+    .f_open       = &atp_open,
+    .f_close      = &atp_close,
+    .f_ioctl      = &atp_ioctl,
+    .f_start_read = &atp_start_read,
+    .f_stop_read  = &atp_stop_read,
+    .basename[0]  = ATP_DRIVER_NAME,
+};
+
 /* device initialization and shutdown */
 static int           atp_set_device_mode(struct atp_softc *sc, interface_mode mode);
 static void          atp_reset_callback(struct usb_xfer *, usb_error_t);
 // static int           atp_enable(struct atp_softc *sc);
-// static void          atp_disable(struct atp_softc *sc);
+static void          atp_disable(struct atp_softc *sc);
 // static int           atp_softc_populate(struct atp_softc *);
 // static void          atp_softc_unpopulate(struct atp_softc *);
 
@@ -633,6 +653,16 @@ atp_reset_callback(struct usb_xfer *xfer, usb_error_t error)
         }
 }
 
+static void
+atp_disable(struct atp_softc *sc)
+{
+    // atp_softc_unpopulate(sc);
+
+    // sc->sc_state &= ~(ATP_ENABLED | ATP_VALID);
+    printf("disabled atp\n");
+}
+
+
 static int
 atp_probe(device_t self)
 {
@@ -684,30 +714,30 @@ atp_attach(device_t dev)
                 goto detach;
         }
 
-//         if (usb_fifo_attach(sc->sc_usb_device, sc, &sc->sc_mutex,
-//                 &atp_fifo_methods, &sc->sc_fifo,
-//                 device_get_unit(dev), -1, uaa->info.bIfaceIndex,
-//                 UID_ROOT, GID_OPERATOR, 0644)) {
-//                 goto detach;
-//         }
+        if (usb_fifo_attach(sc->sc_usb_device, sc, &sc->sc_mutex,
+                &atp_fifo_methods, &sc->sc_fifo,
+                device_get_unit(dev), -1, uaa->info.bIfaceIndex,
+                UID_ROOT, GID_OPERATOR, 0644)) {
+                goto detach;
+        }
 
-//         device_set_usb_desc(dev);
+        device_set_usb_desc(dev);
 
 //         sc->sc_params           = &atp_dev_params[uaa->driver_info];
 
-//         sc->sc_hw.buttons       = 3;
-//         sc->sc_hw.iftype        = MOUSE_IF_USB;
-//         sc->sc_hw.type          = MOUSE_PAD;
-//         sc->sc_hw.model         = MOUSE_MODEL_GENERIC;
-//         sc->sc_hw.hwid          = 0;
-//         sc->sc_mode.protocol    = MOUSE_PROTO_MSC;
-//         sc->sc_mode.rate        = -1;
-//         sc->sc_mode.resolution  = MOUSE_RES_UNKNOWN;
+        sc->sc_hw.buttons       = 3;
+        sc->sc_hw.iftype        = MOUSE_IF_USB;
+        sc->sc_hw.type          = MOUSE_PAD;
+        sc->sc_hw.model         = MOUSE_MODEL_GENERIC;
+        sc->sc_hw.hwid          = 0;
+        sc->sc_mode.protocol    = MOUSE_PROTO_MSC;
+        sc->sc_mode.rate        = -1;
+        sc->sc_mode.resolution  = MOUSE_RES_UNKNOWN;
 //         sc->sc_mode.accelfactor = 0;
 //         sc->sc_mode.level       = 0;
-//         sc->sc_mode.packetsize  = MOUSE_MSC_PACKETSIZE;
-//         sc->sc_mode.syncmask[0] = MOUSE_MSC_SYNCMASK;
-//         sc->sc_mode.syncmask[1] = MOUSE_MSC_SYNC;
+        sc->sc_mode.packetsize  = MOUSE_MSC_PACKETSIZE;
+        sc->sc_mode.syncmask[0] = MOUSE_MSC_SYNCMASK;
+        sc->sc_mode.syncmask[1] = MOUSE_MSC_SYNC;
 
 //         sc->sc_state            = 0;
 
@@ -748,7 +778,7 @@ void
 atp_intr(struct usb_xfer *xfer, usb_error_t error)
 {
     // struct atp_softc      *sc = usbd_xfer_softc(xfer);
-    // int                    len;
+    int                    len;
     // struct usb_page_cache *pc;
     // uint8_t                status_bits;
     // atp_pspan  pspans_x[ATP_MAX_PSPANS_PER_AXIS];
@@ -757,10 +787,10 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
     // u_int      reaped_xlocs[ATP_MAX_STROKES];
     // u_int      tap_fingers = 0;
 
-    // usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
+    usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
 
-    // switch (USB_GET_STATE(xfer)) {
-    // case USB_ST_TRANSFERRED:
+    switch (USB_GET_STATE(xfer)) {
+    case USB_ST_TRANSFERRED:
     //     if (len > (int)sc->sc_params->data_len) {
     //         DPRINTFN(ATP_LLEVEL_ERROR,
     //             "truncating large packet from %u to %u bytes\n",
@@ -938,28 +968,191 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
     //         sc->sc_idlecount = 0;
     //     }
 
-    // case USB_ST_SETUP:
-    // tr_setup:
-    //     /* check if we can put more data into the FIFO */
-    //     if (usb_fifo_put_bytes_max(
-    //             sc->sc_fifo.fp[USB_FIFO_RX]) != 0) {
-    //         usbd_xfer_set_frame_len(xfer, 0,
-    //             sc->sc_params->data_len);
-    //         usbd_transfer_submit(xfer);
-    //     }
-    //     break;
+    case USB_ST_SETUP:
+    tr_setup:
+        // /* check if we can put more data into the FIFO */
+        // if (usb_fifo_put_bytes_max(
+        //         sc->sc_fifo.fp[USB_FIFO_RX]) != 0) {
+        //     usbd_xfer_set_frame_len(xfer, 0,
+        //         sc->sc_params->data_len);
+        //     usbd_transfer_submit(xfer);
+        // }
+        break;
 
-    // default:                        /* Error */
-    //     if (error != USB_ERR_CANCELLED) {
-    //         /* try clear stall first */
-    //         usbd_xfer_set_stall(xfer);
-    //         goto tr_setup;
-    //     }
-    //     break;
-    // }
+    default:                        /* Error */
+        if (error != USB_ERR_CANCELLED) {
+            /* try clear stall first */
+            usbd_xfer_set_stall(xfer);
+            goto tr_setup;
+        }
+        break;
+    }
 
     return;
 }
+
+static void
+atp_start_read(struct usb_fifo *fifo)
+{
+    // struct atp_softc *sc = usb_fifo_softc(fifo);
+    // int rate;
+
+    // /* Check if we should override the default polling interval */
+    // rate = sc->sc_pollrate;
+    // /* Range check rate */
+    // if (rate > 1000)
+    //     rate = 1000;
+    // /* Check for set rate */
+    // if ((rate > 0) && (sc->sc_xfer[ATP_INTR_DT] != NULL)) {
+    //     /* Stop current transfer, if any */
+    //     usbd_transfer_stop(sc->sc_xfer[ATP_INTR_DT]);
+    //     /* Set new interval */
+    //     usbd_xfer_set_interval(sc->sc_xfer[ATP_INTR_DT], 1000 / rate);
+    //     /* Only set pollrate once */
+    //     sc->sc_pollrate = 0;
+    // }
+
+    // usbd_transfer_start(sc->sc_xfer[ATP_INTR_DT]);
+}
+
+static void
+atp_stop_read(struct usb_fifo *fifo)
+{
+    // struct atp_softc *sc = usb_fifo_softc(fifo);
+
+    // usbd_transfer_stop(sc->sc_xfer[ATP_INTR_DT]);
+}
+
+static int
+atp_open(struct usb_fifo *fifo, int fflags)
+{
+    // DPRINTFN(ATP_LLEVEL_INFO, "\n");
+
+    // if (fflags & FREAD) {
+    //     struct atp_softc *sc = usb_fifo_softc(fifo);
+    //     int rc;
+
+    //     if (sc->sc_state & ATP_ENABLED)
+    //         return (EBUSY);
+
+    //     if (usb_fifo_alloc_buffer(fifo,
+    //         ATP_FIFO_BUF_SIZE, ATP_FIFO_QUEUE_MAXLEN)) {
+    //         return (ENOMEM);
+    //     }
+
+    //     rc = atp_enable(sc);
+    //     if (rc != 0) {
+    //         usb_fifo_free_buffer(fifo);
+    //         return (rc);
+    //     }
+    // }
+
+    return (ENOMEM);
+}
+
+static void
+atp_close(struct usb_fifo *fifo, int fflags)
+{
+    if (fflags & FREAD) {
+        struct atp_softc *sc = usb_fifo_softc(fifo);
+
+        atp_disable(sc);
+        usb_fifo_free_buffer(fifo);
+    }
+}
+
+int
+atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
+{
+//     struct atp_softc *sc = usb_fifo_softc(fifo);
+//     mousemode_t mode;
+//     int error = 0;
+
+//     mtx_lock(&sc->sc_mutex);
+
+//     switch(cmd) {
+//     case MOUSE_GETHWINFO:
+//         *(mousehw_t *)addr = sc->sc_hw;
+//         break;
+//     case MOUSE_GETMODE:
+//         *(mousemode_t *)addr = sc->sc_mode;
+//         break;
+//     case MOUSE_SETMODE:
+//         mode = *(mousemode_t *)addr;
+
+//         if (mode.level == -1)
+//             /* Don't change the current setting */
+//             ;
+//         else if ((mode.level < 0) || (mode.level > 1)) {
+//             error = EINVAL;
+//             goto done;
+//         }
+//         sc->sc_mode.level = mode.level;
+//         sc->sc_pollrate   = mode.rate;
+//         sc->sc_hw.buttons = 3;
+
+//         if (sc->sc_mode.level == 0) {
+//             sc->sc_mode.protocol = MOUSE_PROTO_MSC;
+//             sc->sc_mode.packetsize = MOUSE_MSC_PACKETSIZE;
+//             sc->sc_mode.syncmask[0] = MOUSE_MSC_SYNCMASK;
+//             sc->sc_mode.syncmask[1] = MOUSE_MSC_SYNC;
+//         } else if (sc->sc_mode.level == 1) {
+//             sc->sc_mode.protocol = MOUSE_PROTO_SYSMOUSE;
+//             sc->sc_mode.packetsize = MOUSE_SYS_PACKETSIZE;
+//             sc->sc_mode.syncmask[0] = MOUSE_SYS_SYNCMASK;
+//             sc->sc_mode.syncmask[1] = MOUSE_SYS_SYNC;
+//         }
+//         atp_reset_buf(sc);
+//         break;
+//     case MOUSE_GETLEVEL:
+//         *(int *)addr = sc->sc_mode.level;
+//         break;
+//     case MOUSE_SETLEVEL:
+//         if (*(int *)addr < 0 || *(int *)addr > 1) {
+//             error = EINVAL;
+//             goto done;
+//         }
+//         sc->sc_mode.level = *(int *)addr;
+//         sc->sc_hw.buttons = 3;
+
+//         if (sc->sc_mode.level == 0) {
+//             sc->sc_mode.protocol = MOUSE_PROTO_MSC;
+//             sc->sc_mode.packetsize = MOUSE_MSC_PACKETSIZE;
+//             sc->sc_mode.syncmask[0] = MOUSE_MSC_SYNCMASK;
+//             sc->sc_mode.syncmask[1] = MOUSE_MSC_SYNC;
+//         } else if (sc->sc_mode.level == 1) {
+//             sc->sc_mode.protocol = MOUSE_PROTO_SYSMOUSE;
+//             sc->sc_mode.packetsize = MOUSE_SYS_PACKETSIZE;
+//             sc->sc_mode.syncmask[0] = MOUSE_SYS_SYNCMASK;
+//             sc->sc_mode.syncmask[1] = MOUSE_SYS_SYNC;
+//         }
+//         atp_reset_buf(sc);
+//         break;
+//     case MOUSE_GETSTATUS: {
+//         mousestatus_t *status = (mousestatus_t *)addr;
+
+//         *status = sc->sc_status;
+//         sc->sc_status.obutton = sc->sc_status.button;
+//         sc->sc_status.button  = 0;
+//         sc->sc_status.dx = 0;
+//         sc->sc_status.dy = 0;
+//         sc->sc_status.dz = 0;
+
+//         if (status->dx || status->dy || status->dz)
+//             status->flags |= MOUSE_POSCHANGED;
+//         if (status->button != status->obutton)
+//             status->flags |= MOUSE_BUTTONSCHANGED;
+//         break;
+//     }
+//     default:
+//         error = ENOTTY;
+//     }
+
+// done:
+//     mtx_unlock(&sc->sc_mutex);
+    return (ENOTTY);
+}
+
 
 static device_method_t atp_methods[] = {
         /* Device interface */
