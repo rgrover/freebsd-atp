@@ -9,3 +9,9 @@ bus_if.h
 device_if.h
 opt_usb.h
 usbdevs.h
+
+*.sublime-project
+*.sublime-workspace
+freebsd.cfg
+sys/
+wsp.c
