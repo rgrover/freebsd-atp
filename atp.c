@@ -75,6 +75,9 @@ enum {
         ATP_N_TRANSFER,
 };
 
+#define ATP_FIFO_BUF_SIZE        8 /* bytes */
+#define ATP_FIFO_QUEUE_MAXLEN   50 /* units */
+
 struct atp_softc {
         device_t               sc_dev;
         struct usb_device     *sc_usb_device;
@@ -89,11 +92,11 @@ struct atp_softc {
         mousemode_t            sc_mode;
 //         u_int                  sc_pollrate;
 //         mousestatus_t          sc_status;
-//         u_int                  sc_state;
-// #define ATP_ENABLED            0x01
-// #define ATP_ZOMBIES_EXIST      0x02
-// #define ATP_DOUBLE_TAP_DRAG    0x04
-// #define ATP_VALID              0x08
+        u_int                  sc_state;
+#define ATP_ENABLED            0x01
+#define ATP_ZOMBIES_EXIST      0x02
+#define ATP_DOUBLE_TAP_DRAG    0x04
+#define ATP_VALID              0x08
 
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
@@ -577,7 +580,7 @@ static struct usb_fifo_methods atp_fifo_methods = {
 /* device initialization and shutdown */
 static int           atp_set_device_mode(struct atp_softc *sc, interface_mode mode);
 static void          atp_reset_callback(struct usb_xfer *, usb_error_t);
-// static int           atp_enable(struct atp_softc *sc);
+static int           atp_enable(struct atp_softc *sc);
 static void          atp_disable(struct atp_softc *sc);
 // static int           atp_softc_populate(struct atp_softc *);
 // static void          atp_softc_unpopulate(struct atp_softc *);
@@ -653,12 +656,33 @@ atp_reset_callback(struct usb_xfer *xfer, usb_error_t error)
         }
 }
 
+static int
+atp_enable(struct atp_softc *sc)
+{
+    /* Allocate the dynamic buffers */
+    // if (atp_softc_populate(sc) != 0) {
+    //     atp_softc_unpopulate(sc);
+    //     return (ENOMEM);
+    // }
+
+    // /* reset status */
+    // memset(sc->sc_strokes, 0, sizeof(sc->sc_strokes));
+    // sc->sc_n_strokes = 0;
+    // memset(&sc->sc_status, 0, sizeof(sc->sc_status));
+    // sc->sc_idlecount = 0;
+    // sc->sc_state |= ATP_ENABLED;
+
+    // DPRINTFN(ATP_LLEVEL_INFO, "enabled atp\n");
+    return (0);
+}
+
+
 static void
 atp_disable(struct atp_softc *sc)
 {
     // atp_softc_unpopulate(sc);
 
-    // sc->sc_state &= ~(ATP_ENABLED | ATP_VALID);
+    sc->sc_state &= ~(ATP_ENABLED | ATP_VALID);
     printf("disabled atp\n");
 }
 
@@ -739,13 +763,13 @@ atp_attach(device_t dev)
         sc->sc_mode.syncmask[0] = MOUSE_MSC_SYNCMASK;
         sc->sc_mode.syncmask[1] = MOUSE_MSC_SYNC;
 
-//         sc->sc_state            = 0;
+        sc->sc_state            = 0;
 
 //         sc->sc_left_margin  = atp_mickeys_scale_factor;
 //         sc->sc_right_margin = (sc->sc_params->n_xsensors - 1) *
 //                 atp_mickeys_scale_factor;
 
-//         return (0);
+        return (0);
 
 detach:
         atp_detach(dev);
@@ -759,13 +783,13 @@ atp_detach(device_t dev)
         struct atp_softc *sc;
 
         sc = device_get_softc(dev);
-        // if (sc->sc_state & ATP_ENABLED) {
-        //         mtx_lock(&sc->sc_mutex);
-        //         atp_disable(sc);
-        //         mtx_unlock(&sc->sc_mutex);
-        // }
+        if (sc->sc_state & ATP_ENABLED) {
+                mtx_lock(&sc->sc_mutex);
+                atp_disable(sc);
+                mtx_unlock(&sc->sc_mutex);
+        }
 
-        // usb_fifo_detach(&sc->sc_fifo);
+        usb_fifo_detach(&sc->sc_fifo);
 
         usbd_transfer_unsetup(sc->sc_xfer, ATP_N_TRANSFER);
 
@@ -1026,26 +1050,26 @@ atp_stop_read(struct usb_fifo *fifo)
 static int
 atp_open(struct usb_fifo *fifo, int fflags)
 {
-    // DPRINTFN(ATP_LLEVEL_INFO, "\n");
+    DPRINTFN(ATP_LLEVEL_INFO, "\n");
 
-    // if (fflags & FREAD) {
-    //     struct atp_softc *sc = usb_fifo_softc(fifo);
-    //     int rc;
+    if (fflags & FREAD) {
+        struct atp_softc *sc = usb_fifo_softc(fifo);
+        int rc;
 
-    //     if (sc->sc_state & ATP_ENABLED)
-    //         return (EBUSY);
+        if (sc->sc_state & ATP_ENABLED)
+            return (EBUSY);
 
-    //     if (usb_fifo_alloc_buffer(fifo,
-    //         ATP_FIFO_BUF_SIZE, ATP_FIFO_QUEUE_MAXLEN)) {
-    //         return (ENOMEM);
-    //     }
+        if (usb_fifo_alloc_buffer(fifo,
+            ATP_FIFO_BUF_SIZE, ATP_FIFO_QUEUE_MAXLEN)) {
+            return (ENOMEM);
+        }
 
-    //     rc = atp_enable(sc);
-    //     if (rc != 0) {
-    //         usb_fifo_free_buffer(fifo);
-    //         return (rc);
-    //     }
-    // }
+        rc = atp_enable(sc);
+        if (rc != 0) {
+            usb_fifo_free_buffer(fifo);
+            return (rc);
+        }
+    }
 
     return (ENOMEM);
 }
