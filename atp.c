@@ -747,6 +747,218 @@ atp_detach(device_t dev)
 void
 atp_intr(struct usb_xfer *xfer, usb_error_t error)
 {
+    // struct atp_softc      *sc = usbd_xfer_softc(xfer);
+    // int                    len;
+    // struct usb_page_cache *pc;
+    // uint8_t                status_bits;
+    // atp_pspan  pspans_x[ATP_MAX_PSPANS_PER_AXIS];
+    // atp_pspan  pspans_y[ATP_MAX_PSPANS_PER_AXIS];
+    // u_int      n_xpspans = 0, n_ypspans = 0;
+    // u_int      reaped_xlocs[ATP_MAX_STROKES];
+    // u_int      tap_fingers = 0;
+
+    // usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
+
+    // switch (USB_GET_STATE(xfer)) {
+    // case USB_ST_TRANSFERRED:
+    //     if (len > (int)sc->sc_params->data_len) {
+    //         DPRINTFN(ATP_LLEVEL_ERROR,
+    //             "truncating large packet from %u to %u bytes\n",
+    //             len, sc->sc_params->data_len);
+    //         len = sc->sc_params->data_len;
+    //     }
+    //     if (len < (int)sc->sc_params->data_len)
+    //         goto tr_setup;
+
+    //     pc = usbd_xfer_get_frame(xfer, 0);
+    //     usbd_copy_out(pc, 0, sc->sensor_data, sc->sc_params->data_len);
+
+    //     /* Interpret sensor data */
+    //     atp_interpret_sensor_data(sc->sensor_data,
+    //         sc->sc_params->n_xsensors, X, sc->cur_x,
+    //         sc->sc_params->prot);
+    //     atp_interpret_sensor_data(sc->sensor_data,
+    //         sc->sc_params->n_ysensors, Y,  sc->cur_y,
+    //         sc->sc_params->prot);
+
+    //     /*
+    //      * If this is the initial update (from an untouched
+    //      * pad), we should set the base values for the sensor
+    //      * data; deltas with respect to these base values can
+    //      * be used as pressure readings subsequently.
+    //      */
+    //     status_bits = sc->sensor_data[sc->sc_params->data_len - 1];
+    //     if ((sc->sc_params->prot == ATP_PROT_GEYSER3 &&
+    //         (status_bits & ATP_STATUS_BASE_UPDATE)) ||
+    //         !(sc->sc_state & ATP_VALID)) {
+    //         memcpy(sc->base_x, sc->cur_x,
+    //             sc->sc_params->n_xsensors * sizeof(*(sc->base_x)));
+    //         memcpy(sc->base_y, sc->cur_y,
+    //             sc->sc_params->n_ysensors * sizeof(*(sc->base_y)));
+    //         sc->sc_state |= ATP_VALID;
+    //         goto tr_setup;
+    //     }
+
+    //     /* Get pressure readings and detect p-spans for both axes. */
+    //     atp_get_pressures(sc->pressure_x, sc->cur_x, sc->base_x,
+    //         sc->sc_params->n_xsensors);
+    //     atp_detect_pspans(sc->pressure_x, sc->sc_params->n_xsensors,
+    //         ATP_MAX_PSPANS_PER_AXIS,
+    //         pspans_x, &n_xpspans);
+    //     atp_get_pressures(sc->pressure_y, sc->cur_y, sc->base_y,
+    //         sc->sc_params->n_ysensors);
+    //     atp_detect_pspans(sc->pressure_y, sc->sc_params->n_ysensors,
+    //         ATP_MAX_PSPANS_PER_AXIS,
+    //         pspans_y, &n_ypspans);
+
+    //     /* Update strokes with new pspans to detect movements. */
+    //     sc->sc_status.flags &= ~MOUSE_POSCHANGED;
+    //     if (atp_update_strokes(sc,
+    //         pspans_x, n_xpspans,
+    //         pspans_y, n_ypspans))
+    //         sc->sc_status.flags |= MOUSE_POSCHANGED;
+
+    //     /* Reap zombies if it is time. */
+    //     if (sc->sc_state & ATP_ZOMBIES_EXIST) {
+    //         struct timeval now;
+
+    //         getmicrotime(&now);
+    //         if (timevalcmp(&now, &sc->sc_reap_time, >=))
+    //             atp_reap_zombies(sc, &tap_fingers,
+    //                 reaped_xlocs);
+    //     }
+
+    //     sc->sc_status.flags &= ~MOUSE_STDBUTTONSCHANGED;
+    //     sc->sc_status.obutton = sc->sc_status.button;
+
+    //     /* Get the state of the physical buttton. */
+    //     sc->sc_status.button = (status_bits & ATP_STATUS_BUTTON) ?
+    //         MOUSE_BUTTON1DOWN : 0;
+    //     if (sc->sc_status.button != 0) {
+    //         /* Reset DOUBLE_TAP_N_DRAG if the button is pressed. */
+    //         sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
+    //     } else if (sc->sc_state & ATP_DOUBLE_TAP_DRAG) {
+    //         /* Assume a button-press with DOUBLE_TAP_N_DRAG. */
+    //         sc->sc_status.button = MOUSE_BUTTON1DOWN;
+    //     }
+
+    //     sc->sc_status.flags |=
+    //         sc->sc_status.button ^ sc->sc_status.obutton;
+    //     if (sc->sc_status.flags & MOUSE_STDBUTTONSCHANGED) {
+    //         DPRINTFN(ATP_LLEVEL_INFO, "button %s\n",
+    //             ((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
+    //             "pressed" : "released"));
+    //     } else if ((sc->sc_status.obutton == 0) &&
+    //         (sc->sc_status.button == 0) &&
+    //         (tap_fingers != 0)) {
+    //         /* Ignore single-finger taps at the edges. */
+    //         if ((tap_fingers == 1) &&
+    //             ((reaped_xlocs[0] <= sc->sc_left_margin) ||
+    //             (reaped_xlocs[0] > sc->sc_right_margin))) {
+    //             tap_fingers = 0;
+    //         }
+    //         DPRINTFN(ATP_LLEVEL_INFO,
+    //             "tap_fingers: %u\n", tap_fingers);
+    //     }
+
+    //     if (sc->sc_status.flags &
+    //         (MOUSE_POSCHANGED | MOUSE_STDBUTTONSCHANGED)) {
+    //         int   dx, dy;
+    //         u_int n_movements;
+
+    //         dx = 0, dy = 0, n_movements = 0;
+    //         for (u_int i = 0; i < sc->sc_n_strokes; i++) {
+    //             atp_stroke *stroke = &sc->sc_strokes[i];
+
+    //             if ((stroke->components[X].movement) ||
+    //                 (stroke->components[Y].movement)) {
+    //                 dx += stroke->components[X].movement;
+    //                 dy += stroke->components[Y].movement;
+    //                 n_movements++;
+    //             }
+    //         }
+    //         /*
+    //          * Disregard movement if multiple
+    //          * strokes record motion.
+    //          */
+    //         if (n_movements != 1)
+    //             dx = 0, dy = 0;
+
+    //         sc->sc_status.dx += dx;
+    //         sc->sc_status.dy += dy;
+    //         atp_add_to_queue(sc, dx, -dy, sc->sc_status.button);
+    //     }
+
+    //     if (tap_fingers != 0) {
+    //         /* Add a pair of events (button-down and button-up). */
+    //         switch (tap_fingers) {
+    //         case 1: atp_add_to_queue(sc, 0, 0, MOUSE_BUTTON1DOWN);
+    //             break;
+    //         case 2: atp_add_to_queue(sc, 0, 0, MOUSE_BUTTON2DOWN);
+    //             break;
+    //         case 3: atp_add_to_queue(sc, 0, 0, MOUSE_BUTTON3DOWN);
+    //             break;
+    //         default: break;/* handle taps of only up to 3 fingers */
+    //         }
+    //         atp_add_to_queue(sc, 0, 0, 0); /* button release */
+    //     }
+
+    //     /*
+    //      * The device continues to trigger interrupts at a
+    //      * fast rate even after touchpad activity has
+    //      * stopped. Upon detecting that the device has
+    //      * remained idle beyond a threshold, we reinitialize
+    //      * it to silence the interrupts.
+    //      */
+    //     if ((sc->sc_status.flags  == 0) &&
+    //         (sc->sc_n_strokes     == 0) &&
+    //         (sc->sc_status.button == 0)) {
+    //         sc->sc_idlecount++;
+    //         if (sc->sc_idlecount >= ATP_IDLENESS_THRESHOLD) {
+    //             DPRINTFN(ATP_LLEVEL_INFO, "idle\n");
+
+    //             /*
+    //              * Use the last frame before we go idle for
+    //              * calibration on pads which do not send
+    //              * calibration frames.
+    //              */
+    //             if (sc->sc_params->prot < ATP_PROT_GEYSER3) {
+    //                 memcpy(sc->base_x, sc->cur_x,
+    //                     sc->sc_params->n_xsensors *
+    //                     sizeof(*(sc->base_x)));
+    //                 memcpy(sc->base_y, sc->cur_y,
+    //                     sc->sc_params->n_ysensors *
+    //                     sizeof(*(sc->base_y)));
+    //             }
+
+    //             sc->sc_idlecount = 0;
+    //             usbd_transfer_start(sc->sc_xfer[ATP_RESET]);
+    //         }
+    //     } else {
+    //         sc->sc_idlecount = 0;
+    //     }
+
+    // case USB_ST_SETUP:
+    // tr_setup:
+    //     /* check if we can put more data into the FIFO */
+    //     if (usb_fifo_put_bytes_max(
+    //             sc->sc_fifo.fp[USB_FIFO_RX]) != 0) {
+    //         usbd_xfer_set_frame_len(xfer, 0,
+    //             sc->sc_params->data_len);
+    //         usbd_transfer_submit(xfer);
+    //     }
+    //     break;
+
+    // default:                        /* Error */
+    //     if (error != USB_ERR_CANCELLED) {
+    //         /* try clear stall first */
+    //         usbd_xfer_set_stall(xfer);
+    //         goto tr_setup;
+    //     }
+    //     break;
+    // }
+
+    return;
 }
 
 static device_method_t atp_methods[] = {
