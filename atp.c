@@ -69,7 +69,7 @@ static device_detach_t atp_detach;
 struct atp_softc {
         device_t               sc_dev;
         struct usb_device     *sc_usb_device;
-//         struct mtx             sc_mutex; /* for synchronization */
+        struct mtx             sc_mutex; /* for synchronization */
 //         struct usb_xfer       *sc_xfer[ATP_N_TRANSFER];
 //         struct usb_fifo_sc     sc_fifo;
 
@@ -631,7 +631,7 @@ atp_attach(device_t dev)
                 return (ENXIO);
         }
 
-//         mtx_init(&sc->sc_mutex, "atpmtx", NULL, MTX_DEF | MTX_RECURSE);
+        mtx_init(&sc->sc_mutex, "atpmtx", NULL, MTX_DEF | MTX_RECURSE);
 
 //         err = usbd_transfer_setup(uaa->device,
 //             &uaa->info.bIfaceIndex, sc->sc_xfer, atp_config,
@@ -676,7 +676,7 @@ atp_attach(device_t dev)
 //         return (0);
 
 // detach:
-//         atp_detach(dev);
+        atp_detach(dev);
         return (ENOMEM);
 }
 
@@ -684,9 +684,9 @@ static int
 atp_detach(device_t dev)
 {
         printf("in atp_detach\n");
-        // struct atp_softc *sc;
+        struct atp_softc *sc;
 
-        // sc = device_get_softc(dev);
+        sc = device_get_softc(dev);
         // if (sc->sc_state & ATP_ENABLED) {
         //         mtx_lock(&sc->sc_mutex);
         //         atp_disable(sc);
@@ -697,7 +697,7 @@ atp_detach(device_t dev)
 
         // usbd_transfer_unsetup(sc->sc_xfer, ATP_N_TRANSFER);
 
-        // mtx_destroy(&sc->sc_mutex);
+        mtx_destroy(&sc->sc_mutex);
 
         return (0);
 }
