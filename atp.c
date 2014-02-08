@@ -865,9 +865,9 @@ atp_attach(device_t dev)
 	}
 
 	if (usb_fifo_attach(sc->sc_usb_device, sc, &sc->sc_mutex,
-		&atp_fifo_methods, &sc->sc_fifo,
-		device_get_unit(dev), -1, uaa->info.bIfaceIndex,
-		UID_ROOT, GID_OPERATOR, 0644)) {
+	    &atp_fifo_methods, &sc->sc_fifo,
+	    device_get_unit(dev), -1, uaa->info.bIfaceIndex,
+	    UID_ROOT, GID_OPERATOR, 0644)) {
 		goto detach;
 	}
 
@@ -1264,8 +1264,6 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 	case MOUSE_GETLEVEL:
 		*(int *)addr = sc->sc_mode.level;
 		break;
-
-
 	case MOUSE_SETLEVEL:
 		if ((*(int *)addr < 0) || (*(int *)addr > 1)) {
 			error = EINVAL;
@@ -1287,7 +1285,6 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 		}
 		atp_reset_buf(sc);
 		break;
-
 	case MOUSE_GETSTATUS: {
 		mousestatus_t *status = (mousestatus_t *)addr;
 
