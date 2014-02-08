@@ -64,13 +64,21 @@ typedef enum interface_mode {
 static device_probe_t  atp_probe;
 static device_attach_t atp_attach;
 static device_detach_t atp_detach;
-// static usb_callback_t  atp_intr;
+static usb_callback_t  atp_intr;
+
+
+enum {
+        ATP_INTR_DT,
+        ATP_RESET,
+        ATP_N_TRANSFER,
+};
 
 struct atp_softc {
         device_t               sc_dev;
         struct usb_device     *sc_usb_device;
         struct mtx             sc_mutex; /* for synchronization */
-//         struct usb_xfer       *sc_xfer[ATP_N_TRANSFER];
+        struct usb_xfer       *sc_xfer[ATP_N_TRANSFER];
+
 //         struct usb_fifo_sc     sc_fifo;
 
 //         struct atp_dev_params *sc_params;
@@ -548,7 +556,7 @@ static const STRUCT_USB_HOST_ID atp_devs[] = {
 
 /* device initialization and shutdown */
 static int           atp_set_device_mode(struct atp_softc *sc, interface_mode mode);
-// static void          atp_reset_callback(struct usb_xfer *, usb_error_t);
+static void          atp_reset_callback(struct usb_xfer *, usb_error_t);
 // static int           atp_enable(struct atp_softc *sc);
 // static void          atp_disable(struct atp_softc *sc);
 // static int           atp_softc_populate(struct atp_softc *);
@@ -556,6 +564,29 @@ static int           atp_set_device_mode(struct atp_softc *sc, interface_mode mo
 
 
 #define MODE_LENGTH 8 /* num bytes holding the device mode */
+
+static const struct usb_config atp_config[ATP_N_TRANSFER] = {
+        [ATP_INTR_DT] = {
+                .type      = UE_INTERRUPT,
+                .endpoint  = UE_ADDR_ANY,
+                .direction = UE_DIR_IN,
+                .flags = {
+                        .pipe_bof = 1, /* block pipe on failure */
+                        .short_xfer_ok = 1,
+                },
+                .bufsize   = 0, /* use wMaxPacketSize */
+                .callback  = &atp_intr,
+        },
+        [ATP_RESET] = {
+                .type      = UE_CONTROL,
+                .endpoint  = 0, /* Control pipe */
+                .direction = UE_DIR_ANY,
+                .bufsize = sizeof(struct usb_device_request) + MODE_LENGTH,
+                .callback  = &atp_reset_callback,
+                .interval = 0,  /* no pre-delay */
+        },
+};
+
 
 static int
 atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
@@ -589,6 +620,19 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
             0x03 /* type */, 0x00 /* id */));
 }
 
+void
+atp_reset_callback(struct usb_xfer *xfer, usb_error_t error)
+{
+        switch (USB_GET_STATE(xfer)) {
+        case USB_ST_SETUP:
+                break;
+
+        case USB_ST_TRANSFERRED:
+        default:
+                break;
+        }
+}
+
 static int
 atp_probe(device_t self)
 {
@@ -609,7 +653,7 @@ atp_attach(device_t dev)
 {
         struct atp_softc      *sc  = device_get_softc(dev);
         struct usb_attach_arg *uaa = device_get_ivars(dev);
-        // usb_error_t            err;
+        usb_error_t            err;
 
         DPRINTFN(ATP_LLEVEL_INFO, "sc=%p\n", sc);
 
@@ -632,14 +676,13 @@ atp_attach(device_t dev)
 
         mtx_init(&sc->sc_mutex, "atpmtx", NULL, MTX_DEF | MTX_RECURSE);
 
-//         err = usbd_transfer_setup(uaa->device,
-//             &uaa->info.bIfaceIndex, sc->sc_xfer, atp_config,
-//             ATP_N_TRANSFER, sc, &sc->sc_mutex);
-
-//         if (err) {
-//                 DPRINTF("error=%s\n", usbd_errstr(err));
-//                 goto detach;
-//         }
+        err = usbd_transfer_setup(uaa->device,
+            &uaa->info.bIfaceIndex, sc->sc_xfer, atp_config,
+            ATP_N_TRANSFER, sc, &sc->sc_mutex);
+        if (err) {
+                DPRINTF("error=%s\n", usbd_errstr(err));
+                goto detach;
+        }
 
 //         if (usb_fifo_attach(sc->sc_usb_device, sc, &sc->sc_mutex,
 //                 &atp_fifo_methods, &sc->sc_fifo,
@@ -674,7 +717,7 @@ atp_attach(device_t dev)
 
 //         return (0);
 
-// detach:
+detach:
         atp_detach(dev);
         return (ENOMEM);
 }
@@ -694,17 +737,17 @@ atp_detach(device_t dev)
 
         // usb_fifo_detach(&sc->sc_fifo);
 
-        // usbd_transfer_unsetup(sc->sc_xfer, ATP_N_TRANSFER);
+        usbd_transfer_unsetup(sc->sc_xfer, ATP_N_TRANSFER);
 
         mtx_destroy(&sc->sc_mutex);
 
         return (0);
 }
 
-// void
-// atp_intr(struct usb_xfer *xfer, usb_error_t error)
-// {
-// }
+void
+atp_intr(struct usb_xfer *xfer, usb_error_t error)
+{
+}
 
 static device_method_t atp_methods[] = {
         /* Device interface */
