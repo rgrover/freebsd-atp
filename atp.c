@@ -86,7 +86,7 @@ struct atp_softc {
 
         struct usb_fifo_sc     sc_fifo;
 
-//         struct atp_dev_params *sc_params;
+//         struct wsp_dev_params *sc_params;
 
         mousehw_t              sc_hw;
         mousemode_t            sc_mode;
@@ -214,7 +214,7 @@ enum {
 };
 
 /* device-specific configuration */
-struct atp_dev_params {
+struct wsp_dev_params {
         uint8_t  caps;          /* device capability bitmask */
         uint16_t bt_datalen;    /* data length of the button interface */
         uint8_t  tp_type;       /* type of trackpad interface */
@@ -227,7 +227,7 @@ struct atp_dev_params {
         struct wsp_param o;     /* orientation limits */
 };
 
-static const struct atp_dev_params atp_dev_params[ATP_FLAG_MAX] = {
+static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
         [ATP_FLAG_WELLSPRING1] = {
                 .caps       = 0,
                 .bt_datalen = sizeof(struct bt_data),
@@ -747,7 +747,7 @@ atp_attach(device_t dev)
 
         device_set_usb_desc(dev);
 
-//         sc->sc_params           = &atp_dev_params[uaa->driver_info];
+//         sc->sc_params           = &wsp_dev_params[uaa->driver_info];
 
         sc->sc_hw.buttons       = 3;
         sc->sc_hw.iftype        = MOUSE_IF_USB;
