@@ -49,7 +49,16 @@ __FBSDID("$FreeBSD$");
 
 #include "usbdevs.h"
 
+#define USB_DEBUG_VAR atp_debug
+#include <dev/usb/usb_debug.h>
+
 #define ATP_DRIVER_NAME "atp"
+
+typedef enum interface_mode {
+    RAW_SENSOR_MODE = (uint8_t)0x01,
+    HID_MODE        = (uint8_t)0x08
+} interface_mode;
+
 
 /* Device methods. */
 static device_probe_t  atp_probe;
@@ -58,10 +67,10 @@ static device_detach_t atp_detach;
 // static usb_callback_t  atp_intr;
 
 struct atp_softc {
-//         device_t               sc_dev;
-//         struct usb_device     *sc_usb_device;
-// #define MODE_LENGTH 8
-//         char                   sc_mode_bytes[MODE_LENGTH]; /* device mode */
+        device_t               sc_dev;
+        struct usb_device     *sc_usb_device;
+#define MODE_LENGTH 8
+        char                   sc_mode_bytes[MODE_LENGTH]; /* device mode */
 //         struct mtx             sc_mutex; /* for synchronization */
 //         struct usb_xfer       *sc_xfer[ATP_N_TRANSFER];
 //         struct usb_fifo_sc     sc_fifo;
@@ -539,6 +548,14 @@ static const STRUCT_USB_HOST_ID atp_devs[] = {
         ATP_DEV(APPLE, WELLSPRING8_JIS,  ATP_FLAG_WELLSPRING8),
 };
 
+/* device initialization and shutdown */
+// static int           atp_set_device_mode(device_t dev, interface_mode mode);
+// static void          atp_reset_callback(struct usb_xfer *, usb_error_t);
+// static int           atp_enable(struct atp_softc *sc);
+// static void          atp_disable(struct atp_softc *sc);
+// static int           atp_softc_populate(struct atp_softc *);
+// static void          atp_softc_unpopulate(struct atp_softc *);
+
 static int
 atp_probe(device_t self)
 {
@@ -561,26 +578,26 @@ atp_probe(device_t self)
 static int
 atp_attach(device_t dev)
 {
-        printf("in atp_attach\n");
-        return (ENXIO);
-//         struct atp_softc      *sc = device_get_softc(dev);
-//         struct usb_attach_arg *uaa = device_get_ivars(dev);
-//         usb_error_t            err;
+        struct atp_softc      *sc = device_get_softc(dev);
+        struct usb_attach_arg *uaa = device_get_ivars(dev);
+        // usb_error_t            err;
 
-//         DPRINTFN(ATP_LLEVEL_INFO, "sc=%p\n", sc);
+        // DPRINTFN(ATP_LLEVEL_INFO, "sc=%p\n", sc);
+        printf("sc=%p\n", sc);
 
-//         sc->sc_dev        = dev;
-//         sc->sc_usb_device = uaa->device;
+        sc->sc_dev        = dev;
+        sc->sc_usb_device = uaa->device;
 
-//         /*
-//          * By default the touchpad behaves like an HID device, sending
-//          * packets with reportID = 2. Such reports contain only
-//          * limited information--they encode movement deltas and button
-//          * events,--but do not include data from the pressure
-//          * sensors. The device input mode can be switched from HID
-//          * reports to raw sensor data using vendor-specific USB
-//          * control commands; but first the mode must be read.
-//          */
+        /*
+         * By default the touchpad behaves like an HID device, sending
+         * packets with reportID = 2. Such reports contain only
+         * limited information--they encode movement deltas and button
+         * events,--but do not include data from the pressure
+         * sensors. The device input mode can be switched from HID
+         * reports to raw sensor data using vendor-specific USB
+         * control commands; but first the mode must be read.
+         */
+
 //         err = atp_req_get_report(sc->sc_usb_device, sc->sc_mode_bytes);
 //         if (err != USB_ERR_NORMAL_COMPLETION) {
 //                 DPRINTF("failed to read device mode (%d)\n", err);
