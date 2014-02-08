@@ -57,8 +57,8 @@ __FBSDID("$FreeBSD$");
 #define ATP_DRIVER_NAME "atp"
 
 typedef enum interface_mode {
-    RAW_SENSOR_MODE = (uint8_t)0x01,
-    HID_MODE        = (uint8_t)0x08
+        RAW_SENSOR_MODE = (uint8_t)0x01,
+        HID_MODE        = (uint8_t)0x08
 } interface_mode;
 
 
@@ -569,21 +569,21 @@ static usb_fifo_close_t atp_close;
 static usb_fifo_ioctl_t atp_ioctl;
 
 static struct usb_fifo_methods atp_fifo_methods = {
-    .f_open       = &atp_open,
-    .f_close      = &atp_close,
-    .f_ioctl      = &atp_ioctl,
-    .f_start_read = &atp_start_read,
-    .f_stop_read  = &atp_stop_read,
-    .basename[0]  = ATP_DRIVER_NAME,
+        .f_open       = &atp_open,
+        .f_close      = &atp_close,
+        .f_ioctl      = &atp_ioctl,
+        .f_start_read = &atp_start_read,
+        .f_stop_read  = &atp_stop_read,
+        .basename[0]  = ATP_DRIVER_NAME,
 };
 
 /* device initialization and shutdown */
-static int           atp_set_device_mode(struct atp_softc *sc, interface_mode mode);
-static void          atp_reset_callback(struct usb_xfer *, usb_error_t);
-static int           atp_enable(struct atp_softc *sc);
-static void          atp_disable(struct atp_softc *sc);
-static int           atp_softc_populate(struct atp_softc *);
-static void          atp_softc_unpopulate(struct atp_softc *);
+static int  atp_set_device_mode(struct atp_softc *sc, interface_mode mode);
+static void atp_reset_callback(struct usb_xfer *, usb_error_t);
+static int  atp_enable(struct atp_softc *sc);
+static void atp_disable(struct atp_softc *sc);
+static int  atp_softc_populate(struct atp_softc *);
+static void atp_softc_unpopulate(struct atp_softc *);
 
 
 #define MODE_LENGTH 8 /* num bytes holding the device mode */
@@ -927,10 +927,10 @@ atp_detach(device_t dev)
 void
 atp_intr(struct usb_xfer *xfer, usb_error_t error)
 {
-    struct atp_softc            *sc     = usbd_xfer_softc(xfer);
-    const struct wsp_dev_params *params = sc->sc_params;
-    int                          len;
-    struct usb_page_cache       *pc;
+        struct atp_softc            *sc     = usbd_xfer_softc(xfer);
+        const struct wsp_dev_params *params = sc->sc_params;
+        int                          len;
+        struct usb_page_cache       *pc;
     // uint8_t                status_bits;
     // atp_pspan  pspans_x[ATP_MAX_PSPANS_PER_AXIS];
     // atp_pspan  pspans_y[ATP_MAX_PSPANS_PER_AXIS];
@@ -938,22 +938,22 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
     // u_int      reaped_xlocs[ATP_MAX_STROKES];
     // u_int      tap_fingers = 0;
 
-    usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
+        usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
 
-    switch (USB_GET_STATE(xfer)) {
-    case USB_ST_TRANSFERRED:
-        if (len > (int)params->data_len) {
-                DPRINTFN(WSP_LLEVEL_ERROR,
-                    "truncating large packet from %u to %u bytes\n",
-                    len, params->data_len);
-                len = params->data_len;
-        } else {
-            /* make sure we don't process old data */
-            memset(sc->sensor_data + len, 0, params->data_len - len);
-        }
+        switch (USB_GET_STATE(xfer)) {
+        case USB_ST_TRANSFERRED:
+                if (len > (int)params->data_len) {
+                        DPRINTFN(WSP_LLEVEL_ERROR,
+                            "truncating large packet from %u to %u bytes\n",
+                            len, params->data_len);
+                        len = params->data_len;
+                } else {
+                        /* make sure we don't process old data */
+                        memset(sc->sensor_data + len, 0, params->data_len - len);
+                }
 
-        pc = usbd_xfer_get_frame(xfer, 0);
-        usbd_copy_out(pc, 0, sc->sensor_data, len);
+                pc = usbd_xfer_get_frame(xfer, 0);
+                usbd_copy_out(pc, 0, sc->sensor_data, len);
 
     //     /* Interpret sensor data */
     //     atp_interpret_sensor_data(sc->sensor_data,
@@ -1120,22 +1120,22 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
     //         sc->sc_idlecount = 0;
     //     }
 
-    case USB_ST_SETUP:
-    tr_setup:
-        /* check if we can put more data into the FIFO */
-        if (usb_fifo_put_bytes_max(
-                sc->sc_fifo.fp[USB_FIFO_RX]) != 0) {
-            usbd_xfer_set_frame_len(xfer, 0, sc->sc_params->data_len);
-            usbd_transfer_submit(xfer);
-        }
-        break;
+        case USB_ST_SETUP:
+        tr_setup:
+                /* check if we can put more data into the FIFO */
+                if (usb_fifo_put_bytes_max(sc->sc_fifo.fp[USB_FIFO_RX]) != 0) {
+                        usbd_xfer_set_frame_len(xfer, 0,
+                            sc->sc_params->data_len);
+                        usbd_transfer_submit(xfer);
+                }
+                break;
 
-    default:                        /* Error */
-        if (error != USB_ERR_CANCELLED) {
-            /* try clear stall first */
-            usbd_xfer_set_stall(xfer);
-            goto tr_setup;
-        }
+        default:                        /* Error */
+                if (error != USB_ERR_CANCELLED) {
+                        /* try clear stall first */
+                        usbd_xfer_set_stall(xfer);
+                        goto tr_setup;
+                }
         break;
     }
 
@@ -1183,39 +1183,39 @@ atp_stop_read(struct usb_fifo *fifo)
 static int
 atp_open(struct usb_fifo *fifo, int fflags)
 {
-    DPRINTFN(ATP_LLEVEL_INFO, "\n");
+        DPRINTFN(ATP_LLEVEL_INFO, "\n");
 
-    if (fflags & FREAD) {
-        struct atp_softc *sc = usb_fifo_softc(fifo);
-        int rc;
+        if (fflags & FREAD) {
+                struct atp_softc *sc = usb_fifo_softc(fifo);
+                int rc;
 
-        if (sc->sc_state & ATP_ENABLED)
-            return (EBUSY);
+                if (sc->sc_state & ATP_ENABLED)
+                        return (EBUSY);
 
-        if (usb_fifo_alloc_buffer(fifo,
-            ATP_FIFO_BUF_SIZE, ATP_FIFO_QUEUE_MAXLEN)) {
-            return (ENOMEM);
+                if (usb_fifo_alloc_buffer(fifo,
+                        ATP_FIFO_BUF_SIZE, ATP_FIFO_QUEUE_MAXLEN)) {
+                        return (ENOMEM);
+                }
+
+                rc = atp_enable(sc);
+                if (rc != 0) {
+                    usb_fifo_free_buffer(fifo);
+                    return (rc);
+                }
         }
 
-        rc = atp_enable(sc);
-        if (rc != 0) {
-            usb_fifo_free_buffer(fifo);
-            return (rc);
-        }
-    }
-
-    return (0);
+        return (0);
 }
 
 static void
 atp_close(struct usb_fifo *fifo, int fflags)
 {
-    if (fflags & FREAD) {
-        struct atp_softc *sc = usb_fifo_softc(fifo);
+        if (fflags & FREAD) {
+                struct atp_softc *sc = usb_fifo_softc(fifo);
 
-        atp_disable(sc);
-        usb_fifo_free_buffer(fifo);
-    }
+                atp_disable(sc);
+                usb_fifo_free_buffer(fifo);
+        }
 }
 
 int
