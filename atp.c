@@ -881,11 +881,11 @@ atp_attach(device_t dev)
 	sc->sc_mode.protocol    = MOUSE_PROTO_MSC;
 	sc->sc_mode.rate        = -1;
 	sc->sc_mode.resolution  = MOUSE_RES_UNKNOWN;
-//         sc->sc_mode.accelfactor = 0;
-//         sc->sc_mode.level       = 0;
 	sc->sc_mode.packetsize  = MOUSE_MSC_PACKETSIZE;
 	sc->sc_mode.syncmask[0] = MOUSE_MSC_SYNCMASK;
 	sc->sc_mode.syncmask[1] = MOUSE_MSC_SYNC;
+	sc->sc_mode.accelfactor = 0;
+	sc->sc_mode.level       = 0;
 
 	sc->sc_state            = 0;
 
