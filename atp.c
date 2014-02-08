@@ -599,8 +599,6 @@ atp_probe(device_t self)
         if ((uaa->info.bInterfaceClass    != UICLASS_HID) ||
             (uaa->info.bInterfaceProtocol != UIPROTO_MOUSE))
                 return (ENXIO);
-        // if (uaa->info.bIfaceIndex != ATP_IFACE_INDEX)
-        //         return (ENXIO);
 
         return (usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa));
 }
