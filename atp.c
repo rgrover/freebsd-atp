@@ -555,11 +555,12 @@ static int           atp_set_device_mode(struct atp_softc *sc, interface_mode mo
 // static void          atp_softc_unpopulate(struct atp_softc *);
 
 
+#define MODE_LENGTH 8 /* num bytes holding the device mode */
+
 static int
 atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 {
         usb_error_t err;
-        #define MODE_LENGTH 8
         uint8_t     mode_bytes[MODE_LENGTH];
 
         if ((newMode != RAW_SENSOR_MODE) && (newMode != HID_MODE))
