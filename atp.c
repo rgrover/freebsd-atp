@@ -707,30 +707,6 @@ atp_detach(device_t dev)
 // {
 // }
 
-
-/*
- * Load handler that deals with the loading and unloading of a KLD.
- */
-
-// static int
-// atp_loader(struct module *m, int what, void *arg)
-// {
-//         int err = 0;
-
-//         switch (what) {
-//         case MOD_LOAD:                /* kldload */
-//                 uprintf("Skeleton KLD loaded.\n");
-//                 break;
-//         case MOD_UNLOAD:
-//                 uprintf("Skeleton KLD unloaded.\n");
-//                 break;
-//         default:
-//                 err = EOPNOTSUPP;
-//                 break;
-//         }
-//         return(err);
-// }
-
 static device_method_t atp_methods[] = {
         /* Device interface */
         DEVMETHOD(device_probe,  atp_probe),
