@@ -69,8 +69,6 @@ static device_detach_t atp_detach;
 struct atp_softc {
         device_t               sc_dev;
         struct usb_device     *sc_usb_device;
-#define MODE_LENGTH 8
-        char                   sc_mode_bytes[MODE_LENGTH]; /* device mode */
 //         struct mtx             sc_mutex; /* for synchronization */
 //         struct usb_xfer       *sc_xfer[ATP_N_TRANSFER];
 //         struct usb_fifo_sc     sc_fifo;
@@ -549,12 +547,46 @@ static const STRUCT_USB_HOST_ID atp_devs[] = {
 };
 
 /* device initialization and shutdown */
-// static int           atp_set_device_mode(device_t dev, interface_mode mode);
+static int           atp_set_device_mode(struct atp_softc *sc, interface_mode mode);
 // static void          atp_reset_callback(struct usb_xfer *, usb_error_t);
 // static int           atp_enable(struct atp_softc *sc);
 // static void          atp_disable(struct atp_softc *sc);
 // static int           atp_softc_populate(struct atp_softc *);
 // static void          atp_softc_unpopulate(struct atp_softc *);
+
+
+static int
+atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
+{
+        usb_error_t err;
+        #define MODE_LENGTH 8
+        uint8_t     mode_bytes[MODE_LENGTH];
+
+        if ((newMode != RAW_SENSOR_MODE) && (newMode != HID_MODE))
+                return (ENXIO);
+
+        /*
+         * Read the mode; perhaps this could be cached in a static variable
+         * or in the softc, but reading it live from the device may not cause
+         * much overhead either.
+         */
+        err = usbd_req_get_report(sc->sc_usb_device, NULL /* mutex */,
+            mode_bytes, sizeof(mode_bytes), 0 /* interface index */,
+            0x03 /* type */, 0x00 /* id */);
+        if (err != USB_ERR_NORMAL_COMPLETION) {
+                DPRINTF("Failed to read device mode (%d)\n", err);
+                return (ENXIO);
+        }
+
+        if (mode_bytes[0] == newMode) {
+                return (0);
+        }
+        mode_bytes[0] = newMode;
+
+        return (usbd_req_set_report(sc->sc_usb_device, NULL /* mutex */,
+            mode_bytes, sizeof(mode_bytes), 0 /* interface index */,
+            0x03 /* type */, 0x00 /* id */));
+}
 
 static int
 atp_probe(device_t self)
@@ -578,7 +610,7 @@ atp_attach(device_t dev)
 {
         struct atp_softc      *sc  = device_get_softc(dev);
         struct usb_attach_arg *uaa = device_get_ivars(dev);
-        usb_error_t            err;
+        // usb_error_t            err;
 
         DPRINTFN(ATP_LLEVEL_INFO, "sc=%p\n", sc);
 
@@ -592,24 +624,12 @@ atp_attach(device_t dev)
          * events,--but do not include data from the pressure
          * sensors. The device input mode can be switched from HID
          * reports to raw sensor data using vendor-specific USB
-         * control commands; but first the mode must be read into
-         * sc->sc_mode_bytes[0].
+         * control commands.
          */
-        err = usbd_req_get_report(sc->sc_usb_device, NULL /* mutex */,
-            sc->sc_mode_bytes, MODE_LENGTH, 0 /* interface index */,
-            0x03 /* type */, 0x00 /* id */);
-        if (err != USB_ERR_NORMAL_COMPLETION) {
-                DPRINTF("Failed to read device mode (%d)\n", err);
+        if (atp_set_device_mode(sc, RAW_SENSOR_MODE) != 0) {
+                DPRINTF("failed to set mode to 'RAW_SENSOR' (%d)\n", err);
                 return (ENXIO);
         }
-
-        printf("atp_attach: fetched mode byte as %u\n", sc->sc_mode_bytes[0]);
-
-
-//         if (atp_set_device_mode(dev, RAW_SENSOR_MODE) != 0) {
-//                 DPRINTF("failed to set mode to 'RAW_SENSOR' (%d)\n", err);
-//                 return (ENXIO);
-//         }
 
 //         mtx_init(&sc->sc_mutex, "atpmtx", NULL, MTX_DEF | MTX_RECURSE);
 
