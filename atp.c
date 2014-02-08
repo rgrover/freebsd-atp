@@ -576,12 +576,11 @@ atp_probe(device_t self)
 static int
 atp_attach(device_t dev)
 {
-        struct atp_softc      *sc = device_get_softc(dev);
+        struct atp_softc      *sc  = device_get_softc(dev);
         struct usb_attach_arg *uaa = device_get_ivars(dev);
-        // usb_error_t            err;
+        usb_error_t            err;
 
-        // DPRINTFN(ATP_LLEVEL_INFO, "sc=%p\n", sc);
-        printf("sc=%p\n", sc);
+        DPRINTFN(ATP_LLEVEL_INFO, "sc=%p\n", sc);
 
         sc->sc_dev        = dev;
         sc->sc_usb_device = uaa->device;
@@ -593,14 +592,19 @@ atp_attach(device_t dev)
          * events,--but do not include data from the pressure
          * sensors. The device input mode can be switched from HID
          * reports to raw sensor data using vendor-specific USB
-         * control commands; but first the mode must be read.
+         * control commands; but first the mode must be read into
+         * sc->sc_mode_bytes[0].
          */
+        err = usbd_req_get_report(sc->sc_usb_device, NULL /* mutex */,
+            sc->sc_mode_bytes, MODE_LENGTH, 0 /* interface index */,
+            0x03 /* type */, 0x00 /* id */);
+        if (err != USB_ERR_NORMAL_COMPLETION) {
+                DPRINTF("Failed to read device mode (%d)\n", err);
+                return (ENXIO);
+        }
 
-//         err = atp_req_get_report(sc->sc_usb_device, sc->sc_mode_bytes);
-//         if (err != USB_ERR_NORMAL_COMPLETION) {
-//                 DPRINTF("failed to read device mode (%d)\n", err);
-//                 return (ENXIO);
-//         }
+        printf("atp_attach: fetched mode byte as %u\n", sc->sc_mode_bytes[0]);
+
 
 //         if (atp_set_device_mode(dev, RAW_SENSOR_MODE) != 0) {
 //                 DPRINTF("failed to set mode to 'RAW_SENSOR' (%d)\n", err);
