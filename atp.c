@@ -1242,7 +1242,7 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 			;
 		else if ((mode.level < 0) || (mode.level > 1)) {
 			error = EINVAL;
-			goto done;
+			break;
 		}
 		sc->sc_mode.level = mode.level;
 		sc->sc_pollrate   = mode.rate;
@@ -1267,7 +1267,7 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 	case MOUSE_SETLEVEL:
 		if ((*(int *)addr < 0) || (*(int *)addr > 1)) {
 			error = EINVAL;
-			goto done;
+			break;
 		}
 		sc->sc_mode.level = *(int *)addr;
 		sc->sc_hw.buttons = 3;
@@ -1307,7 +1307,6 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 		break;
 	} /* end of switch */
 
-done:
 	mtx_unlock(&sc->sc_mutex);
 	return (error);
 }
