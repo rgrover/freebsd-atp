@@ -663,6 +663,9 @@ atp_reset_callback(struct usb_xfer *xfer, usb_error_t error)
 static int
 atp_enable(struct atp_softc *sc)
 {
+	if (sc->sc_state & ATP_ENABLED)
+		return (0);
+
 	const struct wsp_dev_params *params = sc->sc_params;
 	if ((params == NULL) || (params->data_len == 0)) {
 		DPRINTF("params uninitialized!\n");
