@@ -59,6 +59,19 @@ __FBSDID("$FreeBSD$");
 
 #define ATP_DRIVER_NAME "atp"
 
+#ifdef USB_DEBUG
+enum atp_log_level {
+    ATP_LLEVEL_DISABLED = 0,
+    ATP_LLEVEL_ERROR,
+    ATP_LLEVEL_DEBUG,       /* for troubleshooting */
+    ATP_LLEVEL_INFO,        /* for diagnostics */
+};
+static int atp_debug = ATP_LLEVEL_ERROR;/* the default is to only log errors */
+
+SYSCTL_INT(_hw_usb_atp, OID_AUTO, debug, CTLFLAG_RW,
+    &atp_debug, ATP_LLEVEL_ERROR, "ATP debug level");
+#endif                  /* USB_DEBUG */
+
 typedef enum interface_mode {
 	RAW_SENSOR_MODE = (uint8_t)0x01,
 	HID_MODE        = (uint8_t)0x08
