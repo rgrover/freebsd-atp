@@ -99,6 +99,7 @@ struct atp_softc {
 	struct usb_xfer     *sc_xfer[ATP_N_TRANSFER];
 
 	u_int                sc_pollrate;
+	int                  sc_fflags;
 
 	int8_t              *sensor_data; /* from interrupt packet */
 
@@ -1187,38 +1188,40 @@ atp_stop_read(struct usb_fifo *fifo)
 static int
 atp_open(struct usb_fifo *fifo, int fflags)
 {
-	DPRINTFN(ATP_LLEVEL_INFO, "\n");
+	struct atp_softc *sc = usb_fifo_softc(fifo);
+
+	/* check for duplicate open, should not happen */
+	if (sc->sc_fflags & fflags)
+		return (EBUSY);
+
+	/* check for first open */
+	if (sc->sc_fflags == 0) {
+		int rc;
+		if ((rc = atp_enable(sc)) != 0)
+			return (rc);
+	}
 
 	if (fflags & FREAD) {
-		struct atp_softc *sc = usb_fifo_softc(fifo);
-		int rc;
-
-		if (sc->sc_state & ATP_ENABLED)
-			return (EBUSY);
-
 		if (usb_fifo_alloc_buffer(fifo,
-			ATP_FIFO_BUF_SIZE, ATP_FIFO_QUEUE_MAXLEN)) {
+		    ATP_FIFO_BUF_SIZE, ATP_FIFO_QUEUE_MAXLEN)) {
 			return (ENOMEM);
-		}
-
-		rc = atp_enable(sc);
-		if (rc != 0) {
-			usb_fifo_free_buffer(fifo);
-			return (rc);
 		}
 	}
 
+	sc->sc_fflags |= (fflags & (FREAD | FWRITE));
 	return (0);
 }
 
 static void
 atp_close(struct usb_fifo *fifo, int fflags)
 {
-	if (fflags & FREAD) {
-		struct atp_softc *sc = usb_fifo_softc(fifo);
-
-		atp_disable(sc);
+	struct atp_softc *sc = usb_fifo_softc(fifo);
+	if (fflags & FREAD)
 		usb_fifo_free_buffer(fifo);
+
+	sc->sc_fflags &= ~(fflags & (FREAD | FWRITE));
+	if (sc->sc_fflags == 0) {
+		atp_disable(sc);
 	}
 }
 
