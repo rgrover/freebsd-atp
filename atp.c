@@ -87,7 +87,6 @@ static usb_callback_t  atp_intr;
 
 enum {
 	ATP_INTR_DT,
-	ATP_RESET,
 	ATP_N_TRANSFER,
 };
 
@@ -599,12 +598,10 @@ static struct usb_fifo_methods atp_fifo_methods = {
 
 /* device initialization and shutdown */
 static int  atp_set_device_mode(struct atp_softc *sc, interface_mode mode);
-static void atp_reset_callback(struct usb_xfer *, usb_error_t);
 static int  atp_enable(struct atp_softc *sc);
 static void atp_disable(struct atp_softc *sc);
 static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
-
 
 #define MODE_LENGTH 8 /* num bytes holding the device mode */
 
@@ -620,14 +617,6 @@ static struct usb_config atp_config[ATP_N_TRANSFER] = {
 		},
 		.bufsize   = 0, /* use wMaxPacketSize */
 		.callback  = &atp_intr,
-	},
-	[ATP_RESET] = {
-		.type      = UE_CONTROL,
-		.endpoint  = 0, /* Control pipe */
-		.direction = UE_DIR_ANY,
-		.bufsize = sizeof(struct usb_device_request) + MODE_LENGTH,
-		.callback  = &atp_reset_callback,
-		.interval = 0,  /* no pre-delay */
 	},
 };
 
@@ -662,19 +651,6 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 	return (usbd_req_set_report(sc->sc_usb_device, NULL /* mutex */,
 	    mode_bytes, sizeof(mode_bytes), 0 /* interface index */,
 	    0x03 /* type */, 0x00 /* id */));
-}
-
-void
-atp_reset_callback(struct usb_xfer *xfer, usb_error_t error)
-{
-	switch (USB_GET_STATE(xfer)) {
-	case USB_ST_SETUP:
-		break;
-
-	case USB_ST_TRANSFERRED:
-	default:
-		break;
-	}
 }
 
 static int
