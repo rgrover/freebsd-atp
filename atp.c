@@ -1309,11 +1309,13 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 	return (error);
 }
 
+static devclass_t atp_devclass;
+
 static device_method_t atp_methods[] = {
-	/* Device interface */
 	DEVMETHOD(device_probe,  atp_probe),
 	DEVMETHOD(device_attach, atp_attach),
 	DEVMETHOD(device_detach, atp_detach),
+
 	DEVMETHOD_END
 };
 
@@ -1322,8 +1324,6 @@ static driver_t atp_driver = {
 	.methods = atp_methods,
 	.size    = sizeof(struct atp_softc)
 };
-
-static devclass_t atp_devclass;
 
 DRIVER_MODULE(atp, uhub, atp_driver, atp_devclass, NULL /* evh */, 0);
 MODULE_DEPEND(atp, usb, 1, 1, 1);
