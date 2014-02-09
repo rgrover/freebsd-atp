@@ -970,7 +970,8 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			len = params->data_len;
 		} else {
 			/* make sure we don't process old data */
-			memset(sc->sensor_data + len, 0, params->data_len - len);
+			memset(sc->sensor_data + len, 0,
+			    params->data_len - len);
 		}
 
 		pc = usbd_xfer_get_frame(xfer, 0);
@@ -1158,9 +1159,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			goto tr_setup;
 		}
 	break;
-    }
-
-    return;
+	}
 }
 
 static void
