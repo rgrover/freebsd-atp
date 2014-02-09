@@ -1309,7 +1309,7 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 
 done:
 	mtx_unlock(&sc->sc_mutex);
-	return (ENOTTY);
+	return (error);
 }
 
 static device_method_t atp_methods[] = {
