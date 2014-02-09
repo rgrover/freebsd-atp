@@ -903,16 +903,14 @@ detach:
 static int
 atp_detach(device_t dev)
 {
-	printf("in atp_detach\n");
 	struct atp_softc *sc;
 
 	sc = device_get_softc(dev);
 	atp_set_device_mode(sc, HID_MODE);
 
 	mtx_lock(&sc->sc_mutex);
-	if (sc->sc_state & ATP_ENABLED) {
+	if (sc->sc_state & ATP_ENABLED)
 		atp_disable(sc);
-	}
 	mtx_unlock(&sc->sc_mutex);
 
 	usb_fifo_detach(&sc->sc_fifo);
@@ -1199,8 +1197,8 @@ atp_open(struct usb_fifo *fifo, int fflags)
 
 		rc = atp_enable(sc);
 		if (rc != 0) {
-		    usb_fifo_free_buffer(fifo);
-		    return (rc);
+			usb_fifo_free_buffer(fifo);
+			return (rc);
 		}
 	}
 
@@ -1296,16 +1294,16 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 		sc->sc_status.dz      = 0;
 
 		if (status->dx || status->dy || status->dz)
-			    status->flags |= MOUSE_POSCHANGED;
+			status->flags |= MOUSE_POSCHANGED;
 		if (status->button != status->obutton)
-			    status->flags |= MOUSE_BUTTONSCHANGED;
+			status->flags |= MOUSE_BUTTONSCHANGED;
 		break;
 	}
 
 	default:
 		error = ENOTTY;
 		break;
-	} /* end of switch */
+	}
 
 	mtx_unlock(&sc->sc_mutex);
 	return (error);
@@ -1327,6 +1325,6 @@ static driver_t atp_driver = {
 
 static devclass_t atp_devclass;
 
-DRIVER_MODULE(atp, uhub, atp_driver, atp_devclass, NULL /*atp_loader*/ /* evh */, 0);
+DRIVER_MODULE(atp, uhub, atp_driver, atp_devclass, NULL /* evh */, 0);
 MODULE_DEPEND(atp, usb, 1, 1, 1);
 MODULE_VERSION(atp, 1);
