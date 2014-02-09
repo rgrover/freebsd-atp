@@ -79,25 +79,28 @@ enum {
 #define ATP_FIFO_QUEUE_MAXLEN   50 /* units */
 
 struct atp_softc {
-	device_t               sc_dev;
-	struct usb_device     *sc_usb_device;
-	struct mtx             sc_mutex; /* for synchronization */
-	struct usb_xfer       *sc_xfer[ATP_N_TRANSFER];
-
-	struct usb_fifo_sc     sc_fifo;
+	device_t             sc_dev;
+	struct usb_device   *sc_usb_device;
+	struct mtx           sc_mutex; /* for synchronization */
+	struct usb_fifo_sc   sc_fifo;
 
 	const struct wsp_dev_params *sc_params; /* device configuration */
 
-	mousehw_t              sc_hw;
-	mousemode_t            sc_mode;
-	u_int                  sc_pollrate;
-	mousestatus_t          sc_status;
-	u_int                  sc_state;
-#define ATP_ENABLED            0x01
-#define ATP_ZOMBIES_EXIST      0x02
-#define ATP_DOUBLE_TAP_DRAG    0x04
-#define ATP_VALID              0x08
-	int8_t                *sensor_data; /* from interrupt packet */
+	mousehw_t            sc_hw;
+	mousemode_t          sc_mode;
+	mousestatus_t        sc_status;
+
+	u_int                sc_state;
+#define ATP_ENABLED          0x01
+#define ATP_ZOMBIES_EXIST    0x02
+#define ATP_DOUBLE_TAP_DRAG  0x04
+#define ATP_VALID            0x08
+
+	struct usb_xfer     *sc_xfer[ATP_N_TRANSFER];
+
+	u_int                sc_pollrate;
+
+	int8_t              *sensor_data; /* from interrupt packet */
 
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
