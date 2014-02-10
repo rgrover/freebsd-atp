@@ -682,6 +682,7 @@ atp_enable(struct atp_softc *sc)
 	sc->sc_state |= ATP_ENABLED;
 
 	DPRINTFN(ATP_LLEVEL_INFO, "enabled atp\n");
+	printf("enabled atp\n");
 	return (0);
 }
 
@@ -824,7 +825,11 @@ atp_probe(device_t self)
 	    (uaa->info.bInterfaceProtocol != UIPROTO_MOUSE))
 		return (ENXIO);
 
-	return (usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa));
+	if ((usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa)) == 0) {
+		printf("would have attached to interface %u\n", uaa->info.bIfaceIndex);
+	}
+
+	return (ENXIO);
 }
 
 static int
@@ -951,6 +956,12 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			/* make sure we don't process old data */
 			memset(sc->sensor_data + len, 0,
 			    params->data_len - len);
+		}
+
+		static unsigned rohit = 0;
+		if (rohit == 0) {
+			++rohit;
+			printf("in atp_intr with len %u\n", len);
 		}
 
 		pc = usbd_xfer_get_frame(xfer, 0);
@@ -1155,6 +1166,44 @@ atp_interpret_wellspring_data(struct atp_softc *sc)
 	printf("type %u\n", params->tp_type);
 }
 
+// static void
+// atp_add_to_queue(struct atp_softc *sc, int dx, int dy, uint32_t buttons_in)
+// {
+// 	uint32_t buttons_out;
+// 	uint8_t  buf[8];
+
+// 	dx = imin(dx,  254); dx = imax(dx, -256);
+// 	dy = imin(dy,  254); dy = imax(dy, -256);
+
+// 	buttons_out = MOUSE_MSC_BUTTONS;
+// 	if (buttons_in & MOUSE_BUTTON1DOWN)
+// 		buttons_out &= ~MOUSE_MSC_BUTTON1UP;
+// 	else if (buttons_in & MOUSE_BUTTON2DOWN)
+// 		buttons_out &= ~MOUSE_MSC_BUTTON2UP;
+// 	else if (buttons_in & MOUSE_BUTTON3DOWN)
+// 		buttons_out &= ~MOUSE_MSC_BUTTON3UP;
+
+// 	DPRINTFN(ATP_LLEVEL_INFO, "dx=%d, dy=%d, buttons=%x\n",
+// 	    dx, dy, buttons_out);
+
+// 	/* Encode the mouse data in standard format; refer to mouse(4) */
+// 	buf[0] = sc->sc_mode.syncmask[1];
+// 	buf[0] |= buttons_out;
+// 	buf[1] = dx >> 1;
+// 	buf[2] = dy >> 1;
+// 	buf[3] = dx - (dx >> 1);
+// 	buf[4] = dy - (dy >> 1);
+// 	/* Encode extra bytes for level 1 */
+// 	if (sc->sc_mode.level == 1) {
+// 		buf[5] = 0;                    /* dz */
+// 		buf[6] = 0;                    /* dz - (dz / 2) */
+// 		buf[7] = MOUSE_SYS_EXTBUTTONS; /* Extra buttons all up. */
+// 	}
+
+// 	usb_fifo_put_data_linear(sc->sc_fifo.fp[USB_FIFO_RX], buf,
+// 	    sc->sc_mode.packetsize, 1);
+// }
+
 static void
 atp_reset_buf(struct atp_softc *sc)
 {
@@ -1170,6 +1219,7 @@ atp_start_read(struct usb_fifo *fifo)
 
 	/* Check if we should override the default polling interval */
 	rate = sc->sc_pollrate;
+	printf("atp_start_read: rate = %u; xferbuf=%p\n", rate, sc->sc_xfer[ATP_INTR_DT]);
 	/* Range check rate */
 	if (rate > 1000)
 		rate = 1000;
@@ -1191,6 +1241,7 @@ atp_stop_read(struct usb_fifo *fifo)
 {
 	struct atp_softc *sc = usb_fifo_softc(fifo);
 	usbd_transfer_stop(sc->sc_xfer[ATP_INTR_DT]);
+	printf("atp_stop_read\n");
 }
 
 static int
@@ -1261,6 +1312,7 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 		}
 		sc->sc_mode.level = mode.level;
 		sc->sc_pollrate   = mode.rate;
+		printf("atp_ioctl: MOUSE_SETMODE; pollrate = %u\n", mode.rate);
 		sc->sc_hw.buttons = 3;
 
 		if (sc->sc_mode.level == 0) {
