@@ -166,7 +166,7 @@ enum tp_type {
 #define HAS_INTEGRATED_BUTTON   1
 
 /* trackpad finger header - little endian */
-struct tp_header {
+struct wsp_sensor_data_header {
 	uint8_t  flag;
 	uint8_t  sn0;
 	uint16_t wFixed0;
@@ -603,6 +603,9 @@ static void atp_disable(struct atp_softc *sc);
 static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
 
+static void atp_interpret_wellspring_data(struct atp_softc *sc);
+
+
 #define MODE_LENGTH 8 /* num bytes holding the device mode */
 
 /* TODO: rename to atp_xfer_config */
@@ -953,6 +956,8 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		pc = usbd_xfer_get_frame(xfer, 0);
 		usbd_copy_out(pc, 0, sc->sensor_data, len);
 
+		atp_interpret_wellspring_data(sc);
+
     //     /* Interpret sensor data */
     //     atp_interpret_sensor_data(sc->sensor_data,
     //         sc->sc_params->n_xsensors, X, sc->cur_x,
@@ -1136,6 +1141,18 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		}
 	break;
 	}
+}
+
+void
+atp_interpret_wellspring_data(struct atp_softc *sc)
+{
+	// const struct wsp_sensor_data_header *hdr;
+	const struct wsp_dev_params          *params;
+
+	// hdr = (const struct wsp_sensor_data_header *)(sc->sensor_data);
+	params = sc->sc_params;
+
+	printf("type %u\n", params->tp_type);
 }
 
 static void
