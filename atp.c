@@ -183,7 +183,7 @@ struct wsp_sensor_data_header {
 } __packed;
 
 /* trackpad finger structure - little endian */
-struct tp_finger {
+struct wsp_finger {
 	int16_t origin;         /* zero when switching track finger */
 	int16_t abs_x;          /* absolute x coodinate */
 	int16_t abs_y;          /* absolute y coodinate */
@@ -200,7 +200,7 @@ struct tp_finger {
 
 /* trackpad finger data size, empirically at least ten fingers */
 #define MAX_FINGERS             16
-#define SIZEOF_WSP_FINGER       sizeof(struct tp_finger)
+#define SIZEOF_WSP_FINGER       sizeof(struct wsp_finger)
 #define SIZEOF_ALL_FINGERS      (MAX_FINGERS * SIZEOF_WSP_FINGER)
 #define MAX_FINGER_ORIENTATION  16384
 
@@ -1158,12 +1158,40 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	    ((data_len - params->finger_data_offset) % SIZEOF_WSP_FINGER) != 0)
 		return;
 
-	// fingerp = (const struct tp_finger *)(sc->sensor_data +
-	//     params->finger_data_offset);
 	unsigned n_fingers = (data_len - params->finger_data_offset) /
 	    SIZEOF_WSP_FINGER;
+	struct wsp_finger *fingerp =
+	    (struct wsp_finger *)(sc->sensor_data + params->finger_data_offset);
 
 	printf("%u\n", n_fingers);
+
+	unsigned i;
+	for (i = 0; i != n_fingers; i++) {
+		/* swap endianness, if any */
+		fingerp[i].origin = le16toh((uint16_t)fingerp[i].origin);
+		fingerp[i].abs_x = le16toh((uint16_t)fingerp[i].abs_x);
+		fingerp[i].abs_y = le16toh((uint16_t)fingerp[i].abs_y);
+	//         f[i].rel_x = le16toh((uint16_t)f[i].rel_x);
+	//         f[i].rel_y = le16toh((uint16_t)f[i].rel_y);
+	//         f[i].tool_major = le16toh((uint16_t)f[i].tool_major);
+	//         f[i].tool_minor = le16toh((uint16_t)f[i].tool_minor);
+	//         f[i].orientation = le16toh((uint16_t)f[i].orientation);
+	//         f[i].touch_major = le16toh((uint16_t)f[i].touch_major);
+	//         f[i].touch_minor = le16toh((uint16_t)f[i].touch_minor);
+	//         f[i].multi = le16toh((uint16_t)f[i].multi);
+		// DPRINTFN(WSP_LLEVEL_INFO, "[%d]ibt=%d, taps=%d, u=%x, o=%4d, ax=%5d, ay=%5d, "
+		// "rx=%5d, ry=%5d, tlmaj=%4d, tlmin=%4d, ot=%5d, tchmaj=%4d, tchmin=%4d, m=%4x\n",
+		// i, ibt, ntouch, h->q2,
+		// f[i].origin, f[i].abs_x, f[i].abs_y, f[i].rel_x, f[i].rel_y,
+		// f[i].tool_major, f[i].tool_minor, f[i].orientation,
+		// f[i].touch_major, f[i].touch_minor, f[i].multi);
+		printf("[%d]o=%4d, ax=%5d, ay=%5d\n", i,
+			fingerp[i].origin, fingerp[i].abs_x, fingerp[i].abs_y);
+
+	//     sc->pos_x[i] = f[i].abs_x;
+	//     sc->pos_y[i] = params->y.min + params->y.max - f[i].abs_y;
+	//     sc->index[i] = &f[i];
+	}
 }
 
 // static void
