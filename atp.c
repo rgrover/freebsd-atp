@@ -694,7 +694,7 @@ atp_disable(struct atp_softc *sc)
 	atp_softc_unpopulate(sc);
 
 	sc->sc_state &= ~(ATP_ENABLED | ATP_VALID);
-	printf("disabled atp\n");
+	DPRINTFN(ATP_LLEVEL_INFO, "disabled atp\n");
 }
 
 /* Allocate dynamic memory for some fields in softc. */
