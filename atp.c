@@ -684,7 +684,6 @@ atp_enable(struct atp_softc *sc)
 	sc->sc_state |= ATP_ENABLED;
 
 	DPRINTFN(ATP_LLEVEL_INFO, "enabled atp\n");
-	printf("enabled atp\n");
 	return (0);
 }
 
@@ -956,12 +955,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			    params->data_len - len);
 		}
 
-		static unsigned rohit = 0;
-		if (rohit == 0) {
-			++rohit;
-			printf("in atp_intr with len %u\n", len);
-		}
-
 		pc = usbd_xfer_get_frame(xfer, 0);
 		usbd_copy_out(pc, 0, sc->sensor_data, len);
 
@@ -1160,8 +1153,6 @@ atp_interpret_wellspring_data(struct atp_softc *sc)
 
 	// hdr = (const struct wsp_sensor_data_header *)(sc->sensor_data);
 	params = sc->sc_params;
-
-	printf("type %u\n", params->tp_type);
 }
 
 // static void
@@ -1217,7 +1208,6 @@ atp_start_read(struct usb_fifo *fifo)
 
 	/* Check if we should override the default polling interval */
 	rate = sc->sc_pollrate;
-	printf("atp_start_read: rate = %u; xferbuf=%p\n", rate, sc->sc_xfer[ATP_INTR_DT]);
 	/* Range check rate */
 	if (rate > 1000)
 		rate = 1000;
@@ -1239,7 +1229,6 @@ atp_stop_read(struct usb_fifo *fifo)
 {
 	struct atp_softc *sc = usb_fifo_softc(fifo);
 	usbd_transfer_stop(sc->sc_xfer[ATP_INTR_DT]);
-	printf("atp_stop_read\n");
 }
 
 static int
@@ -1310,7 +1299,6 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 		}
 		sc->sc_mode.level = mode.level;
 		sc->sc_pollrate   = mode.rate;
-		printf("atp_ioctl: MOUSE_SETMODE; pollrate = %u\n", mode.rate);
 		sc->sc_hw.buttons = 3;
 
 		if (sc->sc_mode.level == 0) {
