@@ -239,7 +239,7 @@ struct wsp_dev_params {
 	uint8_t          caps;       /* device capability bitmask */
 	uint16_t         bt_datalen; /* data length of the button interface */
 	uint8_t          tp_type;    /* type of trackpad interface */
-	uint8_t          tp_offset;  /* offset to trackpad finger data */
+	uint8_t          finger_data_offset;/* offset to trackpad finger data */
 	uint16_t         data_len;   /* data length of the trackpad interface */
 	struct wsp_param p;          /* finger pressure limits */
 	struct wsp_param w;          /* finger width limits */
@@ -253,7 +253,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = 0,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE1,
-		.tp_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 256
@@ -275,7 +275,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = 0,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE1,
-		.tp_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 256
@@ -297,7 +297,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
-		.tp_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
@@ -319,7 +319,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
-		.tp_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
@@ -341,7 +341,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
-		.tp_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
@@ -363,7 +363,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
-		.tp_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
@@ -385,7 +385,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
-		.tp_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
@@ -407,7 +407,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
-		.tp_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
@@ -429,7 +429,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
-		.tp_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
@@ -451,7 +451,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
-		.tp_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
@@ -473,7 +473,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
-		.tp_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
@@ -495,7 +495,7 @@ static const struct wsp_dev_params wsp_dev_params[ATP_FLAG_MAX] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE3,
-		.tp_offset  = WSP_TYPE3_FINGER_DATA_OFFSET,
+		.finger_data_offset  = WSP_TYPE3_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE3_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
 		.p = {
 			SN_PRESSURE, 0, 300
