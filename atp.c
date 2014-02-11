@@ -72,6 +72,8 @@ SYSCTL_INT(_hw_usb_atp, OID_AUTO, debug, CTLFLAG_RW,
     &atp_debug, ATP_LLEVEL_ERROR, "ATP debug level");
 #endif                  /* USB_DEBUG */
 
+#define WELLSPRING_INTERFACE_INDEX 1
+
 typedef enum interface_mode {
 	RAW_SENSOR_MODE = (uint8_t)0x01,
 	HID_MODE        = (uint8_t)0x08
@@ -821,15 +823,11 @@ atp_probe(device_t self)
 	if (uaa->usb_mode != USB_MODE_HOST)
 		return (ENXIO);
 
-	if ((uaa->info.bInterfaceClass    != UICLASS_HID) ||
-	    (uaa->info.bInterfaceProtocol != UIPROTO_MOUSE))
+	if ((uaa->info.bInterfaceClass != UICLASS_HID) ||
+	    (uaa->info.bIfaceIndex     != WELLSPRING_INTERFACE_INDEX))
 		return (ENXIO);
 
-	if ((usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa)) == 0) {
-		printf("would have attached to interface %u\n", uaa->info.bIfaceIndex);
-	}
-
-	return (ENXIO);
+	return (usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa));
 }
 
 static int
