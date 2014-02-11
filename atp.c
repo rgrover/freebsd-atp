@@ -1146,13 +1146,24 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 }
 
 void
-atp_interpret_wellspring_data(struct atp_softc *sc, unsigned len)
+atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 {
 	// const struct wsp_sensor_data_header *hdr;
 	const struct wsp_dev_params          *params;
 
 	// hdr = (const struct wsp_sensor_data_header *)(sc->sensor_data);
 	params = sc->sc_params;
+
+	if ((data_len < params->finger_data_offset) ||
+	    ((data_len - params->finger_data_offset) % SIZEOF_WSP_FINGER) != 0)
+		return;
+
+	// fingerp = (const struct tp_finger *)(sc->sensor_data +
+	//     params->finger_data_offset);
+	unsigned n_fingers = (data_len - params->finger_data_offset) /
+	    SIZEOF_WSP_FINGER;
+
+	printf("%u\n", n_fingers);
 }
 
 // static void
