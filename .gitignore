@@ -15,3 +15,5 @@ usbdevs.h
 freebsd.cfg
 sys/
 wsp.c
+
+dmesg.txt
