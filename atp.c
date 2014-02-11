@@ -949,8 +949,8 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			    "truncating large packet from %u to %u bytes\n",
 			    len, params->data_len);
 			len = params->data_len;
-		} else {
-			/* make sure we don't process old data */
+		} else if (len < params->data_len) {
+			/* zero-out any previous sensor-data state */
 			memset(sc->sensor_data + len, 0,
 			    params->data_len - len);
 		}
