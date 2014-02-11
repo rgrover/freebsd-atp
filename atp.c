@@ -605,7 +605,7 @@ static void atp_disable(struct atp_softc *sc);
 static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
 
-static void atp_interpret_wellspring_data(struct atp_softc *sc);
+static void atp_interpret_wellspring_data(struct atp_softc *sc, unsigned len);
 
 
 #define MODE_LENGTH 8 /* num bytes holding the device mode */
@@ -958,7 +958,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		pc = usbd_xfer_get_frame(xfer, 0);
 		usbd_copy_out(pc, 0, sc->sensor_data, len);
 
-		atp_interpret_wellspring_data(sc);
+		atp_interpret_wellspring_data(sc, len);
 
     //     /* Interpret sensor data */
     //     atp_interpret_sensor_data(sc->sensor_data,
@@ -1146,7 +1146,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 }
 
 void
-atp_interpret_wellspring_data(struct atp_softc *sc)
+atp_interpret_wellspring_data(struct atp_softc *sc, unsigned len)
 {
 	// const struct wsp_sensor_data_header *hdr;
 	const struct wsp_dev_params          *params;
