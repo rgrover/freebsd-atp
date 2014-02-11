@@ -200,8 +200,8 @@ struct tp_finger {
 
 /* trackpad finger data size, empirically at least ten fingers */
 #define MAX_FINGERS             16
-#define SIZEOF_FINGER           sizeof(struct tp_finger)
-#define SIZEOF_ALL_FINGERS      (MAX_FINGERS * SIZEOF_FINGER)
+#define SIZEOF_WSP_FINGER       sizeof(struct tp_finger)
+#define SIZEOF_ALL_FINGERS      (MAX_FINGERS * SIZEOF_WSP_FINGER)
 #define MAX_FINGER_ORIENTATION  16384
 
 /* logical signal quality */
