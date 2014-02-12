@@ -31,6 +31,7 @@
  *  - add comment about not checking mouse subclass in probe()
  *  - update man page.
  *  - rename wsp_dev_params as wellspring_product_params
+ *  - borrow code for geyser4
  */
 
 #include <sys/cdefs.h>
@@ -161,7 +162,7 @@ struct bt_data {
 } __packed;
 
 /* trackpad header types */
-enum tp_type {
+enum wellspring_trackpad_type {
 	TYPE1,          /* plain trackpad */
 	TYPE2,          /* button integrated in trackpad */
 	TYPE3           /* additional header fields since June 2013 */
@@ -243,6 +244,7 @@ struct wsp_param {
     ((INFO) & ((1 << N_PROD_BITS) - 1))
 
 enum atp_trackpad_family {
+	TRACKPAD_FAMILY_GEYSER,
 	TRACKPAD_FAMILY_WELLSPRING,
 	TRACKPAD_FAMILY_MAX /* keep this at the tail end of the enumeration */
 };
