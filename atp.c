@@ -104,55 +104,6 @@ enum {
 #define ATP_FIFO_BUF_SIZE        8 /* bytes */
 #define ATP_FIFO_QUEUE_MAXLEN   50 /* units */
 
-struct atp_softc; /* forward declaration */
-typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
-
-struct atp_softc {
-	device_t             sc_dev;
-	struct usb_device   *sc_usb_device;
-	struct mtx           sc_mutex; /* for synchronization */
-	struct usb_fifo_sc   sc_fifo;
-
-	const struct wsp_dev_params *sc_params; /* device configuration */
-
-	mousehw_t            sc_hw;
-	mousemode_t          sc_mode;
-	mousestatus_t        sc_status;
-
-	u_int                sc_state;
-#define ATP_ENABLED          0x01
-#define ATP_ZOMBIES_EXIST    0x02
-#define ATP_DOUBLE_TAP_DRAG  0x04
-#define ATP_VALID            0x08
-
-	struct usb_xfer     *sc_xfer[ATP_N_TRANSFER];
-
-	u_int                sc_pollrate;
-	int                  sc_fflags;
-
-	int8_t              *sensor_data; /* from interrupt packet */
-	sensor_data_interpreter_t sensor_data_interpreter;
-
-//         u_int                  sc_left_margin;
-//         u_int                  sc_right_margin;
-
-//         atp_stroke             sc_strokes[ATP_MAX_STROKES];
-//         u_int                  sc_n_strokes;
-
-//         int                   *base_x;      /* base sensor readings */
-//         int                   *base_y;
-//         int                   *cur_x;       /* current sensor readings */
-//         int                   *cur_y;
-//         int                   *pressure_x;  /* computed pressures */
-//         int                   *pressure_y;
-//         struct timeval         sc_reap_time;
-//         struct timeval         sc_reap_ctime; /*ctime of siblings to be reaped*/
-
-//         u_int                  sc_idlecount; /* preceding idle interrupts */
-// #define ATP_IDLENESS_THRESHOLD 10
-
-};
-
 /* button data structure */
 struct bt_data {
 	uint8_t unknown1;       /* constant */
@@ -262,6 +213,51 @@ struct wsp_dev_params {
 	struct wsp_param x;          /* horizontal limits */
 	struct wsp_param y;          /* vertical limits */
 	struct wsp_param o;          /* orientation limits */
+};
+
+struct atp_softc; /* forward declaration */
+typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
+
+struct atp_softc {
+	device_t             sc_dev;
+	struct usb_device   *sc_usb_device;
+	struct mtx           sc_mutex; /* for synchronization */
+	struct usb_fifo_sc   sc_fifo;
+
+	const struct wsp_dev_params *sc_params; /* device configuration */
+
+	mousehw_t            sc_hw;
+	mousemode_t          sc_mode;
+	mousestatus_t        sc_status;
+
+	u_int                sc_state;
+#define ATP_ENABLED          0x01
+#define ATP_ZOMBIES_EXIST    0x02
+#define ATP_DOUBLE_TAP_DRAG  0x04
+#define ATP_VALID            0x08
+
+	struct usb_xfer     *sc_xfer[ATP_N_TRANSFER];
+
+	u_int                sc_pollrate;
+	int                  sc_fflags;
+
+	int8_t              *sensor_data; /* from interrupt packet */
+	sensor_data_interpreter_t sensor_data_interpreter;
+
+//         u_int                  sc_left_margin;
+//         u_int                  sc_right_margin;
+//         int                   *base_x;      /* base sensor readings */
+//         int                   *base_y;
+//         int                   *cur_x;       /* current sensor readings */
+//         int                   *cur_y;
+//         int                   *pressure_x;  /* computed pressures */
+//         int                   *pressure_y;
+//         struct timeval         sc_reap_time;
+//         struct timeval         sc_reap_ctime; /*ctime of siblings to be reaped*/
+
+//         u_int                  sc_idlecount; /* preceding idle interrupts */
+// #define ATP_IDLENESS_THRESHOLD 10
+
 };
 
 static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
