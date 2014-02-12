@@ -103,6 +103,9 @@ enum {
 #define ATP_FIFO_BUF_SIZE        8 /* bytes */
 #define ATP_FIFO_QUEUE_MAXLEN   50 /* units */
 
+struct atp_softc; /* forward declaration */
+typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
+
 struct atp_softc {
 	device_t             sc_dev;
 	struct usb_device   *sc_usb_device;
@@ -127,6 +130,7 @@ struct atp_softc {
 	int                  sc_fflags;
 
 	int8_t              *sensor_data; /* from interrupt packet */
+	sensor_data_interpreter_t sensor_data_interpreter;
 
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
@@ -632,6 +636,10 @@ static void atp_softc_unpopulate(struct atp_softc *);
 
 static void atp_interpret_wellspring_data(struct atp_softc *sc, unsigned len);
 
+sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
+	[TRACKPAD_FAMILY_WELLSPRING] = atp_interpret_wellspring_data,
+};
+
 
 #define MODE_LENGTH 8 /* num bytes holding the device mode */
 
@@ -887,6 +895,7 @@ atp_attach(device_t dev)
 		printf("decoded family as wellspring\n");
 		sc->sc_params =
 		    &wsp_dev_params[DECODE_PRODUCT_FROM_DRIVER_INFO(di)];
+		sc->sensor_data_interpreter = atp_interpret_wellspring_data;
 	}
 	atp_config[ATP_INTR_DT].bufsize = sc->sc_params->data_len;
 
@@ -988,7 +997,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		pc = usbd_xfer_get_frame(xfer, 0);
 		usbd_copy_out(pc, 0, sc->sensor_data, len);
 
-		atp_interpret_wellspring_data(sc, len);
+		(sc->sensor_data_interpreter)(sc, len);
 
     //     /* Interpret sensor data */
     //     atp_interpret_sensor_data(sc->sensor_data,
