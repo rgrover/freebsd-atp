@@ -218,6 +218,39 @@ struct wsp_dev_params {
 struct atp_softc; /* forward declaration */
 typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
 
+typedef enum atp_stroke_type {
+	ATP_STROKE_TOUCH,
+	ATP_STROKE_SLIDE,
+} atp_stroke_type;
+
+#define ATP_MAX_STROKES         (WSP_MAX_FINGERS)
+
+/*
+ * The following structure captures a finger contact with the
+ * touchpad. A stroke comprises two p-span components and some state.
+ */
+typedef struct atp_stroke {
+	atp_stroke_type      type;
+// 	struct timeval       ctime; /* create time; for coincident siblings. */
+// 	u_int                age;   /*
+// 				     * Unit: interrupts; we maintain
+// 				     * this value in addition to
+// 				     * 'ctime' in order to avoid the
+// 				     * expensive call to microtime()
+// 				     * at every interrupt.
+// 				     */
+
+// 	atp_stroke_component components[2];
+// 	u_int                velocity_squared; /*
+// 						* Average magnitude (squared)
+// 						* of recent velocity.
+// 						*/
+// 	u_int                cum_movement; /* cum. absolute movement so far */
+
+// 	uint32_t             flags;  /* the state of this stroke */
+// #define ATSF_ZOMBIE          0x1
+} atp_stroke;
+
 struct atp_softc {
 	device_t             sc_dev;
 	struct usb_device   *sc_usb_device;
@@ -244,6 +277,9 @@ struct atp_softc {
 	int8_t              *sensor_data; /* from interrupt packet */
 	sensor_data_interpreter_t sensor_data_interpreter;
 
+	atp_stroke           sc_strokes[ATP_MAX_STROKES];
+	u_int                sc_n_strokes;
+
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
 //         int                   *base_x;      /* base sensor readings */
@@ -257,7 +293,6 @@ struct atp_softc {
 
 //         u_int                  sc_idlecount; /* preceding idle interrupts */
 // #define ATP_IDLENESS_THRESHOLD 10
-
 };
 
 static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
@@ -694,9 +729,10 @@ atp_enable(struct atp_softc *sc)
 
 	/* reset status */
 	memset(&sc->sc_status, 0, sizeof(sc->sc_status));
-    // memset(sc->sc_strokes, 0, sizeof(sc->sc_strokes));
-    // sc->sc_n_strokes = 0;
-    // sc->sc_idlecount = 0;
+
+	memset(sc->sc_strokes, 0, sizeof(sc->sc_strokes));
+	sc->sc_n_strokes = 0;
+	// sc->sc_idlecount = 0;
 	sc->sc_state |= ATP_ENABLED;
 
 	DPRINTFN(ATP_LLEVEL_INFO, "enabled atp\n");
