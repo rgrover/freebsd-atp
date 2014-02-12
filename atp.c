@@ -546,7 +546,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 
 #define ATP_DEV(v,p,i) { USB_VPI(USB_VENDOR_##v, USB_PRODUCT_##v##_##p, i) }
 
-static const STRUCT_USB_HOST_ID atp_devs[] = {
+static const STRUCT_USB_HOST_ID wsp_devs[] = {
 	/* MacbookAir1.1 */
 	ATP_DEV(APPLE, WELLSPRING_ANSI, WELLSPRING_DRIVER_INFO(WELLSPRING1)),
 	ATP_DEV(APPLE, WELLSPRING_ISO,  WELLSPRING_DRIVER_INFO(WELLSPRING1)),
@@ -855,11 +855,15 @@ atp_probe(device_t self)
 	if (uaa->usb_mode != USB_MODE_HOST)
 		return (ENXIO);
 
-	if ((uaa->info.bInterfaceClass != UICLASS_HID) ||
-	    (uaa->info.bIfaceIndex     != WELLSPRING_INTERFACE_INDEX))
+	if (uaa->info.bInterfaceClass != UICLASS_HID)
 		return (ENXIO);
 
-	return (usbd_lookup_id_by_uaa(atp_devs, sizeof(atp_devs), uaa));
+	if ((usbd_lookup_id_by_uaa(wsp_devs, sizeof(wsp_devs), uaa)) == 0) {
+		if (uaa->info.bIfaceIndex == WELLSPRING_INTERFACE_INDEX)
+			return (0);
+	}
+
+	return (ENXIO);
 }
 
 static int
