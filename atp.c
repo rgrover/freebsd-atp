@@ -212,10 +212,10 @@ struct wsp_finger {
 } __packed;
 
 /* trackpad finger data size, empirically at least ten fingers */
-#define MAX_FINGERS             16
-#define SIZEOF_WSP_FINGER       sizeof(struct wsp_finger)
-#define SIZEOF_ALL_FINGERS      (MAX_FINGERS * SIZEOF_WSP_FINGER)
-#define MAX_FINGER_ORIENTATION  16384
+#define WSP_MAX_FINGERS            16
+#define WSP_SIZEOF_FINGER_STRUCT   sizeof(struct wsp_finger)
+#define WSP_SIZEOF_FINGER_DATA     (WSP_MAX_FINGERS * WSP_SIZEOF_FINGER_STRUCT)
+#define WSP_MAX_FINGER_ORIENTATION 16384
 
 /* logical signal quality */
 #define SN_PRESSURE 45      /* pressure signal-to-noise ratio */
@@ -285,7 +285,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 256
 		},
@@ -299,7 +299,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -172, 5820
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING2] = {
@@ -307,7 +307,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 256
 		},
@@ -321,7 +321,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -172, 4290
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING3] = {
@@ -329,7 +329,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -343,7 +343,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -75, 6700
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING4] = {
@@ -351,7 +351,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -365,7 +365,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -150, 6600
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING4A] = {
@@ -373,7 +373,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -387,7 +387,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -142, 5234
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING5] = {
@@ -395,7 +395,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -409,7 +409,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -55, 6680
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING6] = {
@@ -417,7 +417,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -431,7 +431,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -150, 6600
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING5A] = {
@@ -439,7 +439,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -453,7 +453,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -150, 6730
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING6A] = {
@@ -461,7 +461,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -475,7 +475,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -150, 6600
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING7] = {
@@ -483,7 +483,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -497,7 +497,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -150, 6730
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING7A] = {
@@ -505,7 +505,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -519,7 +519,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -150, 6730
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 	[WELLSPRING8] = {
@@ -527,7 +527,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE3,
 		.finger_data_offset  = WSP_TYPE3_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE3_FINGER_DATA_OFFSET + SIZEOF_ALL_FINGERS,
+		.data_len   = WSP_TYPE3_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -541,7 +541,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 			SN_COORD, -150, 6600
 		},
 		.o = {
-			SN_ORIENT, -MAX_FINGER_ORIENTATION, MAX_FINGER_ORIENTATION
+			SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
 		},
 	},
 };
@@ -1199,11 +1199,11 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	params = sc->sc_params;
 
 	if ((data_len < params->finger_data_offset) ||
-	    ((data_len - params->finger_data_offset) % SIZEOF_WSP_FINGER) != 0)
+	    ((data_len - params->finger_data_offset) % WSP_SIZEOF_FINGER_STRUCT) != 0)
 		return;
 
 	unsigned n_fingers = (data_len - params->finger_data_offset) /
-	    SIZEOF_WSP_FINGER;
+	    WSP_SIZEOF_FINGER_STRUCT;
 	struct wsp_finger *fingerp =
 	    (struct wsp_finger *)(sc->sensor_data + params->finger_data_offset);
 
