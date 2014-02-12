@@ -24,6 +24,14 @@
  * SUCH DAMAGE.
  */
 
+/*
+ * TODO:
+ *  - verify well-spring dev params.
+ *  - update old atp params
+ *  - add comment about not checking mouse subclass in probe()
+ *  - update man page.
+ */
+
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
