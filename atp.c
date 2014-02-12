@@ -94,7 +94,6 @@ static device_attach_t atp_attach;
 static device_detach_t atp_detach;
 static usb_callback_t  atp_intr;
 
-
 enum {
 	ATP_INTR_DT,
 	ATP_N_TRANSFER,
@@ -140,12 +139,12 @@ struct atp_softc {
 //         int                   *cur_y;
 //         int                   *pressure_x;  /* computed pressures */
 //         int                   *pressure_y;
+//         struct timeval         sc_reap_time;
+//         struct timeval         sc_reap_ctime; /*ctime of siblings to be reaped*/
 
 //         u_int                  sc_idlecount; /* preceding idle interrupts */
 // #define ATP_IDLENESS_THRESHOLD 10
 
-//         struct timeval         sc_reap_time;
-//         struct timeval         sc_reap_ctime; /*ctime of siblings to be reaped*/
 };
 
 /* button data structure */
@@ -244,11 +243,11 @@ enum {
 
 /* device-specific configuration */
 struct wsp_dev_params {
-	uint8_t          caps;       /* device capability bitmask */
-	uint16_t         bt_datalen; /* data length of the button interface */
-	uint8_t          tp_type;    /* type of trackpad interface */
-	uint8_t          finger_data_offset;/* offset to trackpad finger data */
-	uint16_t         data_len;   /* data length of the trackpad interface */
+	uint8_t  caps;               /* device capability bitmask */
+	uint16_t bt_datalen;         /* data length of the button interface */
+	uint8_t  tp_type;            /* type of trackpad interface */
+	uint8_t  finger_data_offset; /* offset to trackpad finger data */
+	uint16_t data_len;           /* data length of the trackpad interface */
 	struct wsp_param p;          /* finger pressure limits */
 	struct wsp_param w;          /* finger width limits */
 	struct wsp_param x;          /* horizontal limits */
