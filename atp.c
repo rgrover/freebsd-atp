@@ -180,21 +180,6 @@ enum wellspring_trackpad_type {
 /* list of device capability bits */
 #define HAS_INTEGRATED_BUTTON   1
 
-/* trackpad finger header - little endian */
-struct wsp_sensor_data_header {
-	uint8_t  flag;
-	uint8_t  sn0;
-	uint16_t wFixed0;
-	uint32_t dwSn1;
-	uint32_t dwFixed1;
-	uint16_t wLength;
-	uint8_t  nfinger;
-	uint8_t  ibt;
-	int16_t  wUnknown[6];
-	uint8_t  q1;
-	uint8_t  q2;
-} __packed;
-
 /* trackpad finger structure - little endian */
 struct wsp_finger {
 	int16_t origin;         /* zero when switching track finger */
