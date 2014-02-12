@@ -30,6 +30,7 @@
  *  - update old atp params
  *  - add comment about not checking mouse subclass in probe()
  *  - update man page.
+ *  - rename wsp_dev_params as wellspring_product_params
  */
 
 #include <sys/cdefs.h>
