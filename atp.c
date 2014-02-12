@@ -898,7 +898,6 @@ atp_attach(device_t dev)
 
 	unsigned long di = USB_GET_DRIVER_INFO(uaa);
 	if (DECODE_FAMILY_FROM_DRIVER_INFO(di) == TRACKPAD_FAMILY_WELLSPRING) {
-		printf("decoded family as wellspring\n");
 		sc->sc_params =
 		    &wsp_dev_params[DECODE_PRODUCT_FROM_DRIVER_INFO(di)];
 		sc->sensor_data_interpreter = atp_interpret_wellspring_data;
