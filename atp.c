@@ -653,6 +653,8 @@ static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
 
 static void atp_interpret_wellspring_data(struct atp_softc *sc, unsigned len);
+static boolean_t atp_update_wellspring_strokes(struct atp_softc *sc,
+    const struct wsp_finger *fingerp, u_int n_fingers);
 
 sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
 	[TRACKPAD_FAMILY_WELLSPRING] = atp_interpret_wellspring_data,
@@ -1253,6 +1255,21 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	//     sc->pos_y[i] = params->y.min + params->y.max - f[i].abs_y;
 	//     sc->index[i] = &f[i];
 	}
+
+	if (atp_update_wellspring_strokes(sc, fingerp, n_fingers)) {
+		printf("movement\n");
+	}
+}
+
+/*
+ * Update strokes by matching against current pressure-spans.
+ * Return TRUE if any movement is detected.
+ */
+boolean_t
+atp_update_wellspring_strokes(struct atp_softc *sc,
+    const struct wsp_finger *fingerp, u_int n_fingers)
+{
+	return (false);
 }
 
 // static void
