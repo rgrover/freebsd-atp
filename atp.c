@@ -132,7 +132,7 @@ enum wellspring_trackpad_type {
 #define HAS_INTEGRATED_BUTTON   1
 
 /* trackpad finger structure - little endian */
-struct wsp_finger {
+struct wsp_finger_sensor_data {
 	int16_t origin;         /* zero when switching track finger */
 	int16_t abs_x;          /* absolute x coodinate */
 	int16_t abs_y;          /* absolute y coodinate */
@@ -148,10 +148,10 @@ struct wsp_finger {
 } __packed;
 
 /* trackpad finger data size, empirically at least ten fingers */
-#define WSP_MAX_FINGERS            16
-#define WSP_SIZEOF_FINGER_STRUCT   sizeof(struct wsp_finger)
-#define WSP_SIZEOF_FINGER_DATA     (WSP_MAX_FINGERS * WSP_SIZEOF_FINGER_STRUCT)
-#define WSP_MAX_FINGER_ORIENTATION 16384
+#define WSP_MAX_FINGERS               16
+#define WSP_SIZEOF_FINGER_SENSOR_DATA sizeof(struct wsp_finger_sensor_data)
+#define WSP_SIZEOF_ALL_FINGER_DATA    (WSP_MAX_FINGERS * WSP_SIZEOF_FINGER_SENSOR_DATA)
+#define WSP_MAX_FINGER_ORIENTATION    16384
 
 /* logical signal quality */
 #define SN_PRESSURE 45      /* pressure signal-to-noise ratio */
@@ -301,7 +301,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 256
 		},
@@ -323,7 +323,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 256
 		},
@@ -345,7 +345,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -367,7 +367,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -389,7 +389,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -411,7 +411,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -433,7 +433,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -455,7 +455,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -477,7 +477,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -499,7 +499,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -521,7 +521,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -543,7 +543,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.bt_datalen = sizeof(struct bt_data),
 		.tp_type    = TYPE3,
 		.finger_data_offset  = WSP_TYPE3_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE3_FINGER_DATA_OFFSET + WSP_SIZEOF_FINGER_DATA,
+		.data_len   = WSP_TYPE3_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
 			SN_PRESSURE, 0, 300
 		},
@@ -1216,18 +1216,18 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	/* validate sensor data length */
 	if ((data_len < params->finger_data_offset) ||
 	    ((data_len - params->finger_data_offset) %
-	     WSP_SIZEOF_FINGER_STRUCT) != 0)
+	     WSP_SIZEOF_FINGER_SENSOR_DATA) != 0)
 		return;
 
 	unsigned n_source_fingers = (data_len - params->finger_data_offset) /
-	    WSP_SIZEOF_FINGER_STRUCT;
+	    WSP_SIZEOF_FINGER_SENSOR_DATA;
 	n_source_fingers = min(n_source_fingers, WSP_MAX_FINGERS);
 	printf("%u\n", n_source_fingers);
 
 	/* iterate over the source data collecting useful fingers */
-	struct wsp_finger *source_fingerp =
-	    (struct wsp_finger *)(sc->sensor_data + params->finger_data_offset);
-	const struct wsp_finger *fingerp[WSP_MAX_FINGERS];
+	struct wsp_finger_sensor_data *source_fingerp =
+	    (struct wsp_finger_sensor_data *)(sc->sensor_data + params->finger_data_offset);
+	const struct wsp_finger_sensor_data *fingerp[WSP_MAX_FINGERS];
 	unsigned i = 0, n_fingers = 0;
 	for (; i != n_source_fingers; i++, source_fingerp++) {
 	        if (le16toh(source_fingerp->touch_major) == 0)
