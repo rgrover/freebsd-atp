@@ -1211,14 +1211,12 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 void
 atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 {
-	// const struct wsp_sensor_data_header *hdr;
-	const struct wsp_dev_params          *params;
+	const struct wsp_dev_params *params = sc->sc_params;
 
-	// hdr = (const struct wsp_sensor_data_header *)(sc->sensor_data);
-	params = sc->sc_params;
-
+	/* validate sensor data length */
 	if ((data_len < params->finger_data_offset) ||
-	    ((data_len - params->finger_data_offset) % WSP_SIZEOF_FINGER_STRUCT) != 0)
+	    ((data_len - params->finger_data_offset) %
+	     WSP_SIZEOF_FINGER_STRUCT) != 0)
 		return;
 
 	unsigned n_fingers = (data_len - params->finger_data_offset) /
