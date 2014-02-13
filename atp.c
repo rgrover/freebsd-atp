@@ -654,7 +654,7 @@ static void atp_softc_unpopulate(struct atp_softc *);
 
 static void atp_interpret_wellspring_data(struct atp_softc *sc, unsigned len);
 static boolean_t atp_update_wellspring_strokes(struct atp_softc *sc,
-    const struct wsp_finger *fingerp, u_int n_fingers);
+    const struct wsp_finger *fingerp[WSP_MAX_FINGERS], u_int n_fingers);
 
 sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
 	[TRACKPAD_FAMILY_WELLSPRING] = atp_interpret_wellspring_data,
@@ -1219,39 +1219,32 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	     WSP_SIZEOF_FINGER_STRUCT) != 0)
 		return;
 
-	unsigned n_fingers = (data_len - params->finger_data_offset) /
+	unsigned n_source_fingers = (data_len - params->finger_data_offset) /
 	    WSP_SIZEOF_FINGER_STRUCT;
-	struct wsp_finger *fingerp =
+	n_source_fingers = min(n_source_fingers, WSP_MAX_FINGERS);
+	printf("%u\n", n_source_fingers);
+
+	/* iterate over the source data collecting useful fingers */
+	struct wsp_finger *source_fingerp =
 	    (struct wsp_finger *)(sc->sensor_data + params->finger_data_offset);
+	const struct wsp_finger *fingerp[WSP_MAX_FINGERS];
+	unsigned i = 0, n_fingers = 0;
+	for (; i != n_source_fingers; i++, source_fingerp++) {
+	        if (le16toh(source_fingerp->touch_major) == 0)
+	        	continue;
 
-	printf("%u\n", n_fingers);
+		source_fingerp->abs_x = le16toh(source_fingerp->abs_x) -
+		    params->x.min;
+		source_fingerp->abs_y = params->y.min + params->y.max -
+		    le16toh(source_fingerp->abs_y);
+#if 0
+		source_fingerp->origin = le16toh(source_fingerp->origin);
+#endif /* #if 0 */
+		printf("[%d] ax=%5d, ay=%5d\n", i,
+			source_fingerp->abs_x,
+			source_fingerp->abs_y);
 
-	unsigned i;
-	for (i = 0; i != n_fingers; i++) {
-		/* swap endianness, if any */
-		fingerp[i].origin = le16toh((uint16_t)fingerp[i].origin);
-		fingerp[i].abs_x = le16toh((uint16_t)fingerp[i].abs_x);
-		fingerp[i].abs_y = le16toh((uint16_t)fingerp[i].abs_y);
-	//         f[i].rel_x = le16toh((uint16_t)f[i].rel_x);
-	//         f[i].rel_y = le16toh((uint16_t)f[i].rel_y);
-	//         f[i].tool_major = le16toh((uint16_t)f[i].tool_major);
-	//         f[i].tool_minor = le16toh((uint16_t)f[i].tool_minor);
-	//         f[i].orientation = le16toh((uint16_t)f[i].orientation);
-	//         f[i].touch_major = le16toh((uint16_t)f[i].touch_major);
-	//         f[i].touch_minor = le16toh((uint16_t)f[i].touch_minor);
-	//         f[i].multi = le16toh((uint16_t)f[i].multi);
-		// DPRINTFN(WSP_LLEVEL_INFO, "[%d]ibt=%d, taps=%d, u=%x, o=%4d, ax=%5d, ay=%5d, "
-		// "rx=%5d, ry=%5d, tlmaj=%4d, tlmin=%4d, ot=%5d, tchmaj=%4d, tchmin=%4d, m=%4x\n",
-		// i, ibt, ntouch, h->q2,
-		// f[i].origin, f[i].abs_x, f[i].abs_y, f[i].rel_x, f[i].rel_y,
-		// f[i].tool_major, f[i].tool_minor, f[i].orientation,
-		// f[i].touch_major, f[i].touch_minor, f[i].multi);
-		printf("[%d]o=%4d, ax=%5d, ay=%5d\n", i,
-			fingerp[i].origin, fingerp[i].abs_x, fingerp[i].abs_y);
-
-	//     sc->pos_x[i] = f[i].abs_x;
-	//     sc->pos_y[i] = params->y.min + params->y.max - f[i].abs_y;
-	//     sc->index[i] = &f[i];
+	        fingerp[n_fingers++] = source_fingerp;
 	}
 
 	if (atp_update_wellspring_strokes(sc, fingerp, n_fingers)) {
@@ -1265,7 +1258,7 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
  */
 boolean_t
 atp_update_wellspring_strokes(struct atp_softc *sc,
-    const struct wsp_finger *fingerp, u_int n_fingers)
+    const struct wsp_finger *fingerp[WSP_MAX_FINGERS], u_int n_fingers)
 {
 	return (false);
 }
