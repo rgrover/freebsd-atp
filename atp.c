@@ -77,6 +77,15 @@ __FBSDID("$FreeBSD$");
 #define ATP_TOUCH_TIMEOUT 125000
 #endif
 
+/*
+ * The wait duration (in ticks) after losing a touch contact
+ * before zombied strokes are reaped and turned into button events.
+ */
+#define ATP_ZOMBIE_STROKE_REAP_WINDOW   50
+#if ATP_ZOMBIE_STROKE_REAP_WINDOW > 100
+#error "ATP_ZOMBIE_STROKE_REAP_WINDOW too large"
+#endif
+
 
 /* Tunables */
 static SYSCTL_NODE(_hw_usb, OID_AUTO, atp, CTLFLAG_RW, 0, "USB atp");
@@ -96,6 +105,16 @@ SYSCTL_INT(_hw_usb_atp, OID_AUTO, debug, CTLFLAG_RW,
 static u_int atp_touch_timeout = ATP_TOUCH_TIMEOUT;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, touch_timeout, CTLFLAG_RW,
     &atp_touch_timeout, 125000, "age threshold (in micros) for a touch");
+
+/*
+ * The minimum age of a stroke for it to be considered mature; this
+ * helps filter movements (noise) from immature strokes. Units: interrupts.
+ */
+static u_int atp_stroke_maturity_threshold = 4;
+SYSCTL_UINT(_hw_usb_atp, OID_AUTO, stroke_maturity_threshold, CTLFLAG_RW,
+    &atp_stroke_maturity_threshold, 2,
+    "the minimum age of a stroke for it to be considered mature");
+
 
 #define WELLSPRING_INTERFACE_INDEX 1
 
@@ -700,8 +719,7 @@ static void          atp_advance_stroke_state(struct atp_softc *,
 // static boolean_t     atp_compute_stroke_movement(atp_stroke *);
 
 /* tap detection */
-// static __inline void atp_setup_reap_time(struct atp_softc *, struct timeval *);
-static void          atp_reap_zombies(void *);
+static void          atp_reap_sibling_zombies(void *);
 static void          atp_convert_to_slide(struct atp_softc *, atp_stroke_t *);
 
 
@@ -1074,7 +1092,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		usbd_copy_out(pc, 0, sc->sensor_data, len);
 
 		(sc->sensor_data_interpreter)(sc, len);
-		callout_reset(&sc->sc_callout, 50, atp_reap_zombies, sc);
 
     //     /* Interpret sensor data */
     //     atp_interpret_sensor_data(sc->sensor_data,
@@ -1354,32 +1371,30 @@ static void
 atp_terminate_stroke(struct atp_softc *sc, u_int index)
 {
 	atp_stroke_t *strokep = &sc->sc_strokes[index];
-	printf("terminating stroke with age %u\n", strokep->age);
 
-	// if (strokep->flags & ATSF_ZOMBIE)
-		// return;
+	if (strokep->flags & ATSF_ZOMBIE)
+		return;
+	printf("terminating %u stroke with age %u\n", strokep->type, strokep->age);
 
-//	if ((strokep->type == ATP_STROKE_TOUCH) &&
-	    // (strokep->age > atp_stroke_maturity_threshold)) {
-		// strokep->flags |= ATSF_ZOMBIE;
-
-		// /* If no zombies exist, then prepare to reap zombies later. */
-		// if ((sc->sc_state & ATP_ZOMBIES_EXIST) == 0) {
-			// atp_setup_reap_time(sc, &strokep->ctime);
-			// sc->sc_state |= ATP_ZOMBIES_EXIST;
-		// }
-	// } else {
+	if ((strokep->type == ATP_STROKE_TOUCH) &&
+	    (strokep->age > atp_stroke_maturity_threshold)) {
+		strokep->flags |= ATSF_ZOMBIE;
+		sc->sc_state   |= ATP_ZOMBIES_EXIST;
+		callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_WINDOW,
+		    atp_reap_sibling_zombies, sc);
+	} else {
 		/* Drop this stroke. */
 		sc->sc_n_strokes--;
-		memcpy(&sc->sc_strokes[index], &sc->sc_strokes[index + 1],
-		    (sc->sc_n_strokes - index) * sizeof(atp_stroke_t));
+		if (index < sc->sc_n_strokes)
+			memcpy(strokep, strokep + 1,
+			    (sc->sc_n_strokes - index) * sizeof(atp_stroke_t));
 
 		/*
 		 * Reset the double-click-n-drag at the termination of
 		 * any slide stroke.
 		 */
 		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
-	// }
+	}
 }
 
 void
@@ -1546,72 +1561,31 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 
 
 static void
-atp_reap_zombies(void *arg)
+atp_reap_sibling_zombies(void *arg)
 {
 	struct atp_softc *sc = (struct atp_softc *)arg;
+	atp_stroke_t *strokep;
+	unsigned n_reaped;
 
-	// u_int       i;
-	// atp_stroke *stroke;
+	n_reaped = 0;
+	int i;
+	for (i = 0; i < sc->sc_n_strokes; i++) {
+		strokep = &sc->sc_strokes[i];
+		if ((strokep->flags & ATSF_ZOMBIE) == 0)
+			continue;
 
-	// *n_reaped = 0;
-	// for (i = 0; i < sc->sc_n_strokes; i++) {
-	// 	struct timeval  tdiff;
+		/* Erase the stroke from the sc. */
+		sc->sc_n_strokes--;
+		if (i < sc->sc_n_strokes)
+			memcpy(strokep, strokep + 1,
+			    (sc->sc_n_strokes - i) * sizeof(atp_stroke_t));
 
-	// 	stroke = &sc->sc_strokes[i];
+		n_reaped += 1;
+		--i; /* Decr. i to keep it unchanged for the next iteration */
+	}
 
-	// 	if ((stroke->flags & ATSF_ZOMBIE) == 0)
-	// 		continue;
-
-	// 	/* Compare this stroke's ctime with the ctime being reaped. */
-	// 	if (timevalcmp(&stroke->ctime, &sc->sc_reap_ctime, >=)) {
-	// 		tdiff = stroke->ctime;
-	// 		timevalsub(&tdiff, &sc->sc_reap_ctime);
-	// 	} else {
-	// 		tdiff = sc->sc_reap_ctime;
-	// 		timevalsub(&tdiff, &stroke->ctime);
-	// 	}
-
-	// 	if ((tdiff.tv_sec > (ATP_COINCIDENCE_THRESHOLD / 1000000)) ||
-	// 	    ((tdiff.tv_sec == (ATP_COINCIDENCE_THRESHOLD / 1000000)) &&
-	// 	     (tdiff.tv_usec > (ATP_COINCIDENCE_THRESHOLD % 1000000)))) {
-	// 		continue; /* Skip non-siblings. */
-	// 	}
-
-		/*
-		 * Reap this sibling zombie stroke.
-		 */
-
-	// 	if (reaped_xlocs != NULL)
-	// 		reaped_xlocs[*n_reaped] = stroke->components[X].loc;
-
-	// 	/* Erase the stroke from the sc. */
-	// 	memcpy(&stroke[i], &stroke[i + 1],
-	// 	    (sc->sc_n_strokes - i - 1) * sizeof(atp_stroke));
-	// 	sc->sc_n_strokes--;
-
-	// 	*n_reaped += 1;
-	// 	--i; /* Decr. i to keep it unchanged for the next iteration */
-	// }
-
-	// DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", *n_reaped);
-
-	// /* There could still be zombies remaining in the system. */
-	// for (i = 0; i < sc->sc_n_strokes; i++) {
-	// 	stroke = &sc->sc_strokes[i];
-	// 	if (stroke->flags & ATSF_ZOMBIE) {
-	// 		DPRINTFN(ATP_LLEVEL_INFO, "zombies remain!\n");
-	// 		atp_setup_reap_time(sc, &stroke->ctime);
-	// 		return;
-	// 	}
-	// }
-	//
-	printf("reap: strokes = %u\n", sc->sc_n_strokes);
-
-	if (sc->sc_n_strokes > 0)
-		atp_update_wellspring_strokes(sc,
-		    NULL/* fingers */, 0/* n_fingers */);
-
-	/* If we reach here, then no more zombies remain. */
+	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", n_reaped);
+	printf("reaped %u zombies; strokes left = %u\n", n_reaped, sc->sc_n_strokes);
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
 }
 
