@@ -332,14 +332,6 @@ struct atp_softc {
 
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
-//         int                   *base_x;      /* base sensor readings */
-//         int                   *base_y;
-//         int                   *cur_x;       /* current sensor readings */
-//         int                   *cur_y;
-//         int                   *pressure_x;  /* computed pressures */
-//         int                   *pressure_y;
-//         struct timeval         sc_reap_time;
-//         struct timeval         sc_reap_ctime; /*ctime of siblings to be reaped*/
 
 //         u_int                  sc_idlecount; /* preceding idle interrupts */
 // #define ATP_IDLENESS_THRESHOLD 10
@@ -1290,7 +1282,6 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	unsigned n_source_fingers = (data_len - params->finger_data_offset) /
 	    WSP_SIZEOF_FINGER_SENSOR_DATA;
 	n_source_fingers = min(n_source_fingers, WSP_MAX_FINGERS);
-	// printf("%u\n", n_source_fingers);
 
 	/* iterate over the source data collecting useful fingers */
 	struct wsp_finger_to_match fingers[WSP_MAX_FINGERS];
