@@ -702,7 +702,7 @@ static void          atp_advance_stroke_state(struct atp_softc *,
 /* tap detection */
 // static __inline void atp_setup_reap_time(struct atp_softc *, struct timeval *);
 static void          atp_reap_zombies(void *);
-// static void          atp_convert_to_slide(struct atp_softc *, atp_stroke *);
+static void          atp_convert_to_slide(struct atp_softc *, atp_stroke_t *);
 
 
 sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
@@ -1387,6 +1387,50 @@ atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
     const struct wsp_finger_to_match *fingerp, boolean_t *movementp)
 {
 	strokep->age++;
+
+	/* Compute the stroke's age. */
+	struct timeval tdiff;
+	getmicrotime(&tdiff);
+	if (timevalcmp(&tdiff, &strokep->ctime, >))
+		timevalsub(&tdiff, &strokep->ctime);
+	else {
+		/*
+		 * If we are here, it is because getmicrotime
+		 * reported the current time as being behind
+		 * the stroke's start time; getmicrotime can
+		 * be imprecise.
+		 */
+		tdiff.tv_sec  = 0;
+		tdiff.tv_usec = 0;
+	}
+
+	if ((tdiff.tv_sec > (atp_touch_timeout / 1000000)) ||
+	    ((tdiff.tv_sec == (atp_touch_timeout / 1000000)) &&
+		(tdiff.tv_usec >= (atp_touch_timeout % 1000000))))
+		atp_convert_to_slide(sc, strokep);
+}
+
+/* Switch a given touch stroke to being a slide. */
+void
+atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
+{
+	strokep->type = ATP_STROKE_SLIDE;
+
+	// /* Are we at the beginning of a double-click-n-drag? */
+	// if ((sc->sc_n_strokes == 1) &&
+	//     ((sc->sc_state & ATP_ZOMBIES_EXIST) == 0) &&
+	//     timevalcmp(&stroke->ctime, &sc->sc_reap_time, >)) {
+	// 	struct timeval delta;
+	// 	struct timeval window = {
+	// 		atp_double_tap_threshold / 1000000,
+	// 		atp_double_tap_threshold % 1000000
+	// 	};
+
+	// 	delta = stroke->ctime;
+	// 	timevalsub(&delta, &sc->sc_reap_time);
+	// 	if (timevalcmp(&delta, &window, <=))
+	// 		sc->sc_state |= ATP_DOUBLE_TAP_DRAG;
+	// }
 }
 
 /*
