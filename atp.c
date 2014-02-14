@@ -1322,12 +1322,12 @@ atp_add_stroke(struct atp_softc *sc, const struct wsp_finger_to_match *fingerp)
 		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
 	}
 
-	// DPRINTFN(ATP_LLEVEL_INFO, "[%u,%u], time: %u,%ld\n",
-	//     strokep->components[X].loc,
-	//     strokep->components[Y].loc,
+	// DPRINTFN(ATP_LLEVEL_INFO, "[%d,%d], time: %u,%ld\n",
+	//     strokep->x,
+	//     strokep->y,
 	//     (unsigned int)strokep->ctime.tv_sec,
 	//     (unsigned long int)strokep->ctime.tv_usec);
-	printf("[%u,%u]\n", strokep->x, strokep->y);
+	printf("[%d,%d]\n", strokep->x, strokep->y);
 }
 
 /*
