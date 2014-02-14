@@ -249,13 +249,13 @@ typedef struct atp_stroke {
 
 
 // 	struct timeval       ctime; /* create time; for coincident siblings. */
-// 	u_int                age;   /*
-// 				     * Unit: interrupts; we maintain
-// 				     * this value in addition to
-// 				     * 'ctime' in order to avoid the
-// 				     * expensive call to microtime()
-// 				     * at every interrupt.
-// 				     */
+	u_int                age;   /*
+				     * Unit: interrupts; we maintain
+				     * this value in addition to
+				     * 'ctime' in order to avoid the
+				     * expensive call to microtime()
+				     * at every interrupt.
+				     */
 
 // 	atp_stroke_component components[2];
 // 	u_int                velocity_squared; /*
@@ -671,6 +671,19 @@ static void atp_interpret_wellspring_data(struct atp_softc *sc, unsigned len);
 static boolean_t atp_update_wellspring_strokes(struct atp_softc *sc,
     struct wsp_finger_to_match fingerp[WSP_MAX_FINGERS],
     u_int n_fingers_to_match);
+
+/* movement detection */
+static __inline void atp_add_stroke(struct atp_softc *sc,
+			            const struct wsp_finger_to_match *fingerp);
+static void          atp_terminate_stroke(struct atp_softc *, u_int);
+static void          atp_advance_stroke_state(struct atp_stroke *,
+			 const struct wsp_finger_to_match *, boolean_t *);
+// static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke *);
+// static __inline void atp_update_pending_mickeys(atp_stroke_component *);
+// static void          atp_compute_smoothening_scale_ratio(atp_stroke *, int *,
+// 			 int *);
+// static boolean_t     atp_compute_stroke_movement(atp_stroke *);
+
 
 sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
 	[TRACKPAD_FAMILY_WELLSPRING] = atp_interpret_wellspring_data,
@@ -1270,6 +1283,89 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	}
 }
 
+/* Initialize a stroke from an unmatched finger. */
+static __inline void
+atp_add_stroke(struct atp_softc *sc, const struct wsp_finger_to_match *fingerp)
+{
+	atp_stroke *strokep;
+
+	if (sc->sc_n_strokes >= ATP_MAX_STROKES)
+		return;
+	strokep = &sc->sc_strokes[sc->sc_n_strokes];
+
+	memset(strokep, 0, sizeof(atp_stroke));
+
+	/*
+	 * Strokes begin as potential touches. If a stroke survives
+	 * longer than a threshold, or if it records significant
+	 * cumulative movement, then it is considered a 'slide'.
+	 */
+	strokep->type    = ATP_STROKE_TOUCH;
+	strokep->matched = true;
+	strokep->x       = fingerp->x;
+	strokep->y       = fingerp->y;
+
+	// microtime(&strokep->ctime);
+	strokep->age     = 1;       /* Unit: interrupts */
+
+	sc->sc_n_strokes++;
+	if (sc->sc_n_strokes > 1) {
+		/* Reset double-tap-n-drag if we have more than one strokes. */
+		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
+	}
+
+	// DPRINTFN(ATP_LLEVEL_INFO, "[%u,%u], time: %u,%ld\n",
+	//     strokep->components[X].loc,
+	//     strokep->components[Y].loc,
+	//     (unsigned int)strokep->ctime.tv_sec,
+	//     (unsigned long int)strokep->ctime.tv_usec);
+	printf("[%u,%u]\n", strokep->x, strokep->y);
+}
+
+/*
+ * Terminate a stroke. While SLIDE strokes are dropped, TOUCH strokes
+ * are retained as zombies so as to reap all their siblings together;
+ * this helps establish the number of fingers involved in the tap.
+ */
+static void
+atp_terminate_stroke(struct atp_softc *sc, u_int index)
+{
+	atp_stroke *strokep = &sc->sc_strokes[index];
+	printf("terminating stroke with age %u\n", strokep->age);
+
+	// if (strokep->flags & ATSF_ZOMBIE)
+		// return;
+
+//	if ((strokep->type == ATP_STROKE_TOUCH) &&
+	    // (strokep->age > atp_stroke_maturity_threshold)) {
+		// strokep->flags |= ATSF_ZOMBIE;
+
+		// /* If no zombies exist, then prepare to reap zombies later. */
+		// if ((sc->sc_state & ATP_ZOMBIES_EXIST) == 0) {
+			// atp_setup_reap_time(sc, &strokep->ctime);
+			// sc->sc_state |= ATP_ZOMBIES_EXIST;
+		// }
+	// } else {
+		/* Drop this stroke. */
+		sc->sc_n_strokes--;
+		memcpy(&sc->sc_strokes[index], &sc->sc_strokes[index + 1],
+		    (sc->sc_n_strokes - index) * sizeof(atp_stroke));
+
+		/*
+		 * Reset the double-click-n-drag at the termination of
+		 * any slide stroke.
+		 */
+		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
+	// }
+}
+
+void
+atp_advance_stroke_state(struct atp_stroke *strokep,
+    const struct wsp_finger_to_match *fingerp, boolean_t *movementp)
+{
+	strokep->age++;
+}
+
 /*
  * Update strokes by matching against current pressure-spans.
  * Return TRUE if any movement is detected.
@@ -1303,7 +1399,7 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 
 			fingerp->matched = true;
 			strokep->matched = true;
-			// atp_advance_stroke_state(strokep, fingerp, &movement);
+			atp_advance_stroke_state(strokep, fingerp, &movement);
 		}
 	}
 
@@ -1313,7 +1409,7 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 		if (strokep->matched)
 			continue;
 
-		/* do something here */
+		atp_terminate_stroke(sc, si);
 	}
 
 	/* initialize unmatched fingers as strokes */
@@ -1322,7 +1418,7 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 		if (fingerp->matched)
 			continue;
 
-		/* do something here */
+		atp_add_stroke(sc, fingerp);
 	}
 
 	return (movement);
