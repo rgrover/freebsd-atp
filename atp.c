@@ -1265,8 +1265,8 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	// printf("%u\n", n_source_fingers);
 
 	/* iterate over the source data collecting useful fingers */
-	struct wsp_finger_to_match fingers_to_match[WSP_MAX_FINGERS];
-	unsigned i = 0, n_fingers_to_match = 0;
+	struct wsp_finger_to_match fingers[WSP_MAX_FINGERS];
+	unsigned i = 0, n_fingers = 0;
 	struct wsp_finger_sensor_data *source_fingerp =
 	    (struct wsp_finger_sensor_data *)(sc->sensor_data +
 	     params->finger_data_offset);
@@ -1274,23 +1274,22 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 		if (le16toh(source_fingerp->touch_major) == 0)
 			continue;
 
-		fingers_to_match[n_fingers_to_match].matched = false;
-		fingers_to_match[n_fingers_to_match].x =
+		fingers[n_fingers].matched = false;
+		fingers[n_fingers].x       =
 		    le16toh(source_fingerp->abs_x) - params->x.min;
-		fingers_to_match[n_fingers_to_match].y = params->y.min +
+		fingers[n_fingers].y       = params->y.min +
 		    params->y.max - le16toh(source_fingerp->abs_y);
-
 		// printf("[%d] ax=%5d, ay=%5d\n", i,
-		// 	fingers_to_match[n_fingers_to_match].x,
-		// 	fingers_to_match[n_fingers_to_match].y);
-		++n_fingers_to_match;
+		// 	fingers[n_fingers].x,
+		// 	fingers[n_fingers].y);
+
+		++n_fingers;
 	}
 
-	if ((sc->sc_n_strokes == 0) && (n_fingers_to_match == 0))
+	if ((sc->sc_n_strokes == 0) && (n_fingers == 0))
 		return;
 
-	if (atp_update_wellspring_strokes(sc, fingers_to_match,
-	    n_fingers_to_match))
+	if (atp_update_wellspring_strokes(sc, fingers, n_fingers))
 		printf("movement\n");
 }
 
