@@ -242,7 +242,7 @@ typedef struct atp_stroke {
 //
 	int x, y;                /* location */
 
-// 	struct timeval       ctime; /* create time; for coincident siblings. */
+	struct timeval       ctime; /* create time; for coincident siblings. */
 	u_int                age;   /*
 				     * Unit: interrupts; we maintain
 				     * this value in addition to
@@ -1313,7 +1313,7 @@ atp_add_stroke(struct atp_softc *sc, const struct wsp_finger_to_match *fingerp)
 	strokep->x       = fingerp->x;
 	strokep->y       = fingerp->y;
 
-	// microtime(&strokep->ctime);
+	microtime(&strokep->ctime);
 	strokep->age     = 1;       /* Unit: interrupts */
 
 	sc->sc_n_strokes++;
