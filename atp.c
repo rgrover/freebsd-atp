@@ -676,7 +676,7 @@ static boolean_t atp_update_wellspring_strokes(struct atp_softc *sc,
 
 /* movement detection */
 static __inline void atp_add_stroke(struct atp_softc *sc,
-			            const struct wsp_finger_to_match *fingerp);
+    const struct wsp_finger_to_match *fingerp);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static void          atp_advance_stroke_state(struct atp_stroke *,
 			 const struct wsp_finger_to_match *, boolean_t *);
@@ -996,7 +996,7 @@ atp_attach(device_t dev)
 //         sc->sc_right_margin = (sc->sc_params->n_xsensors - 1) *
 //                 atp_mickeys_scale_factor;
 
-  	callout_init_mtx(&sc->sc_callout, &sc->sc_mutex, 0);
+	callout_init_mtx(&sc->sc_callout, &sc->sc_mutex, 0);
 
 	return (0);
 
