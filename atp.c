@@ -691,8 +691,8 @@ static boolean_t atp_update_wellspring_strokes(struct atp_softc *sc,
 static __inline void atp_add_stroke(struct atp_softc *sc,
     const struct wsp_finger_to_match *fingerp);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
-static void          atp_advance_stroke_state(struct atp_stroke *,
-			 const struct wsp_finger_to_match *, boolean_t *);
+static void          atp_advance_stroke_state(struct atp_softc *,
+    struct atp_stroke *, const struct wsp_finger_to_match *, boolean_t *);
 // static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke *);
 // static __inline void atp_update_pending_mickeys(atp_stroke_component *);
 // static void          atp_compute_smoothening_scale_ratio(atp_stroke *, int *,
@@ -1383,7 +1383,7 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 }
 
 void
-atp_advance_stroke_state(struct atp_stroke *strokep,
+atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
     const struct wsp_finger_to_match *fingerp, boolean_t *movementp)
 {
 	strokep->age++;
@@ -1435,7 +1435,7 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 				fingerp->matched = true;
 				strokep = &sc->sc_strokes[best_stroke_index];
 				strokep->matched = true;
-				atp_advance_stroke_state(strokep, fingerp,
+				atp_advance_stroke_state(sc, strokep, fingerp,
 				    &movement);
 			}
 		}
