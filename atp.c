@@ -264,7 +264,7 @@ typedef struct atp_stroke {
 // 						*/
 // 	u_int                cum_movement; /* cum. absolute movement so far */
 
-} atp_stroke;
+} atp_stroke_t;
 
 struct atp_softc {
 	device_t             sc_dev;
@@ -292,7 +292,7 @@ struct atp_softc {
 	int8_t              *sensor_data; /* from interrupt packet */
 	sensor_data_interpreter_t sensor_data_interpreter;
 
-	atp_stroke           sc_strokes[ATP_MAX_STROKES];
+	atp_stroke_t         sc_strokes[ATP_MAX_STROKES];
 	u_int                sc_n_strokes;
 
 	struct callout	     sc_callout;
@@ -1297,13 +1297,13 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 static __inline void
 atp_add_stroke(struct atp_softc *sc, const struct wsp_finger_to_match *fingerp)
 {
-	atp_stroke *strokep;
+	atp_stroke_t *strokep;
 
 	if (sc->sc_n_strokes >= ATP_MAX_STROKES)
 		return;
 	strokep = &sc->sc_strokes[sc->sc_n_strokes];
 
-	memset(strokep, 0, sizeof(atp_stroke));
+	memset(strokep, 0, sizeof(atp_stroke_t));
 
 	/*
 	 * Strokes begin as potential touches. If a stroke survives
@@ -1340,7 +1340,7 @@ atp_add_stroke(struct atp_softc *sc, const struct wsp_finger_to_match *fingerp)
 static void
 atp_terminate_stroke(struct atp_softc *sc, u_int index)
 {
-	atp_stroke *strokep = &sc->sc_strokes[index];
+	atp_stroke_t *strokep = &sc->sc_strokes[index];
 	printf("terminating stroke with age %u\n", strokep->age);
 
 	// if (strokep->flags & ATSF_ZOMBIE)
@@ -1359,7 +1359,7 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 		/* Drop this stroke. */
 		sc->sc_n_strokes--;
 		memcpy(&sc->sc_strokes[index], &sc->sc_strokes[index + 1],
-		    (sc->sc_n_strokes - index) * sizeof(atp_stroke));
+		    (sc->sc_n_strokes - index) * sizeof(atp_stroke_t));
 
 		/*
 		 * Reset the double-click-n-drag at the termination of
