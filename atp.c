@@ -69,6 +69,10 @@ __FBSDID("$FreeBSD$");
 
 #define ATP_DRIVER_NAME "atp"
 
+
+/* Tunables */
+static SYSCTL_NODE(_hw_usb, OID_AUTO, atp, CTLFLAG_RW, 0, "USB atp");
+
 #ifdef USB_DEBUG
 enum atp_log_level {
 	ATP_LLEVEL_DISABLED = 0,
