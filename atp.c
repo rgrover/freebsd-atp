@@ -1274,15 +1274,16 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 		if (le16toh(source_fingerp->touch_major) == 0)
 			continue;
 
-		++n_fingers_to_match;
 		fingers_to_match[n_fingers_to_match].matched = false;
 		fingers_to_match[n_fingers_to_match].x =
 		    le16toh(source_fingerp->abs_x) - params->x.min;
 		fingers_to_match[n_fingers_to_match].y = params->y.min +
 		    params->y.max - le16toh(source_fingerp->abs_y);
+
 		// printf("[%d] ax=%5d, ay=%5d\n", i,
 		// 	fingers_to_match[n_fingers_to_match].x,
 		// 	fingers_to_match[n_fingers_to_match].y);
+		++n_fingers_to_match;
 	}
 
 	if ((sc->sc_n_strokes == 0) && (n_fingers_to_match == 0))
