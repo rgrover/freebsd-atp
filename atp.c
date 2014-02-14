@@ -1262,7 +1262,7 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	unsigned n_source_fingers = (data_len - params->finger_data_offset) /
 	    WSP_SIZEOF_FINGER_SENSOR_DATA;
 	n_source_fingers = min(n_source_fingers, WSP_MAX_FINGERS);
-	printf("%u\n", n_source_fingers);
+	// printf("%u\n", n_source_fingers);
 
 	/* iterate over the source data collecting useful fingers */
 	struct wsp_finger_to_match fingers_to_match[WSP_MAX_FINGERS];
