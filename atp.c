@@ -69,6 +69,14 @@ __FBSDID("$FreeBSD$");
 
 #define ATP_DRIVER_NAME "atp"
 
+/*
+ * This is the age (in microseconds) beyond which a touch is
+ * considered to be a slide; and therefore a tap event isn't registered.
+ */
+#ifndef ATP_TOUCH_TIMEOUT
+#define ATP_TOUCH_TIMEOUT 125000
+#endif
+
 
 /* Tunables */
 static SYSCTL_NODE(_hw_usb, OID_AUTO, atp, CTLFLAG_RW, 0, "USB atp");
@@ -84,6 +92,10 @@ static int atp_debug = ATP_LLEVEL_ERROR; /* the default is to only log errors */
 SYSCTL_INT(_hw_usb_atp, OID_AUTO, debug, CTLFLAG_RW,
     &atp_debug, ATP_LLEVEL_ERROR, "ATP debug level");
 #endif /* USB_DEBUG */
+
+static u_int atp_touch_timeout = ATP_TOUCH_TIMEOUT;
+SYSCTL_UINT(_hw_usb_atp, OID_AUTO, touch_timeout, CTLFLAG_RW,
+    &atp_touch_timeout, 125000, "age threshold (in micros) for a touch");
 
 #define WELLSPRING_INTERFACE_INDEX 1
 
