@@ -1387,6 +1387,8 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 	struct wsp_finger_to_match *fingerp = fingers;
 	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
 		strokep = sc->sc_strokes;
+		unsigned least_distance = DISTANCE_MAX;
+		int best_stroke_index = -1;
 		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
 			if (strokep->matched)
 				continue;
@@ -1394,10 +1396,19 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 			/* skip strokes which are far away from the finger */
 			int dx = fingerp->x - strokep->x;
 			int dy = fingerp->y - strokep->y;
-			if (((dx * dx) + (dy * dy)) > DISTANCE_MAX)
+			unsigned distance_squared = (dx * dx) + (dy * dy);
+			if (distance_squared > DISTANCE_MAX)
 				continue;
 
+			if (distance_squared < least_distance) {
+				least_distance = distance_squared;
+				best_stroke_index = si;
+			}
+		}
+
+		if (best_stroke_index != -1) {
 			fingerp->matched = true;
+			strokep = &sc->sc_strokes[best_stroke_index];
 			strokep->matched = true;
 			atp_advance_stroke_state(strokep, fingerp, &movement);
 		}
