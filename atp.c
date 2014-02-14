@@ -1363,7 +1363,8 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 
 	if (strokep->flags & ATSF_ZOMBIE)
 		return;
-	printf("terminating %u stroke with age %u\n", strokep->type, strokep->age);
+	// printf("terminating %u stroke with age %u\n",
+	//     strokep->type, strokep->age);
 
 	if ((strokep->type == ATP_STROKE_TOUCH) &&
 	    (strokep->age > atp_stroke_maturity_threshold)) {
