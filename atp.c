@@ -251,8 +251,8 @@ struct wsp_finger_to_match {
  */
 typedef struct atp_stroke {
 	atp_stroke_type      type;
-// 	uint32_t             flags;  /* the state of this stroke */
-// #define ATSF_ZOMBIE          0x1
+	uint32_t             flags; /* the state of this stroke */
+#define ATSF_ZOMBIE          0x1
 	boolean_t matched;       /* to track match against fingers.*/
 //
 	int x, y;                /* location */
