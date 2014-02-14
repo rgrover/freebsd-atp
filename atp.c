@@ -1290,9 +1290,8 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 		return;
 
 	if (atp_update_wellspring_strokes(sc, fingers_to_match,
-	    n_fingers_to_match)) {
+	    n_fingers_to_match))
 		printf("movement\n");
-	}
 }
 
 /* Initialize a stroke from an unmatched finger. */
