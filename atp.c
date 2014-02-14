@@ -242,12 +242,6 @@ typedef struct atp_stroke {
 //
 	int x, y;                /* location */
 
-	// /* Fields containing information about movement. */
-	// int   delta_mickeys;    /* change in location (un-smoothened movement)*/
-	// int   pending;          /* cum. of pending short movements */
-	// int   movement;         /* current smoothened movement */
-
-
 // 	struct timeval       ctime; /* create time; for coincident siblings. */
 	u_int                age;   /*
 				     * Unit: interrupts; we maintain
@@ -257,7 +251,11 @@ typedef struct atp_stroke {
 				     * at every interrupt.
 				     */
 
-// 	atp_stroke_component components[2];
+	// /* Fields containing information about movement. */
+	// int   delta_mickeys;    /* change in location (un-smoothened movement)*/
+	// int   pending;          /* cum. of pending short movements */
+	// int   movement;         /* current smoothened movement */
+
 // 	u_int                velocity_squared; /*
 // 						* Average magnitude (squared)
 // 						* of recent velocity.
