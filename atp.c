@@ -295,6 +295,8 @@ struct atp_softc {
 	atp_stroke           sc_strokes[ATP_MAX_STROKES];
 	u_int                sc_n_strokes;
 
+	struct callout	     sc_callout;
+
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
 //         int                   *base_x;      /* base sensor readings */
@@ -684,6 +686,11 @@ static void          atp_advance_stroke_state(struct atp_stroke *,
 // 			 int *);
 // static boolean_t     atp_compute_stroke_movement(atp_stroke *);
 
+/* tap detection */
+// static __inline void atp_setup_reap_time(struct atp_softc *, struct timeval *);
+static void          atp_reap_zombies(void *);
+// static void          atp_convert_to_slide(struct atp_softc *, atp_stroke *);
+
 
 sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
 	[TRACKPAD_FAMILY_WELLSPRING] = atp_interpret_wellspring_data,
@@ -989,6 +996,8 @@ atp_attach(device_t dev)
 //         sc->sc_right_margin = (sc->sc_params->n_xsensors - 1) *
 //                 atp_mickeys_scale_factor;
 
+  	callout_init_mtx(&sc->sc_callout, &sc->sc_mutex, 0);
+
 	return (0);
 
 detach:
@@ -1005,6 +1014,7 @@ atp_detach(device_t dev)
 	atp_set_device_mode(sc, HID_MODE);
 
 	mtx_lock(&sc->sc_mutex);
+	callout_drain(&sc->sc_callout);
 	if (sc->sc_state & ATP_ENABLED)
 		atp_disable(sc);
 	mtx_unlock(&sc->sc_mutex);
@@ -1051,6 +1061,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		usbd_copy_out(pc, 0, sc->sensor_data, len);
 
 		(sc->sensor_data_interpreter)(sc, len);
+		callout_reset(&sc->sc_callout, 50, atp_reap_zombies, sc);
 
     //     /* Interpret sensor data */
     //     atp_interpret_sensor_data(sc->sensor_data,
@@ -1472,6 +1483,72 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 // 	usb_fifo_put_data_linear(sc->sc_fifo.fp[USB_FIFO_RX], buf,
 // 	    sc->sc_mode.packetsize, 1);
 // }
+
+
+static void
+atp_reap_zombies(void *arg)
+{
+	struct atp_softc *sc = (struct atp_softc *)arg;
+
+	// u_int       i;
+	// atp_stroke *stroke;
+
+	// *n_reaped = 0;
+	// for (i = 0; i < sc->sc_n_strokes; i++) {
+	// 	struct timeval  tdiff;
+
+	// 	stroke = &sc->sc_strokes[i];
+
+	// 	if ((stroke->flags & ATSF_ZOMBIE) == 0)
+	// 		continue;
+
+	// 	/* Compare this stroke's ctime with the ctime being reaped. */
+	// 	if (timevalcmp(&stroke->ctime, &sc->sc_reap_ctime, >=)) {
+	// 		tdiff = stroke->ctime;
+	// 		timevalsub(&tdiff, &sc->sc_reap_ctime);
+	// 	} else {
+	// 		tdiff = sc->sc_reap_ctime;
+	// 		timevalsub(&tdiff, &stroke->ctime);
+	// 	}
+
+	// 	if ((tdiff.tv_sec > (ATP_COINCIDENCE_THRESHOLD / 1000000)) ||
+	// 	    ((tdiff.tv_sec == (ATP_COINCIDENCE_THRESHOLD / 1000000)) &&
+	// 	     (tdiff.tv_usec > (ATP_COINCIDENCE_THRESHOLD % 1000000)))) {
+	// 		continue; /* Skip non-siblings. */
+	// 	}
+
+		/*
+		 * Reap this sibling zombie stroke.
+		 */
+
+	// 	if (reaped_xlocs != NULL)
+	// 		reaped_xlocs[*n_reaped] = stroke->components[X].loc;
+
+	// 	/* Erase the stroke from the sc. */
+	// 	memcpy(&stroke[i], &stroke[i + 1],
+	// 	    (sc->sc_n_strokes - i - 1) * sizeof(atp_stroke));
+	// 	sc->sc_n_strokes--;
+
+	// 	*n_reaped += 1;
+	// 	--i; /* Decr. i to keep it unchanged for the next iteration */
+	// }
+
+	// DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", *n_reaped);
+
+	// /* There could still be zombies remaining in the system. */
+	// for (i = 0; i < sc->sc_n_strokes; i++) {
+	// 	stroke = &sc->sc_strokes[i];
+	// 	if (stroke->flags & ATSF_ZOMBIE) {
+	// 		DPRINTFN(ATP_LLEVEL_INFO, "zombies remain!\n");
+	// 		atp_setup_reap_time(sc, &stroke->ctime);
+	// 		return;
+	// 	}
+	// }
+
+	/* If we reach here, then no more zombies remain. */
+	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
+	printf("atp_reap_zombies\n");
+}
 
 static void
 atp_reset_buf(struct atp_softc *sc)
