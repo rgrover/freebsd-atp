@@ -131,27 +131,6 @@ enum wellspring_trackpad_type {
 /* list of device capability bits */
 #define HAS_INTEGRATED_BUTTON   1
 
-/* trackpad finger structure - little endian */
-struct wsp_finger_sensor_data {
-	int16_t origin;         /* zero when switching track finger */
-	int16_t abs_x;          /* absolute x coodinate */
-	int16_t abs_y;          /* absolute y coodinate */
-	int16_t rel_x;          /* relative x coodinate */
-	int16_t rel_y;          /* relative y coodinate */
-	int16_t tool_major;     /* tool area, major axis */
-	int16_t tool_minor;     /* tool area, minor axis */
-	int16_t orientation;    /* 16384 when point, else 15 bit angle */
-	int16_t touch_major;    /* touch area, major axis */
-	int16_t touch_minor;    /* touch area, minor axis */
-	int16_t unused[3];      /* zeros */
-	int16_t multi;          /* one finger: varies, more fingers: constant */
-} __packed;
-
-struct wsp_finger_to_match {
-	boolean_t matched; /* to track fingers as they match against strokes. */
-	unsigned  x,y;     /* location (scaled using the mickeys factor) */
-};
-
 /* trackpad finger data size, empirically at least ten fingers */
 #define WSP_MAX_FINGERS               16
 #define WSP_SIZEOF_FINGER_SENSOR_DATA sizeof(struct wsp_finger_sensor_data)
@@ -229,6 +208,27 @@ typedef enum atp_stroke_type {
 } atp_stroke_type;
 
 #define ATP_MAX_STROKES         (WSP_MAX_FINGERS)
+
+/* trackpad finger structure - little endian */
+struct wsp_finger_sensor_data {
+	int16_t origin;         /* zero when switching track finger */
+	int16_t abs_x;          /* absolute x coodinate */
+	int16_t abs_y;          /* absolute y coodinate */
+	int16_t rel_x;          /* relative x coodinate */
+	int16_t rel_y;          /* relative y coodinate */
+	int16_t tool_major;     /* tool area, major axis */
+	int16_t tool_minor;     /* tool area, minor axis */
+	int16_t orientation;    /* 16384 when point, else 15 bit angle */
+	int16_t touch_major;    /* touch area, major axis */
+	int16_t touch_minor;    /* touch area, minor axis */
+	int16_t unused[3];      /* zeros */
+	int16_t multi;          /* one finger: varies, more fingers: constant */
+} __packed;
+
+struct wsp_finger_to_match {
+	boolean_t matched; /* to track fingers as they match against strokes. */
+	int       x,y;     /* location (scaled using the mickeys factor) */
+};
 
 /*
  * The following structure captures a finger contact with the
@@ -1276,9 +1276,56 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
  */
 boolean_t
 atp_update_wellspring_strokes(struct atp_softc *sc,
-    struct wsp_finger_to_match *fingerp, u_int n_fingers_to_match)
+    struct wsp_finger_to_match *fingers, u_int n_fingers)
 {
-	return (false);
+	boolean_t movement = false;
+	const static unsigned DISTANCE_MAX = 1000000;
+	unsigned si, fi;
+
+	/* reset the matched status for all strokes */
+	struct atp_stroke *strokep = sc->sc_strokes;
+	for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+		strokep->matched = false;
+	}
+
+	struct wsp_finger_to_match *fingerp = fingers;
+	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
+		strokep = sc->sc_strokes;
+		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+			if (strokep->matched)
+				continue;
+
+			/* skip strokes which are far away from the finger */
+			int dx = fingerp->x - strokep->x;
+			int dy = fingerp->y - strokep->y;
+			if (((dx * dx) + (dy * dy)) > DISTANCE_MAX)
+				continue;
+
+			fingerp->matched = true;
+			strokep->matched = true;
+			// atp_advance_stroke_state(strokep, fingerp, &movement);
+		}
+	}
+
+	/* handle zombie strokes */
+	strokep = sc->sc_strokes;
+	for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+		if (strokep->matched)
+			continue;
+
+		/* do something here */
+	}
+
+	/* initialize unmatched fingers as strokes */
+	fingerp = fingers;
+	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
+		if (fingerp->matched)
+			continue;
+
+		/* do something here */
+	}
+
+	return (movement);
 }
 
 // static void
