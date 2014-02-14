@@ -240,7 +240,7 @@ typedef struct atp_stroke {
 // #define ATSF_ZOMBIE          0x1
 	boolean_t matched;       /* to track match against fingers.*/
 //
-	u_int x, y;              /* location */
+	int x, y;                /* location */
 
 	// /* Fields containing information about movement. */
 	// int   delta_mickeys;    /* change in location (un-smoothened movement)*/
