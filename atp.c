@@ -1067,9 +1067,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	int                          len;
 	struct usb_page_cache       *pc;
     // uint8_t                status_bits;
-    // atp_pspan  pspans_x[ATP_MAX_PSPANS_PER_AXIS];
-    // atp_pspan  pspans_y[ATP_MAX_PSPANS_PER_AXIS];
-    // u_int      n_xpspans = 0, n_ypspans = 0;
     // u_int      reaped_xlocs[ATP_MAX_STROKES];
     // u_int      tap_fingers = 0;
 
@@ -1098,7 +1095,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
     //         sc->sc_params->n_xsensors, X, sc->cur_x,
     //         sc->sc_params->prot);
     //     atp_interpret_sensor_data(sc->sensor_data,
-    //         sc->sc_params->n_ysensors, Y,  sc->cur_y,
+    //         sc->sc_params->n_ysensors, Y, sc->cur_y,
     //         sc->sc_params->prot);
 
     //     /*
@@ -1144,7 +1141,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 
     //         getmicrotime(&now);
     //         if (timevalcmp(&now, &sc->sc_reap_time, >=))
-    //             atp_reap_zombies(sc, &tap_fingers,
+    //             atp_reap_sibling_zombies(sc, &tap_fingers,
     //                 reaped_xlocs);
     //     }
 
