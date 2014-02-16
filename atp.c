@@ -712,7 +712,8 @@ static void          atp_advance_stroke_state(struct atp_softc *,
 // static __inline void atp_update_pending_mickeys(atp_stroke_component *);
 // static void          atp_compute_smoothening_scale_ratio(atp_stroke *, int *,
 // 			 int *);
-// static boolean_t     atp_compute_stroke_movement(atp_stroke *);
+static boolean_t     atp_compute_stroke_movement(atp_stroke_t *,
+    const struct wsp_finger_to_match *finger);
 
 /* tap detection */
 static void          atp_reap_sibling_zombies(void *);
@@ -1335,6 +1336,55 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 	}
 }
 
+/*
+ * Compute a smoothened value for the stroke's movement from
+ * delta_mickeys in the X and Y components.
+ */
+static boolean_t
+atp_compute_stroke_movement(atp_stroke_t *stroke,
+    const struct wsp_finger_to_match *fingerp)
+{
+	// int   num;              /* numerator of scale ratio */
+	// int   denom;            /* denominator of scale ratio */
+
+	// /*
+	//  * Short movements are added first to the 'pending' bucket,
+	//  * and then acted upon only when their aggregate exceeds a
+	//  * threshold. This has the effect of filtering away movement
+	//  * noise.
+	//  */
+	// if (atp_stroke_has_small_movement(stroke)) {
+	// 	atp_update_pending_mickeys(&stroke->components[X]);
+	// 	atp_update_pending_mickeys(&stroke->components[Y]);
+	// } else {                /* large movement */
+	// 	/* clear away any pending mickeys if there are large movements*/
+	// 	stroke->components[X].pending = 0;
+	// 	stroke->components[Y].pending = 0;
+	// }
+
+	// /* Get the scale ratio and smoothen movement. */
+	// atp_compute_smoothening_scale_ratio(stroke, &num, &denom);
+	// if ((num == 0) || (denom == 0)) {
+	// 	stroke->components[X].movement = 0;
+	// 	stroke->components[Y].movement = 0;
+	// 	stroke->velocity_squared >>= 1; /* Erode velocity_squared. */
+	// } else {
+	// 	stroke->components[X].movement =
+	// 		(stroke->components[X].delta_mickeys * num) / denom;
+	// 	stroke->components[Y].movement =
+	// 		(stroke->components[Y].delta_mickeys * num) / denom;
+
+	// 	stroke->cum_movement +=
+	// 		abs(stroke->components[X].movement) +
+	// 		abs(stroke->components[Y].movement);
+	// }
+
+	// return ((stroke->components[X].movement != 0) ||
+	//     (stroke->components[Y].movement != 0));
+
+	return (false);
+}
+
 void
 atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
     const struct wsp_finger_to_match *fingerp, boolean_t *movementp)
@@ -1344,6 +1394,9 @@ atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
 		strokep->flags &= ~ATSF_ZOMBIE;
 
 	strokep->age++;
+
+	if (atp_compute_stroke_movement(strokep, fingerp))
+		*movementp = TRUE;
 
 	/* Compute the stroke's age. */
 	struct timeval tdiff;
