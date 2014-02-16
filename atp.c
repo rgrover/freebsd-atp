@@ -1083,61 +1083,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 
 		(sc->sensor_data_interpreter)(sc, len);
 
-    //     /* Interpret sensor data */
-    //     atp_interpret_sensor_data(sc->sensor_data,
-    //         sc->sc_params->n_xsensors, X, sc->cur_x,
-    //         sc->sc_params->prot);
-    //     atp_interpret_sensor_data(sc->sensor_data,
-    //         sc->sc_params->n_ysensors, Y, sc->cur_y,
-    //         sc->sc_params->prot);
-
-    //     /*
-    //      * If this is the initial update (from an untouched
-    //      * pad), we should set the base values for the sensor
-    //      * data; deltas with respect to these base values can
-    //      * be used as pressure readings subsequently.
-    //      */
-    //     status_bits = sc->sensor_data[sc->sc_params->data_len - 1];
-    //     if ((sc->sc_params->prot == ATP_PROT_GEYSER3 &&
-    //         (status_bits & ATP_STATUS_BASE_UPDATE)) ||
-    //         !(sc->sc_state & ATP_VALID)) {
-    //         memcpy(sc->base_x, sc->cur_x,
-    //             sc->sc_params->n_xsensors * sizeof(*(sc->base_x)));
-    //         memcpy(sc->base_y, sc->cur_y,
-    //             sc->sc_params->n_ysensors * sizeof(*(sc->base_y)));
-    //         sc->sc_state |= ATP_VALID;
-    //         goto tr_setup;
-    //     }
-
-    //     /* Get pressure readings and detect p-spans for both axes. */
-    //     atp_get_pressures(sc->pressure_x, sc->cur_x, sc->base_x,
-    //         sc->sc_params->n_xsensors);
-    //     atp_detect_pspans(sc->pressure_x, sc->sc_params->n_xsensors,
-    //         ATP_MAX_PSPANS_PER_AXIS,
-    //         pspans_x, &n_xpspans);
-    //     atp_get_pressures(sc->pressure_y, sc->cur_y, sc->base_y,
-    //         sc->sc_params->n_ysensors);
-    //     atp_detect_pspans(sc->pressure_y, sc->sc_params->n_ysensors,
-    //         ATP_MAX_PSPANS_PER_AXIS,
-    //         pspans_y, &n_ypspans);
-
-    //     /* Update strokes with new pspans to detect movements. */
-    //     sc->sc_status.flags &= ~MOUSE_POSCHANGED;
-    //     if (atp_update_strokes(sc,
-    //         pspans_x, n_xpspans,
-    //         pspans_y, n_ypspans))
-    //         sc->sc_status.flags |= MOUSE_POSCHANGED;
-
-    //     /* Reap zombies if it is time. */
-    //     if (sc->sc_state & ATP_ZOMBIES_EXIST) {
-    //         struct timeval now;
-
-    //         getmicrotime(&now);
-    //         if (timevalcmp(&now, &sc->sc_reap_time, >=))
-    //             atp_reap_sibling_zombies(sc, &tap_fingers,
-    //                 reaped_xlocs);
-    //     }
-
     //     sc->sc_status.flags &= ~MOUSE_STDBUTTONSCHANGED;
     //     sc->sc_status.obutton = sc->sc_status.button;
 
