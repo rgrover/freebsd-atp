@@ -286,16 +286,19 @@ typedef struct atp_stroke {
 				     * at every interrupt.
 				     */
 
-	// /* Fields containing information about movement. */
-	// int   delta_mickeys;    /* change in location (un-smoothened movement)*/
-	// int   pending;          /* cum. of pending short movements */
-	// int   movement;         /* current smoothened movement */
+	/* Fields containing information about movement. */
+	int   delta_mickeys_x; /* change in X location (un-smoothened) */
+	int   delta_mickeys_y; /* change in Y location (un-smoothened) */
+	int   pending_x;       /* cum. of pending short movements */
+	int   pending_y;       /* cum. of pending short movements */
+	int   movement_x;      /* current smoothened movement */
+	int   movement_y;      /* current smoothened movement */
+	u_int cum_movement;    /* cum. absolute movement so far */
 
 // 	u_int                velocity_squared; /*
 // 						* Average magnitude (squared)
 // 						* of recent velocity.
 // 						*/
-// 	u_int                cum_movement; /* cum. absolute movement so far */
 
 } atp_stroke_t;
 
