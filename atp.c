@@ -306,8 +306,8 @@ typedef struct atp_stroke {
 	int   instantaneous_y; /* curr. change in Y location (un-smoothened) */
 	int   pending_x;       /* cum. of pending short movements */
 	int   pending_y;       /* cum. of pending short movements */
-	int   movement_x;      /* current smoothened movement */
-	int   movement_y;      /* current smoothened movement */
+	int   movement_x;      /* interpreted smoothened movement */
+	int   movement_y;      /* interpreted smoothened movement */
 	u_int cum_movement;    /* cum. absolute movement so far */
 
 // 	u_int                velocity_squared; /*
