@@ -1356,9 +1356,9 @@ atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 }
 
 /*
- * Accumulate delta_mickeys into the stroke's 'pending' bucket; if
+ * Accumulate instantaneous changes into the stroke's 'pending' bucket; if
  * the aggregate exceeds the small_movement_threshold, then retain
- * delta_mickeys for later.
+ * instantaneous changes for later.
  */
 static __inline void
 atp_update_pending_mickeys(atp_stroke_t *strokep)
@@ -1459,7 +1459,7 @@ atp_compute_smoothening_scale_ratio(atp_stroke_t *strokep, int *numerator,
 
 /*
  * Compute a smoothened value for the stroke's movement from
- * delta_mickeys in the X and Y components.
+ * instantaneous changes in the X and Y components.
  */
 static boolean_t
 atp_compute_stroke_movement(atp_stroke_t *strokep)
