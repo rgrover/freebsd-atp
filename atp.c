@@ -724,7 +724,7 @@ static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
     struct atp_stroke *, boolean_t *);
 static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
-// static __inline void atp_update_pending_mickeys(atp_stroke_component *);
+static __inline void atp_update_pending_mickeys(atp_stroke_t *);
 // static void          atp_compute_smoothening_scale_ratio(atp_stroke *, int *,
 // 			 int *);
 static boolean_t     atp_compute_stroke_movement(atp_stroke_t *);
@@ -1357,6 +1357,32 @@ atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 		 atp_small_movement_threshold) &&
 		((u_int)abs(strokep->delta_mickeys_y) <=
 		 atp_small_movement_threshold));
+}
+
+/*
+ * Accumulate delta_mickeys into the stroke's 'pending' bucket; if
+ * the aggregate exceeds the small_movement_threshold, then retain
+ * delta_mickeys for later.
+ */
+static __inline void
+atp_update_pending_mickeys(atp_stroke_t *strokep)
+{
+	strokep->pending_x += strokep->delta_mickeys_x;
+	strokep->pending_y += strokep->delta_mickeys_y;
+	if ((abs(strokep->pending_x) <= atp_small_movement_threshold) &&
+	    (abs(strokep->pending_y) <= atp_small_movement_threshold)) {
+		strokep->delta_mickeys_x = 0;
+		strokep->delta_mickeys_y = 0;
+	} else {
+		/*
+		 * Penalise pending mickeys for having accumulated
+		 * over short deltas. This operation has the effect of
+		 * scaling down the cumulative contribution of short
+		 * movements.
+		 */
+		strokep->pending_x -= (strokep->delta_mickeys_x << 1);
+		strokep->pending_y -= (strokep->delta_mickeys_y << 1);
+	}
 }
 
 /*
