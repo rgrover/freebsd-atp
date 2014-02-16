@@ -1470,9 +1470,9 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	 * threshold. This has the effect of filtering away movement
 	 * noise.
 	 */
-	if (atp_stroke_has_small_movement(strokep)) {
+	if (atp_stroke_has_small_movement(strokep))
 		atp_update_pending_mickeys(strokep);
-	} else {                /* large movement */
+	else {                /* large movement */
 		/* clear away any pending mickeys if there are large movements*/
 		strokep->pending_dx = 0;
 		strokep->pending_dy = 0;
