@@ -1395,20 +1395,19 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	// int   num;              /* numerator of scale ratio */
 	// int   denom;            /* denominator of scale ratio */
 
-	// /*
-	//  * Short movements are added first to the 'pending' bucket,
-	//  * and then acted upon only when their aggregate exceeds a
-	//  * threshold. This has the effect of filtering away movement
-	//  * noise.
-	//  */
-	// if (atp_stroke_has_small_movement(stroke)) {
-	// 	atp_update_pending_mickeys(&stroke->components[X]);
-	// 	atp_update_pending_mickeys(&stroke->components[Y]);
-	// } else {                /* large movement */
-	// 	/* clear away any pending mickeys if there are large movements*/
-	// 	stroke->components[X].pending = 0;
-	// 	stroke->components[Y].pending = 0;
-	// }
+	/*
+	 * Short movements are added first to the 'pending' bucket,
+	 * and then acted upon only when their aggregate exceeds a
+	 * threshold. This has the effect of filtering away movement
+	 * noise.
+	 */
+	if (atp_stroke_has_small_movement(strokep)) {
+		atp_update_pending_mickeys(strokep);
+	} else {                /* large movement */
+		/* clear away any pending mickeys if there are large movements*/
+		strokep->pending_x = 0;
+		strokep->pending_y = 0;
+	}
 
 	// /* Get the scale ratio and smoothen movement. */
 	// atp_compute_smoothening_scale_ratio(stroke, &num, &denom);
