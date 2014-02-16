@@ -1339,6 +1339,10 @@ void
 atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
     const struct wsp_finger_to_match *fingerp, boolean_t *movementp)
 {
+	/* Revitalize stroke if it had previously been marked as a zombie. */
+	if (strokep->flags & ATSF_ZOMBIE)
+		strokep->flags &= ~ATSF_ZOMBIE;
+
 	strokep->age++;
 
 	/* Compute the stroke's age. */
