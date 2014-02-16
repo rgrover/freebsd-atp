@@ -302,8 +302,8 @@ typedef struct atp_stroke {
 				     */
 
 	/* Fields containing information about movement. */
-	int   delta_mickeys_x; /* change in X location (un-smoothened) */
-	int   delta_mickeys_y; /* change in Y location (un-smoothened) */
+	int   instantaneous_x; /* curr. change in X location (un-smoothened) */
+	int   instantaneous_y; /* curr. change in Y location (un-smoothened) */
 	int   pending_x;       /* cum. of pending short movements */
 	int   pending_y;       /* cum. of pending short movements */
 	int   movement_x;      /* current smoothened movement */
@@ -1353,9 +1353,9 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 static __inline boolean_t
 atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 {
-	return (((u_int)abs(strokep->delta_mickeys_x) <=
+	return (((u_int)abs(strokep->instantaneous_x) <=
 		 atp_small_movement_threshold) &&
-		((u_int)abs(strokep->delta_mickeys_y) <=
+		((u_int)abs(strokep->instantaneous_y) <=
 		 atp_small_movement_threshold));
 }
 
@@ -1367,12 +1367,12 @@ atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 static __inline void
 atp_update_pending_mickeys(atp_stroke_t *strokep)
 {
-	strokep->pending_x += strokep->delta_mickeys_x;
-	strokep->pending_y += strokep->delta_mickeys_y;
+	strokep->pending_x += strokep->instantaneous_x;
+	strokep->pending_y += strokep->instantaneous_y;
 	if ((abs(strokep->pending_x) <= atp_small_movement_threshold) &&
 	    (abs(strokep->pending_y) <= atp_small_movement_threshold)) {
-		strokep->delta_mickeys_x = 0;
-		strokep->delta_mickeys_y = 0;
+		strokep->instantaneous_x = 0;
+		strokep->instantaneous_y = 0;
 	} else {
 		/*
 		 * Penalise pending mickeys for having accumulated
@@ -1380,8 +1380,8 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 		 * scaling down the cumulative contribution of short
 		 * movements.
 		 */
-		strokep->pending_x -= (strokep->delta_mickeys_x << 1);
-		strokep->pending_y -= (strokep->delta_mickeys_y << 1);
+		strokep->pending_x -= (strokep->instantaneous_x << 1);
+		strokep->pending_y -= (strokep->instantaneous_y << 1);
 	}
 }
 
@@ -1443,8 +1443,8 @@ atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
 	strokep->age++;
 	if (strokep->age <= atp_stroke_maturity_threshold) {
 		/* Avoid noise from immature strokes. */
-		strokep->delta_mickeys_x = 0;
-		strokep->delta_mickeys_y = 0;
+		strokep->instantaneous_x = 0;
+		strokep->instantaneous_y = 0;
 	}
 
 	if (atp_compute_stroke_movement(strokep))
@@ -1524,17 +1524,17 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 				if (strokep->matched)
 					continue;
 
-				strokep->delta_mickeys_x =
+				strokep->instantaneous_x =
 				    fingerp->x - strokep->x;
-				strokep->delta_mickeys_y =
+				strokep->instantaneous_y =
 				    fingerp->y - strokep->y;
 
 				/* skip strokes which are far away */
 				unsigned d_squared =
-				    (strokep->delta_mickeys_x *
-				     strokep->delta_mickeys_x) +
-				    (strokep->delta_mickeys_y *
-				     strokep->delta_mickeys_y);
+				    (strokep->instantaneous_x *
+				     strokep->instantaneous_x) +
+				    (strokep->instantaneous_y *
+				     strokep->instantaneous_y);
 				if (d_squared > DISTANCE_MAX)
 					continue;
 
