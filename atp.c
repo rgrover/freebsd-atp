@@ -71,6 +71,16 @@ __FBSDID("$FreeBSD$");
 #define ATP_DRIVER_NAME "atp"
 
 /*
+ * Driver specific options: the following options may be set by
+ * `options' statements in the kernel configuration file.
+ */
+
+/* The multiplier used to translate sensor reported positions to mickeys. */
+#ifndef ATP_SCALE_FACTOR
+#define ATP_SCALE_FACTOR 48
+#endif
+
+/*
  * This is the age (in microseconds) beyond which a touch is
  * considered to be a slide; and therefore a tap event isn't registered.
  */
