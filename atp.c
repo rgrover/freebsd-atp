@@ -302,13 +302,13 @@ typedef struct atp_stroke {
 				     */
 
 	/* Fields containing information about movement. */
-	int   instantaneous_x; /* curr. change in X location (un-smoothened) */
-	int   instantaneous_y; /* curr. change in Y location (un-smoothened) */
-	int   pending_x;       /* cum. of pending short movements */
-	int   pending_y;       /* cum. of pending short movements */
-	int   movement_x;      /* interpreted smoothened movement */
-	int   movement_y;      /* interpreted smoothened movement */
-	u_int cum_movement;    /* cum. absolute movement so far */
+	int   instantaneous_dx; /* curr. change in X location (un-smoothened) */
+	int   instantaneous_dy; /* curr. change in Y location (un-smoothened) */
+	int   pending_dx;       /* cum. of pending short movements */
+	int   pending_dy;       /* cum. of pending short movements */
+	int   movement_dx;      /* interpreted smoothened movement */
+	int   movement_dy;      /* interpreted smoothened movement */
+	u_int cum_movement;     /* cum. absolute movement so far */
 
 	u_int velocity_squared;/* Avg. magnitude (squared) of recent velocity.*/
 } atp_stroke_t;
@@ -1349,9 +1349,9 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 static __inline boolean_t
 atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 {
-	return (((u_int)abs(strokep->instantaneous_x) <=
+	return (((u_int)abs(strokep->instantaneous_dx) <=
 		 atp_small_movement_threshold) &&
-		((u_int)abs(strokep->instantaneous_y) <=
+		((u_int)abs(strokep->instantaneous_dy) <=
 		 atp_small_movement_threshold));
 }
 
@@ -1363,12 +1363,12 @@ atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 static __inline void
 atp_update_pending_mickeys(atp_stroke_t *strokep)
 {
-	strokep->pending_x += strokep->instantaneous_x;
-	strokep->pending_y += strokep->instantaneous_y;
-	if ((abs(strokep->pending_x) <= atp_small_movement_threshold) &&
-	    (abs(strokep->pending_y) <= atp_small_movement_threshold)) {
-		strokep->instantaneous_x = 0;
-		strokep->instantaneous_y = 0;
+	strokep->pending_dx += strokep->instantaneous_dx;
+	strokep->pending_dy += strokep->instantaneous_dy;
+	if ((abs(strokep->pending_dx) <= atp_small_movement_threshold) &&
+	    (abs(strokep->pending_dy) <= atp_small_movement_threshold)) {
+		strokep->instantaneous_dx = 0;
+		strokep->instantaneous_dy = 0;
 	} else {
 		/*
 		 * Penalise pending mickeys for having accumulated
@@ -1376,8 +1376,8 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 		 * scaling down the cumulative contribution of short
 		 * movements.
 		 */
-		strokep->pending_x -= (strokep->instantaneous_x << 1);
-		strokep->pending_y -= (strokep->instantaneous_y << 1);
+		strokep->pending_dx -= (strokep->instantaneous_dx << 1);
+		strokep->pending_dy -= (strokep->instantaneous_dy << 1);
 	}
 }
 
@@ -1429,8 +1429,8 @@ atp_compute_smoothening_scale_ratio(atp_stroke_t *strokep, int *numerator,
 
 	// int dxdt;
 	// int dydt;
-	// dxdt = strokep->instantaneous_x;
-	// dydt = strokep->instantaneous_y;
+	// dxdt = strokep->instantaneous_dx;
+	// dydt = strokep->instantaneous_dy;
 
 	// /* Compute a smoothened magnitude_squared of the stroke's velocity. */
 	// vel_squared = dxdt * dxdt + dydt * dydt;
@@ -1475,8 +1475,8 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 		atp_update_pending_mickeys(strokep);
 	} else {                /* large movement */
 		/* clear away any pending mickeys if there are large movements*/
-		strokep->pending_x = 0;
-		strokep->pending_y = 0;
+		strokep->pending_dx = 0;
+		strokep->pending_dy = 0;
 	}
 
 	/* Get the scale ratio and smoothen movement. */
@@ -1484,18 +1484,18 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	int   denom; /* denominator of scale ratio */
 	atp_compute_smoothening_scale_ratio(strokep, &num, &denom);
 	if ((num == 0) || (denom == 0)) {
-		strokep->movement_x = 0;
-		strokep->movement_y = 0;
+		strokep->movement_dx = 0;
+		strokep->movement_dy = 0;
 		strokep->velocity_squared >>= 1; /* Erode velocity_squared. */
 	} else {
-		strokep->movement_x = (strokep->instantaneous_x * num) / denom;
-		strokep->movement_y = (strokep->instantaneous_y * num) / denom;
+		strokep->movement_dx = (strokep->instantaneous_dx * num) / denom;
+		strokep->movement_dy = (strokep->instantaneous_dy * num) / denom;
 
 		strokep->cum_movement +=
-		    abs(strokep->movement_x) + abs(strokep->movement_y);
+		    abs(strokep->movement_dx) + abs(strokep->movement_dy);
 	}
 
-	return ((strokep->movement_x != 0) || (strokep->movement_y != 0));
+	return ((strokep->movement_dx != 0) || (strokep->movement_dy != 0));
 }
 
 void
@@ -1509,8 +1509,8 @@ atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
 	strokep->age++;
 	if (strokep->age <= atp_stroke_maturity_threshold) {
 		/* Avoid noise from immature strokes. */
-		strokep->instantaneous_x = 0;
-		strokep->instantaneous_y = 0;
+		strokep->instantaneous_dx = 0;
+		strokep->instantaneous_dy = 0;
 	}
 
 	if (atp_compute_stroke_movement(strokep))
@@ -1590,17 +1590,17 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 				if (strokep->matched)
 					continue;
 
-				strokep->instantaneous_x =
+				strokep->instantaneous_dx =
 				    fingerp->x - strokep->x;
-				strokep->instantaneous_y =
+				strokep->instantaneous_dy =
 				    fingerp->y - strokep->y;
 
 				/* skip strokes which are far away */
 				unsigned d_squared =
-				    (strokep->instantaneous_x *
-				     strokep->instantaneous_x) +
-				    (strokep->instantaneous_y *
-				     strokep->instantaneous_y);
+				    (strokep->instantaneous_dx *
+				     strokep->instantaneous_dx) +
+				    (strokep->instantaneous_dy *
+				     strokep->instantaneous_dy);
 				if (d_squared > DISTANCE_MAX)
 					continue;
 
