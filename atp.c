@@ -1479,16 +1479,16 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	}
 
 	/* Get the scale ratio and smoothen movement. */
-	int   num;   /* numerator of scale ratio */
-	int   denom; /* denominator of scale ratio */
+	int num;   /* numerator of scale ratio */
+	int denom; /* denominator of scale ratio */
 	atp_compute_smoothening_scale_ratio(strokep, &num, &denom);
 	if ((num == 0) || (denom == 0)) {
 		strokep->movement_dx = 0;
 		strokep->movement_dy = 0;
 		strokep->velocity_squared >>= 1; /* Erode velocity_squared. */
 	} else {
-		strokep->movement_dx = (strokep->instantaneous_dx * num) / denom;
-		strokep->movement_dy = (strokep->instantaneous_dy * num) / denom;
+		strokep->movement_dx = (strokep->instantaneous_dx * num) /denom;
+		strokep->movement_dy = (strokep->instantaneous_dy * num) /denom;
 
 		strokep->cum_movement +=
 		    abs(strokep->movement_dx) + abs(strokep->movement_dy);
