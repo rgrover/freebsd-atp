@@ -77,7 +77,7 @@ __FBSDID("$FreeBSD$");
 
 /* The multiplier used to translate sensor reported positions to mickeys. */
 #ifndef ATP_SCALE_FACTOR
-#define ATP_SCALE_FACTOR 48
+#define ATP_SCALE_FACTOR 200
 #endif
 
 /*
@@ -117,7 +117,7 @@ static u_int atp_touch_timeout = ATP_TOUCH_TIMEOUT;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, touch_timeout, CTLFLAG_RW,
     &atp_touch_timeout, 125000, "age threshold (in micros) for a touch");
 
-static u_int atp_small_movement_threshold = ATP_SCALE_FACTOR >> 3;
+static u_int atp_small_movement_threshold = ATP_SCALE_FACTOR >> 2;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
     &atp_small_movement_threshold, ATP_SCALE_FACTOR >> 3,
     "the small movement black-hole for filtering noise");
@@ -290,8 +290,6 @@ typedef struct atp_stroke {
 #define ATSF_ZOMBIE          0x1
 	boolean_t matched;          /* to track match against fingers.*/
 
-	int x, y;                   /* location */
-
 	struct timeval       ctime; /* create time; for coincident siblings. */
 	u_int                age;   /*
 				     * Unit: interrupts; we maintain
@@ -300,6 +298,8 @@ typedef struct atp_stroke {
 				     * expensive call to microtime()
 				     * at every interrupt.
 				     */
+
+	int x, y;                   /* location */
 
 	/* Fields containing information about movement. */
 	int   instantaneous_dx; /* curr. change in X location (un-smoothened) */
@@ -1473,6 +1473,7 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	if (atp_stroke_has_small_movement(strokep))
 		atp_update_pending_mickeys(strokep);
 	else {                /* large movement */
+		printf("l\n");
 		/* clear away any pending mickeys if there are large movements*/
 		strokep->pending_dx = 0;
 		strokep->pending_dy = 0;
@@ -1589,17 +1590,13 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 				if (strokep->matched)
 					continue;
 
-				strokep->instantaneous_dx =
-				    fingerp->x - strokep->x;
-				strokep->instantaneous_dy =
-				    fingerp->y - strokep->y;
+				int instantaneous_dx = fingerp->x - strokep->x;
+				int instantaneous_dy = fingerp->y - strokep->y;
 
 				/* skip strokes which are far away */
 				unsigned d_squared =
-				    (strokep->instantaneous_dx *
-				     strokep->instantaneous_dx) +
-				    (strokep->instantaneous_dy *
-				     strokep->instantaneous_dy);
+				    (instantaneous_dx * instantaneous_dx) +
+				    (instantaneous_dy * instantaneous_dy);
 				if (d_squared > DISTANCE_MAX)
 					continue;
 
@@ -1611,8 +1608,16 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 
 			if (best_stroke_index != -1) {
 				fingerp->matched = true;
+
 				strokep = &sc->sc_strokes[best_stroke_index];
-				strokep->matched = true;
+				strokep->matched          = true;
+				strokep->instantaneous_dx = fingerp->x -
+				    strokep->x;
+				strokep->instantaneous_dy = fingerp->y -
+				    strokep->y;
+				strokep->x                = fingerp->x;
+				strokep->y                = fingerp->y;
+
 				atp_advance_stroke_state(sc, strokep,
 				    &movement);
 			}
