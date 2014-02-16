@@ -722,13 +722,12 @@ static __inline void atp_add_stroke(struct atp_softc *sc,
     const struct wsp_finger_to_match *fingerp);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
-    struct atp_stroke *, const struct wsp_finger_to_match *, boolean_t *);
+    struct atp_stroke *, boolean_t *);
 static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
 // static __inline void atp_update_pending_mickeys(atp_stroke_component *);
 // static void          atp_compute_smoothening_scale_ratio(atp_stroke *, int *,
 // 			 int *);
-static boolean_t     atp_compute_stroke_movement(atp_stroke_t *,
-    const struct wsp_finger_to_match *finger);
+static boolean_t     atp_compute_stroke_movement(atp_stroke_t *);
 
 /* tap detection */
 static void          atp_reap_sibling_zombies(void *);
@@ -1365,8 +1364,7 @@ atp_stroke_has_small_movement(const atp_stroke_t *strokep)
  * delta_mickeys in the X and Y components.
  */
 static boolean_t
-atp_compute_stroke_movement(atp_stroke_t *stroke,
-    const struct wsp_finger_to_match *fingerp)
+atp_compute_stroke_movement(atp_stroke_t *strokep)
 {
 	// int   num;              /* numerator of scale ratio */
 	// int   denom;            /* denominator of scale ratio */
@@ -1411,7 +1409,7 @@ atp_compute_stroke_movement(atp_stroke_t *stroke,
 
 void
 atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
-    const struct wsp_finger_to_match *fingerp, boolean_t *movementp)
+    boolean_t *movementp)
 {
 	/* Revitalize stroke if it had previously been marked as a zombie. */
 	if (strokep->flags & ATSF_ZOMBIE)
@@ -1424,7 +1422,7 @@ atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
 		strokep->delta_mickeys_y = 0;
 	}
 
-	if (atp_compute_stroke_movement(strokep, fingerp))
+	if (atp_compute_stroke_movement(strokep))
 		*movementp = TRUE;
 
 	/* Compute the stroke's age. */
@@ -1525,7 +1523,7 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 				fingerp->matched = true;
 				strokep = &sc->sc_strokes[best_stroke_index];
 				strokep->matched = true;
-				atp_advance_stroke_state(sc, strokep, fingerp,
+				atp_advance_stroke_state(sc, strokep,
 				    &movement);
 			}
 		}
