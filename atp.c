@@ -1394,6 +1394,11 @@ atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
 		strokep->flags &= ~ATSF_ZOMBIE;
 
 	strokep->age++;
+	if (strokep->age <= atp_stroke_maturity_threshold) {
+		/* Avoid noise from immature strokes. */
+		strokep->delta_mickeys_x = 0;
+		strokep->delta_mickeys_y = 0;
+	}
 
 	if (atp_compute_stroke_movement(strokep, fingerp))
 		*movementp = TRUE;
