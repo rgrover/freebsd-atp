@@ -117,6 +117,11 @@ static u_int atp_touch_timeout = ATP_TOUCH_TIMEOUT;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, touch_timeout, CTLFLAG_RW,
     &atp_touch_timeout, 125000, "age threshold (in micros) for a touch");
 
+static u_int atp_small_movement_threshold = ATP_SCALE_FACTOR >> 3;
+SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
+    &atp_small_movement_threshold, ATP_SCALE_FACTOR >> 3,
+    "the small movement black-hole for filtering noise");
+
 /*
  * The minimum age of a stroke for it to be considered mature; this
  * helps filter movements (noise) from immature strokes. Units: interrupts.
@@ -718,7 +723,7 @@ static __inline void atp_add_stroke(struct atp_softc *sc,
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
     struct atp_stroke *, const struct wsp_finger_to_match *, boolean_t *);
-// static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke *);
+static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
 // static __inline void atp_update_pending_mickeys(atp_stroke_component *);
 // static void          atp_compute_smoothening_scale_ratio(atp_stroke *, int *,
 // 			 int *);
@@ -1346,6 +1351,15 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 	}
 }
 
+static __inline boolean_t
+atp_stroke_has_small_movement(const atp_stroke_t *strokep)
+{
+	return (((u_int)abs(strokep->delta_mickeys_x) <=
+		 atp_small_movement_threshold) &&
+		((u_int)abs(strokep->delta_mickeys_y) <=
+		 atp_small_movement_threshold));
+}
+
 /*
  * Compute a smoothened value for the stroke's movement from
  * delta_mickeys in the X and Y components.
@@ -1487,10 +1501,17 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 				if (strokep->matched)
 					continue;
 
+				strokep->delta_mickeys_x =
+				    fingerp->x - strokep->x;
+				strokep->delta_mickeys_y =
+				    fingerp->y - strokep->y;
+
 				/* skip strokes which are far away */
-				int dx = fingerp->x - strokep->x;
-				int dy = fingerp->y - strokep->y;
-				unsigned d_squared = (dx * dx) + (dy * dy);
+				unsigned d_squared =
+				    (strokep->delta_mickeys_x *
+				     strokep->delta_mickeys_x) +
+				    (strokep->delta_mickeys_y *
+				     strokep->delta_mickeys_y);
 				if (d_squared > DISTANCE_MAX)
 					continue;
 
