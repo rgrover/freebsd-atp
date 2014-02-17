@@ -344,6 +344,8 @@ struct atp_softc {
 
 	struct callout	     sc_callout;
 
+	uint8_t              sc_ibtn;     /* button status */
+
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
 
@@ -951,6 +953,7 @@ atp_attach(device_t dev)
 	sc->sc_mode.level       = 0;
 
 	sc->sc_state            = 0;
+	sc->sc_ibtn             = 0;
 
 //         sc->sc_left_margin  = atp_mickeys_scale_factor;
 //         sc->sc_right_margin = (sc->sc_params->n_xsensors - 1) *
@@ -1176,6 +1179,17 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 
 	if (atp_update_wellspring_strokes(sc, fingers, n_fingers))
 		printf("movement\n");
+
+	switch(params->tp_type) {
+	case WSP_TRACKPAD_TYPE2:
+		sc->sc_ibtn = sc->sensor_data[WSP_TYPE2_BUTTON_DATA_OFFSET];
+		break;
+	case WSP_TRACKPAD_TYPE3:
+		sc->sc_ibtn = sc->sensor_data[WSP_TYPE3_BUTTON_DATA_OFFSET];
+		break;
+	default:
+		break;
+	}
 }
 
 /* Initialize a stroke from an unmatched finger. */
