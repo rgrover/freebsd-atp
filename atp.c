@@ -708,9 +708,9 @@ static void atp_disable(struct atp_softc *sc);
 static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
 
-static void atp_interpret_wellspring_data(struct atp_softc *sc, unsigned len);
-static boolean_t atp_update_wellspring_strokes(struct atp_softc *sc,
-    wsp_finger_t fingers[WSP_MAX_FINGERS], u_int n_fingers_to_match);
+static void atp_interpret_wellspring_data(struct atp_softc *, unsigned);
+static boolean_t atp_update_wellspring_strokes(struct atp_softc *,
+    wsp_finger_t [WSP_MAX_FINGERS], u_int);
 
 /* movement detection */
 static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
