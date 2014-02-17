@@ -814,7 +814,6 @@ atp_enable(struct atp_softc *sc)
 	return (0);
 }
 
-
 static void
 atp_disable(struct atp_softc *sc)
 {
@@ -994,8 +993,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	int                          len;
 	struct usb_page_cache       *pc;
     // uint8_t                status_bits;
-    // u_int      reaped_xlocs[ATP_MAX_STROKES];
-    // u_int      tap_fingers = 0;
 
 	usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
 
@@ -1242,8 +1239,6 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 
 	if (strokep->flags & ATSF_ZOMBIE)
 		return;
-	// printf("terminating %u stroke with age %u\n",
-	//     strokep->type, strokep->age);
 
 	if ((strokep->type == ATP_STROKE_TOUCH) &&
 	    (strokep->age > atp_stroke_maturity_threshold)) {
@@ -1538,7 +1533,6 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
 
 	return (movement);
 }
-
 
 /*
  * Update strokes by matching against current pressure-spans.
