@@ -737,8 +737,7 @@ sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
 
 #define MODE_LENGTH 8 /* num bytes holding the device mode */
 
-/* TODO: rename to atp_xfer_config */
-static struct usb_config atp_config[ATP_N_TRANSFER] = {
+static struct usb_config atp_xfer_config[ATP_N_TRANSFER] = {
 	[ATP_INTR_DT] = {
 		.type      = UE_INTERRUPT,
 		.endpoint  = UE_ADDR_ANY,
@@ -916,10 +915,10 @@ atp_attach(device_t dev)
 		    &wsp_dev_params[DECODE_PRODUCT_FROM_DRIVER_INFO(di)];
 		sc->sensor_data_interpreter = atp_interpret_wellspring_data;
 	}
-	atp_config[ATP_INTR_DT].bufsize = sc->sc_params->data_len;
+	atp_xfer_config[ATP_INTR_DT].bufsize = sc->sc_params->data_len;
 
 	err = usbd_transfer_setup(uaa->device,
-	    &uaa->info.bIfaceIndex, sc->sc_xfer, atp_config,
+	    &uaa->info.bIfaceIndex, sc->sc_xfer, atp_xfer_config,
 	    ATP_N_TRANSFER, sc, &sc->sc_mutex);
 	if (err) {
 		DPRINTF("error=%s\n", usbd_errstr(err));
