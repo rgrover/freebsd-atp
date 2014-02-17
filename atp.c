@@ -1105,11 +1105,11 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 
 	/* iterate over the source data collecting useful fingers */
 	wsp_finger_t fingers[WSP_MAX_FINGERS];
-	unsigned i = 0, n_fingers = 0;
+	unsigned i, n_fingers = 0;
 	struct wsp_finger_sensor_data *source_fingerp =
 	    (struct wsp_finger_sensor_data *)(sc->sensor_data +
 	     params->finger_data_offset);
-	for (; i != n_source_fingers; i++, source_fingerp++) {
+	for (i = 0; i < n_source_fingers; i++, source_fingerp++) {
 		if (le16toh(source_fingerp->touch_major) == 0)
 			continue;
 
