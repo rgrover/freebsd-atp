@@ -1078,7 +1078,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
     //         atp_add_to_queue(sc, dx, -dy, sc->sc_status.button);
     //     }
 
-
 	case USB_ST_SETUP:
 	tr_setup:
 		/* check if we can put more data into the FIFO */
@@ -1152,7 +1151,6 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	default:
 		break;
 	}
-
 	sc->sc_status.button = sc->sc_ibtn ? MOUSE_BUTTON1DOWN : 0;
 }
 
