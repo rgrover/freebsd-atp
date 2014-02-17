@@ -717,6 +717,8 @@ static boolean_t atp_update_wellspring_strokes(struct atp_softc *sc,
 static __inline void atp_add_stroke(struct atp_softc *sc,
     const struct wsp_finger_to_match *fingerp);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
+static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
+		         struct wsp_finger_to_match *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
     struct atp_stroke *, boolean_t *);
 static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
@@ -1482,6 +1484,65 @@ atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
 	// }
 }
 
+boolean_t
+wsp_match_strokes_against_fingers(struct atp_softc *sc,
+    struct wsp_finger_to_match *fingers, u_int n_fingers)
+{
+	boolean_t movement = false;
+	const static unsigned MAX_ALLOWED_FINGER_DISTANCE = 1000000;
+	unsigned si, fi;
+
+	/* reset the matched status for all strokes */
+	struct atp_stroke *strokep = sc->sc_strokes;
+	for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+		strokep->matched = false;
+	}
+
+	struct wsp_finger_to_match *fingerp;
+	fingerp = fingers;
+	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
+		unsigned least_distance = MAX_ALLOWED_FINGER_DISTANCE;
+		int best_stroke_index   = -1;
+
+		strokep = sc->sc_strokes;
+		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+			if (strokep->matched)
+				continue;
+
+			int instantaneous_dx = fingerp->x - strokep->x;
+			int instantaneous_dy = fingerp->y - strokep->y;
+
+			/* skip strokes which are far away */
+			unsigned d_squared =
+			    (instantaneous_dx * instantaneous_dx) +
+			    (instantaneous_dy * instantaneous_dy);
+			if (d_squared > MAX_ALLOWED_FINGER_DISTANCE)
+				continue;
+
+			if (d_squared < least_distance) {
+				least_distance    = d_squared;
+				best_stroke_index = si;
+			}
+		}
+
+		if (best_stroke_index != -1) {
+			fingerp->matched = true;
+
+			strokep = &sc->sc_strokes[best_stroke_index];
+			strokep->matched          = true;
+			strokep->instantaneous_dx = fingerp->x - strokep->x;
+			strokep->instantaneous_dy = fingerp->y - strokep->y;
+			strokep->x                = fingerp->x;
+			strokep->y                = fingerp->y;
+
+			atp_advance_stroke_state(sc, strokep, &movement);
+		}
+	}
+
+	return (movement);
+}
+
+
 /*
  * Update strokes by matching against current pressure-spans.
  * Return TRUE if any movement is detected.
@@ -1491,61 +1552,14 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
     struct wsp_finger_to_match *fingers, u_int n_fingers)
 {
 	boolean_t movement = false;
-	const static unsigned DISTANCE_MAX = 1000000;
-	struct wsp_finger_to_match *fingerp;
 	unsigned si, fi;
 
 	if (sc->sc_n_strokes > 0) {
-		/* reset the matched status for all strokes */
-		struct atp_stroke *strokep = sc->sc_strokes;
-		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
-			strokep->matched = false;
-		}
-
-		fingerp = fingers;
-		for (fi = 0; fi < n_fingers; fi++, fingerp++) {
-			strokep = sc->sc_strokes;
-			unsigned least_distance = DISTANCE_MAX;
-			int best_stroke_index = -1;
-			for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
-				if (strokep->matched)
-					continue;
-
-				int instantaneous_dx = fingerp->x - strokep->x;
-				int instantaneous_dy = fingerp->y - strokep->y;
-
-				/* skip strokes which are far away */
-				unsigned d_squared =
-				    (instantaneous_dx * instantaneous_dx) +
-				    (instantaneous_dy * instantaneous_dy);
-				if (d_squared > DISTANCE_MAX)
-					continue;
-
-				if (d_squared < least_distance) {
-					least_distance = d_squared;
-					best_stroke_index = si;
-				}
-			}
-
-			if (best_stroke_index != -1) {
-				fingerp->matched = true;
-
-				strokep = &sc->sc_strokes[best_stroke_index];
-				strokep->matched          = true;
-				strokep->instantaneous_dx = fingerp->x -
-				    strokep->x;
-				strokep->instantaneous_dy = fingerp->y -
-				    strokep->y;
-				strokep->x                = fingerp->x;
-				strokep->y                = fingerp->y;
-
-				atp_advance_stroke_state(sc, strokep,
-				    &movement);
-			}
-		}
+		movement = wsp_match_strokes_against_fingers(sc, fingers,
+		    n_fingers);
 
 		/* handle zombie strokes */
-		strokep = sc->sc_strokes;
+		struct atp_stroke *strokep = sc->sc_strokes;
 		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
 			if (strokep->matched)
 				continue;
@@ -1555,6 +1569,7 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 	}
 
 	/* initialize unmatched fingers as strokes */
+	struct wsp_finger_to_match *fingerp;
 	fingerp = fingers;
 	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
 		if (fingerp->matched)
