@@ -1031,24 +1031,16 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			sc->sc_status.button = MOUSE_BUTTON1DOWN;
 		}
 
-    //     sc->sc_status.flags |=
-    //         sc->sc_status.button ^ sc->sc_status.obutton;
-    //     if (sc->sc_status.flags & MOUSE_STDBUTTONSCHANGED) {
-    //         DPRINTFN(ATP_LLEVEL_INFO, "button %s\n",
-    //             ((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
-    //             "pressed" : "released"));
-    //     } else if ((sc->sc_status.obutton == 0) &&
-    //         (sc->sc_status.button == 0) &&
-    //         (tap_fingers != 0)) {
-    //         /* Ignore single-finger taps at the edges. */
-    //         if ((tap_fingers == 1) &&
-    //             ((reaped_xlocs[0] <= sc->sc_left_margin) ||
-    //             (reaped_xlocs[0] > sc->sc_right_margin))) {
-    //             tap_fingers = 0;
-    //         }
-    //         DPRINTFN(ATP_LLEVEL_INFO,
-    //             "tap_fingers: %u\n", tap_fingers);
-    //     }
+		sc->sc_status.flags |=
+		    sc->sc_status.button ^ sc->sc_status.obutton;
+		if (sc->sc_status.flags & MOUSE_STDBUTTONSCHANGED) {
+		    DPRINTFN(ATP_LLEVEL_INFO, "button %s\n",
+		        ((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
+		        "pressed" : "released"));
+		    printf("button %s\n",
+		        ((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
+		        "pressed" : "released"));
+		}
 
     //     if (sc->sc_status.flags &
     //         (MOUSE_POSCHANGED | MOUSE_STDBUTTONSCHANGED)) {
