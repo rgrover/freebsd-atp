@@ -844,54 +844,6 @@ atp_softc_populate(struct atp_softc *sc)
 		}
 	}
 
-	// if (params->n_xsensors != 0) {
-	//         sc->base_x = malloc(params->n_xsensors * sizeof(*(sc->base_x)),
-	//             M_USB, M_WAITOK);
-	//         if (sc->base_x == NULL) {
-	//                 DPRINTF("mem for sc->base_x\n");
-	//                 return (ENXIO);
-	//         }
-
-	//         sc->cur_x = malloc(params->n_xsensors * sizeof(*(sc->cur_x)),
-	//             M_USB, M_WAITOK);
-	//         if (sc->cur_x == NULL) {
-	//                 DPRINTF("mem for sc->cur_x\n");
-	//                 return (ENXIO);
-	//         }
-
-	//         sc->pressure_x =
-	//                 malloc(params->n_xsensors * sizeof(*(sc->pressure_x)),
-	//                     M_USB, M_WAITOK);
-	//         if (sc->pressure_x == NULL) {
-	//                 DPRINTF("mem. for pressure_x\n");
-	//                 return (ENXIO);
-	//         }
-	// }
-
-	// if (params->n_ysensors != 0) {
-	//         sc->base_y = malloc(params->n_ysensors * sizeof(*(sc->base_y)),
-	//             M_USB, M_WAITOK);
-	//         if (sc->base_y == NULL) {
-	//                 DPRINTF("mem for base_y\n");
-	//                 return (ENXIO);
-	//         }
-
-	//         sc->cur_y = malloc(params->n_ysensors * sizeof(*(sc->cur_y)),
-	//             M_USB, M_WAITOK);
-	//         if (sc->cur_y == NULL) {
-	//                 DPRINTF("mem for cur_y\n");
-	//                 return (ENXIO);
-	//         }
-
-	//         sc->pressure_y =
-	//                 malloc(params->n_ysensors * sizeof(*(sc->pressure_y)),
-	//                     M_USB, M_WAITOK);
-	//         if (sc->pressure_y == NULL) {
-	//                 DPRINTF("mem. for pressure_y\n");
-	//                 return (ENXIO);
-	//         }
-	// }
-
 	return (0);
 }
 
@@ -904,38 +856,7 @@ atp_softc_unpopulate(struct atp_softc *sc)
 	if (params == NULL) {
 		return;
 	}
-	// if (params->n_xsensors != 0) {
-	//         if (sc->base_x != NULL) {
-	//                 free(sc->base_x, M_USB);
-	//                 sc->base_x = NULL;
-	//         }
 
-	//         if (sc->cur_x != NULL) {
-	//                 free(sc->cur_x, M_USB);
-	//                 sc->cur_x = NULL;
-	//         }
-
-	//         if (sc->pressure_x != NULL) {
-	//                 free(sc->pressure_x, M_USB);
-	//                 sc->pressure_x = NULL;
-	//         }
-	// }
-	// if (params->n_ysensors != 0) {
-	//         if (sc->base_y != NULL) {
-	//                 free(sc->base_y, M_USB);
-	//                 sc->base_y = NULL;
-	//         }
-
-	//         if (sc->cur_y != NULL) {
-	//                 free(sc->cur_y, M_USB);
-	//                 sc->cur_y = NULL;
-	//         }
-
-	//         if (sc->pressure_y != NULL) {
-	//                 free(sc->pressure_y, M_USB);
-	//                 sc->pressure_y = NULL;
-	//         }
-	// }
 	if (sc->sensor_data != NULL) {
 		free(sc->sensor_data, M_USB);
 		sc->sensor_data = NULL;
