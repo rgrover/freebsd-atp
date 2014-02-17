@@ -1180,7 +1180,7 @@ atp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
 	//     strokep->y,
 	//     (unsigned int)strokep->ctime.tv_sec,
 	//     (unsigned long int)strokep->ctime.tv_usec);
-	printf("[%d,%d]\n", strokep->x, strokep->y);
+	// printf("[%d,%d]\n", strokep->x, strokep->y);
 }
 
 /*
@@ -1602,7 +1602,7 @@ atp_reap_sibling_zombies(void *arg)
 	}
 
 	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", n_reaped);
-	printf("r %u\n", n_reaped);
+	// printf("r %u\n", n_reaped);
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
 
 	if (n_reaped != 0) {
