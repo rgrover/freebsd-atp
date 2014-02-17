@@ -175,8 +175,8 @@ enum wellspring_trackpad_type {
 #define WSP_TYPE3_FINGER_DATA_OFFSET  (19 * 2)
 
 /* trackpad button data offsets */
-#define BUTTON_TYPE2        15
-#define BUTTON_TYPE3        23
+#define WSP_TYPE2_BUTTON_DATA_OFFSET   15
+#define WSP_TYPE3_BUTTON_DATA_OFFSET   23
 
 /* list of device capability bits */
 #define HAS_INTEGRATED_BUTTON   1
