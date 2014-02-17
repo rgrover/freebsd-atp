@@ -998,7 +998,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	const struct wsp_dev_params *params = sc->sc_params;
 	int                          len;
 	struct usb_page_cache       *pc;
-    // uint8_t                status_bits;
 
 	usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
 
@@ -1018,21 +1017,24 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		pc = usbd_xfer_get_frame(xfer, 0);
 		usbd_copy_out(pc, 0, sc->sensor_data, len);
 
+		sc->sc_status.flags &= ~MOUSE_STDBUTTONSCHANGED;
+		sc->sc_status.obutton = sc->sc_status.button;
+
 		(sc->sensor_data_interpreter)(sc, len);
 
     //     sc->sc_status.flags &= ~MOUSE_STDBUTTONSCHANGED;
     //     sc->sc_status.obutton = sc->sc_status.button;
 
     //     /* Get the state of the physical buttton. */
-    //     sc->sc_status.button = (status_bits & ATP_STATUS_BUTTON) ?
+		if (sc->sc_status.button != 0) {
     //         MOUSE_BUTTON1DOWN : 0;
     //     if (sc->sc_status.button != 0) {
-    //         /* Reset DOUBLE_TAP_N_DRAG if the button is pressed. */
-    //         sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
-    //     } else if (sc->sc_state & ATP_DOUBLE_TAP_DRAG) {
-    //         /* Assume a button-press with DOUBLE_TAP_N_DRAG. */
-    //         sc->sc_status.button = MOUSE_BUTTON1DOWN;
-    //     }
+			/* Reset DOUBLE_TAP_N_DRAG if the button is pressed. */
+			sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
+		} else if (sc->sc_state & ATP_DOUBLE_TAP_DRAG) {
+			/* Assume a button-press with DOUBLE_TAP_N_DRAG. */
+			sc->sc_status.button = MOUSE_BUTTON1DOWN;
+		}
 
     //     sc->sc_status.flags |=
     //         sc->sc_status.button ^ sc->sc_status.obutton;
@@ -1190,6 +1192,8 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	default:
 		break;
 	}
+
+	sc->sc_status.button = sc->sc_ibtn ? MOUSE_BUTTON1DOWN : 0;
 }
 
 /* Initialize a stroke from an unmatched finger. */
