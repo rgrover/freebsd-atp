@@ -729,6 +729,9 @@ static boolean_t     atp_compute_stroke_movement(atp_stroke_t *);
 static void          atp_reap_sibling_zombies(void *);
 static void          atp_convert_to_slide(struct atp_softc *, atp_stroke_t *);
 
+/* updating fifo */
+static void          atp_add_to_queue(struct atp_softc *, int, int, int,
+    uint32_t);
 
 sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
 	[TRACKPAD_FAMILY_WELLSPRING] = atp_interpret_wellspring_data,
@@ -1075,19 +1078,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
     //         atp_add_to_queue(sc, dx, -dy, sc->sc_status.button);
     //     }
 
-    //     if (tap_fingers != 0) {
-    //         /* Add a pair of events (button-down and button-up). */
-    //         switch (tap_fingers) {
-    //         case 1: atp_add_to_queue(sc, 0, 0, MOUSE_BUTTON1DOWN);
-    //             break;
-    //         case 2: atp_add_to_queue(sc, 0, 0, MOUSE_BUTTON2DOWN);
-    //             break;
-    //         case 3: atp_add_to_queue(sc, 0, 0, MOUSE_BUTTON3DOWN);
-    //             break;
-    //         default: break;/* handle taps of only up to 3 fingers */
-    //         }
-    //         atp_add_to_queue(sc, 0, 0, 0); /* button release */
-    //     }
 
     //     /*
     //      * The device continues to trigger interrupts at a
@@ -1572,54 +1562,57 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 	return (movement);
 }
 
-// static void
-// atp_add_to_queue(struct atp_softc *sc, int dx, int dy, uint32_t buttons_in)
-// {
-// 	uint32_t buttons_out;
-// 	uint8_t  buf[8];
+static void
+atp_add_to_queue(struct atp_softc *sc, int dx, int dy, int dz,
+    uint32_t buttons_in)
+{
+	uint32_t buttons_out;
+	uint8_t  buf[8];
 
-// 	dx = imin(dx,  254); dx = imax(dx, -256);
-// 	dy = imin(dy,  254); dy = imax(dy, -256);
+	dx = imin(dx,  254); dx = imax(dx, -256);
+	dy = imin(dy,  254); dy = imax(dy, -256);
+	dz = imin(dz,  126); dz = imax(dz, -128);
 
-// 	buttons_out = MOUSE_MSC_BUTTONS;
-// 	if (buttons_in & MOUSE_BUTTON1DOWN)
-// 		buttons_out &= ~MOUSE_MSC_BUTTON1UP;
-// 	else if (buttons_in & MOUSE_BUTTON2DOWN)
-// 		buttons_out &= ~MOUSE_MSC_BUTTON2UP;
-// 	else if (buttons_in & MOUSE_BUTTON3DOWN)
-// 		buttons_out &= ~MOUSE_MSC_BUTTON3UP;
+	buttons_out = MOUSE_MSC_BUTTONS;
+	if (buttons_in & MOUSE_BUTTON1DOWN)
+		buttons_out &= ~MOUSE_MSC_BUTTON1UP;
+	else if (buttons_in & MOUSE_BUTTON2DOWN)
+		buttons_out &= ~MOUSE_MSC_BUTTON2UP;
+	else if (buttons_in & MOUSE_BUTTON3DOWN)
+		buttons_out &= ~MOUSE_MSC_BUTTON3UP;
 
-// 	DPRINTFN(ATP_LLEVEL_INFO, "dx=%d, dy=%d, buttons=%x\n",
-// 	    dx, dy, buttons_out);
+	DPRINTFN(ATP_LLEVEL_INFO, "dx=%d, dy=%d, buttons=%x\n",
+	    dx, dy, buttons_out);
 
-// 	/* Encode the mouse data in standard format; refer to mouse(4) */
-// 	buf[0] = sc->sc_mode.syncmask[1];
-// 	buf[0] |= buttons_out;
-// 	buf[1] = dx >> 1;
-// 	buf[2] = dy >> 1;
-// 	buf[3] = dx - (dx >> 1);
-// 	buf[4] = dy - (dy >> 1);
-// 	/* Encode extra bytes for level 1 */
-// 	if (sc->sc_mode.level == 1) {
-// 		buf[5] = 0;                    /* dz */
-// 		buf[6] = 0;                    /* dz - (dz / 2) */
-// 		buf[7] = MOUSE_SYS_EXTBUTTONS; /* Extra buttons all up. */
-// 	}
+	/* Encode the mouse data in standard format; refer to mouse(4) */
+	buf[0] = sc->sc_mode.syncmask[1];
+	buf[0] |= buttons_out;
+	buf[1] = dx >> 1;
+	buf[2] = dy >> 1;
+	buf[3] = dx - (dx >> 1);
+	buf[4] = dy - (dy >> 1);
+	/* Encode extra bytes for level 1 */
+	if (sc->sc_mode.level == 1) {
+		buf[5] = dz >> 1;
+		buf[6] = dz - (dz >> 1);
+		buf[7] = (((~buttons_in) >> 3) & MOUSE_SYS_EXTBUTTONS);
+	}
 
-// 	usb_fifo_put_data_linear(sc->sc_fifo.fp[USB_FIFO_RX], buf,
-// 	    sc->sc_mode.packetsize, 1);
-// }
-
+	usb_fifo_put_data_linear(sc->sc_fifo.fp[USB_FIFO_RX], buf,
+	    sc->sc_mode.packetsize, 1);
+}
 
 static void
 atp_reap_sibling_zombies(void *arg)
 {
 	struct atp_softc *sc = (struct atp_softc *)arg;
-	atp_stroke_t *strokep;
-	unsigned n_reaped;
+	if (sc->sc_n_strokes == 0)
+		return;
 
-	n_reaped = 0;
+	unsigned n_reaped = 0;
+
 	int i;
+	atp_stroke_t *strokep;
 	for (i = 0; i < sc->sc_n_strokes; i++) {
 		strokep = &sc->sc_strokes[i];
 		if ((strokep->flags & ATSF_ZOMBIE) == 0)
@@ -1638,6 +1631,21 @@ atp_reap_sibling_zombies(void *arg)
 	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", n_reaped);
 	printf("reaped %u zombies; strokes left = %u\n", n_reaped, sc->sc_n_strokes);
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
+
+	if (n_reaped != 0) {
+		/* Add a pair of events (button-down and button-up). */
+		switch (n_reaped) {
+		case 1: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
+			break;
+		case 2: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON2DOWN);
+			break;
+		case 3: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON3DOWN);
+			break;
+		default:
+			break;/* handle taps of only up to 3 fingers */
+		}
+		atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
+	}
 }
 
 static void
