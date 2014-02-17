@@ -1115,10 +1115,10 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 
 		fingers[n_fingers].matched = false;
 		fingers[n_fingers].x       =
-		    le16toh(source_fingerp->abs_x) - params->x.min;
-		fingers[n_fingers].y       = params->y.min +
-		    params->y.max - le16toh(source_fingerp->abs_y);
-		// printf("[%d] ax=%5d, ay=%5d\n", i,
+		    imax(params->x.min, source_fingerp->abs_x) - params->x.min;
+		fingers[n_fingers].y       = -params->y.min +
+		    params->y.max - source_fingerp->abs_y;
+		// printf("[%d] ax=%d, ay=%d\n", i,
 		// 	fingers[n_fingers].x,
 		// 	fingers[n_fingers].y);
 
