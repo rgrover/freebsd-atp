@@ -128,7 +128,7 @@ SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
  */
 static u_int atp_stroke_maturity_threshold = 4;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, stroke_maturity_threshold, CTLFLAG_RW,
-    &atp_stroke_maturity_threshold, 2,
+    &atp_stroke_maturity_threshold, 4,
     "the minimum age of a stroke for it to be considered mature");
 
 
