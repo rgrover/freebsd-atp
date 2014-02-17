@@ -1595,7 +1595,7 @@ atp_reap_sibling_zombies(void *arg)
 	}
 
 	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", n_reaped);
-	printf("reaped %u zombies; strokes left = %u\n", n_reaped, sc->sc_n_strokes);
+	printf("r %u\n", n_reaped);
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
 
 	if (n_reaped != 0) {
