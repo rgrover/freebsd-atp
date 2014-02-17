@@ -275,10 +275,10 @@ struct wsp_finger_sensor_data {
 	int16_t multi;          /* one finger: varies, more fingers: constant */
 } __packed;
 
-struct wsp_finger_to_match {
+typedef struct wsp_finger_to_match {
 	boolean_t matched; /* to track fingers as they match against strokes. */
 	int       x,y;     /* location (scaled using the mickeys factor) */
-};
+} wsp_finger_t;
 
 /*
  * The following structure captures a finger contact with the
@@ -710,15 +710,13 @@ static void atp_softc_unpopulate(struct atp_softc *);
 
 static void atp_interpret_wellspring_data(struct atp_softc *sc, unsigned len);
 static boolean_t atp_update_wellspring_strokes(struct atp_softc *sc,
-    struct wsp_finger_to_match fingerp[WSP_MAX_FINGERS],
-    u_int n_fingers_to_match);
+    wsp_finger_t fingers[WSP_MAX_FINGERS], u_int n_fingers_to_match);
 
 /* movement detection */
-static __inline void atp_add_stroke(struct atp_softc *sc,
-    const struct wsp_finger_to_match *fingerp);
+static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
-		         struct wsp_finger_to_match *, u_int);
+		         wsp_finger_t *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
     atp_stroke_t *, boolean_t *);
 static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
@@ -1166,7 +1164,7 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	n_source_fingers = min(n_source_fingers, WSP_MAX_FINGERS);
 
 	/* iterate over the source data collecting useful fingers */
-	struct wsp_finger_to_match fingers[WSP_MAX_FINGERS];
+	wsp_finger_t fingers[WSP_MAX_FINGERS];
 	unsigned i = 0, n_fingers = 0;
 	struct wsp_finger_sensor_data *source_fingerp =
 	    (struct wsp_finger_sensor_data *)(sc->sensor_data +
@@ -1196,7 +1194,7 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 
 /* Initialize a stroke from an unmatched finger. */
 static __inline void
-atp_add_stroke(struct atp_softc *sc, const struct wsp_finger_to_match *fingerp)
+atp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
 {
 	atp_stroke_t *strokep;
 
@@ -1486,7 +1484,7 @@ atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
 
 boolean_t
 wsp_match_strokes_against_fingers(struct atp_softc *sc,
-    struct wsp_finger_to_match *fingers, u_int n_fingers)
+    wsp_finger_t *fingers, u_int n_fingers)
 {
 	boolean_t movement = false;
 	const static unsigned MAX_ALLOWED_FINGER_DISTANCE = 1000000;
@@ -1498,7 +1496,7 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
 		strokep->matched = false;
 	}
 
-	struct wsp_finger_to_match *fingerp;
+	wsp_finger_t *fingerp;
 	fingerp = fingers;
 	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
 		unsigned least_distance = MAX_ALLOWED_FINGER_DISTANCE;
@@ -1549,7 +1547,7 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
  */
 boolean_t
 atp_update_wellspring_strokes(struct atp_softc *sc,
-    struct wsp_finger_to_match *fingers, u_int n_fingers)
+    wsp_finger_t *fingers, u_int n_fingers)
 {
 	boolean_t movement = false;
 	unsigned si, fi;
@@ -1569,7 +1567,7 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 	}
 
 	/* initialize unmatched fingers as strokes */
-	struct wsp_finger_to_match *fingerp;
+	wsp_finger_t *fingerp;
 	fingerp = fingers;
 	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
 		if (fingerp->matched)
