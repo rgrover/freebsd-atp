@@ -77,7 +77,7 @@ __FBSDID("$FreeBSD$");
 
 /* The multiplier used to translate sensor reported positions to mickeys. */
 #ifndef ATP_SCALE_FACTOR
-#define ATP_SCALE_FACTOR 200
+#define ATP_SCALE_FACTOR 64
 #endif
 
 /*
@@ -117,7 +117,7 @@ static u_int atp_touch_timeout = ATP_TOUCH_TIMEOUT;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, touch_timeout, CTLFLAG_RW,
     &atp_touch_timeout, 125000, "age threshold (in micros) for a touch");
 
-static u_int atp_small_movement_threshold = ATP_SCALE_FACTOR >> 2;
+static u_int atp_small_movement_threshold = ATP_SCALE_FACTOR >> 3;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
     &atp_small_movement_threshold, ATP_SCALE_FACTOR >> 3,
     "the small movement black-hole for filtering noise");
