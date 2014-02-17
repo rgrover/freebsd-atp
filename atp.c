@@ -164,9 +164,9 @@ struct bt_data {
 
 /* trackpad header types */
 enum wellspring_trackpad_type {
-	TYPE1,          /* plain trackpad */
-	TYPE2,          /* button integrated in trackpad */
-	TYPE3           /* additional header fields since June 2013 */
+	WSP_TRACKPAD_TYPE1,          /* plain trackpad */
+	WSP_TRACKPAD_TYPE2,          /* button integrated in trackpad */
+	WSP_TRACKPAD_TYPE3           /* additional header fields since June 2013 */
 };
 
 /* trackpad finger data offsets, le16-aligned */
@@ -355,7 +355,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING1] = {
 		.caps       = 0,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE1,
+		.tp_type    = WSP_TRACKPAD_TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -377,7 +377,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING2] = {
 		.caps       = 0,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE1,
+		.tp_type    = WSP_TRACKPAD_TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -399,7 +399,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING3] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE2,
+		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -421,7 +421,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING4] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE2,
+		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -443,7 +443,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING4A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE2,
+		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -465,7 +465,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING5] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE2,
+		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -487,7 +487,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING6] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE2,
+		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -509,7 +509,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING5A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE2,
+		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -531,7 +531,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING6A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE2,
+		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -553,7 +553,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING7] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE2,
+		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -575,7 +575,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING7A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE2,
+		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
@@ -597,7 +597,7 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING8] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.bt_datalen = sizeof(struct bt_data),
-		.tp_type    = TYPE3,
+		.tp_type    = WSP_TRACKPAD_TYPE3,
 		.finger_data_offset  = WSP_TYPE3_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE3_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 		.p = {
