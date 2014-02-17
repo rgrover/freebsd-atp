@@ -1341,6 +1341,7 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	 * threshold. This has the effect of filtering away movement
 	 * noise.
 	 */
+	// printf("<%d, %d> -> ", strokep->instantaneous_dx, strokep->instantaneous_dy);
 	if (atp_stroke_has_small_movement(strokep))
 		atp_update_pending_mickeys(strokep);
 	else {                /* large movement */
@@ -1348,6 +1349,10 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 		strokep->pending_dx = 0;
 		strokep->pending_dy = 0;
 	}
+	// printf("<%d, %d>\n", strokep->instantaneous_dx, strokep->instantaneous_dy);
+
+	strokep->instantaneous_dx /= 8;
+	strokep->instantaneous_dy /= 8;
 
 	/* Get the scale ratio and smoothen movement. */
 	// int num;   /* numerator of scale ratio */
