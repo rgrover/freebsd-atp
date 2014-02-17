@@ -1042,33 +1042,31 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		        "pressed" : "released"));
 		}
 
-    //     if (sc->sc_status.flags &
-    //         (MOUSE_POSCHANGED | MOUSE_STDBUTTONSCHANGED)) {
-    //         int   dx, dy;
-    //         u_int n_movements;
+		if (sc->sc_status.flags &
+		    (MOUSE_POSCHANGED | MOUSE_STDBUTTONSCHANGED)) {
+			int   dx, dy;
+			u_int n_movements;
+			u_int i;
 
-    //         dx = 0, dy = 0, n_movements = 0;
-    //         for (u_int i = 0; i < sc->sc_n_strokes; i++) {
-    //             atp_stroke *stroke = &sc->sc_strokes[i];
+			dx = 0, dy = 0, n_movements = 0;
+			atp_stroke_t *strokep = sc->sc_strokes;
+			for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
+				dx += strokep->movement_dx;
+				dy += strokep->movement_dy;
+				if (strokep->movement_dx ||
+				    strokep->movement_dy)
+					n_movements++;
+			}
+			/* average movement if multiple strokes record motion.*/
+			if (n_movements != 1) {
+				dx /= n_movements;
+				dy /= n_movements;
+			}
 
-    //             if ((stroke->components[X].movement) ||
-    //                 (stroke->components[Y].movement)) {
-    //                 dx += stroke->components[X].movement;
-    //                 dy += stroke->components[Y].movement;
-    //                 n_movements++;
-    //             }
-    //         }
-    //         /*
-    //          * Disregard movement if multiple
-    //          * strokes record motion.
-    //          */
-    //         if (n_movements != 1)
-    //             dx = 0, dy = 0;
-
-    //         sc->sc_status.dx += dx;
-    //         sc->sc_status.dy += dy;
-    //         atp_add_to_queue(sc, dx, -dy, sc->sc_status.button);
-    //     }
+			sc->sc_status.dx += dx;
+			sc->sc_status.dy += dy;
+			atp_add_to_queue(sc, dx, -dy, 0, sc->sc_status.button);
+		}
 
 	case USB_ST_SETUP:
 	tr_setup:
