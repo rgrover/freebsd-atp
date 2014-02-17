@@ -720,7 +720,7 @@ static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
 		         struct wsp_finger_to_match *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
-    struct atp_stroke *, boolean_t *);
+    atp_stroke_t *, boolean_t *);
 static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
 static __inline void atp_update_pending_mickeys(atp_stroke_t *);
 static void          atp_compute_smoothening_scale_ratio(atp_stroke_t *, int *,
@@ -1422,7 +1422,7 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 }
 
 void
-atp_advance_stroke_state(struct atp_softc *sc, struct atp_stroke *strokep,
+atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
     boolean_t *movementp)
 {
 	/* Revitalize stroke if it had previously been marked as a zombie. */
@@ -1493,7 +1493,7 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
 	unsigned si, fi;
 
 	/* reset the matched status for all strokes */
-	struct atp_stroke *strokep = sc->sc_strokes;
+	atp_stroke_t *strokep = sc->sc_strokes;
 	for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
 		strokep->matched = false;
 	}
@@ -1559,7 +1559,7 @@ atp_update_wellspring_strokes(struct atp_softc *sc,
 		    n_fingers);
 
 		/* handle zombie strokes */
-		struct atp_stroke *strokep = sc->sc_strokes;
+		atp_stroke_t *strokep = sc->sc_strokes;
 		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
 			if (strokep->matched)
 				continue;
