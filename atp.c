@@ -209,19 +209,6 @@ typedef struct wsp_finger_to_match {
 #define WSP_SIZEOF_ALL_FINGER_DATA    (WSP_MAX_FINGERS * WSP_SIZEOF_FINGER_SENSOR_DATA)
 #define WSP_MAX_FINGER_ORIENTATION    16384
 
-/* logical signal quality */
-#define WSP_SN_PRESSURE 45      /* pressure signal-to-noise ratio */
-#define WSP_SN_WIDTH    25      /* width signal-to-noise ratio */
-#define WSP_SN_COORD    250     /* coordinate signal-to-noise ratio */
-#define WSP_SN_ORIENT   10      /* orientation signal-to-noise ratio */
-
-/* device-specific parameters */
-struct wsp_param {
-	int snratio;        /* signal-to-noise ratio */
-	int min;            /* device minimum reading */
-	int max;            /* device maximum reading */
-};
-
 #define N_PROD_BITS 8
 #if (N_PROD_BITS < 8) || (N_PROD_BITS > 24)
 #error "invalid value for N_PROD_BITS"
@@ -255,6 +242,19 @@ enum wellspring_product {
 	WELLSPRING7A,
 	WELLSPRING8,
 	WELLSPRING_PRODUCT_MAX /* keep this at the end of the enumeration */
+};
+
+/* logical signal quality */
+#define WSP_SN_PRESSURE 45      /* pressure signal-to-noise ratio */
+#define WSP_SN_WIDTH    25      /* width signal-to-noise ratio */
+#define WSP_SN_COORD    250     /* coordinate signal-to-noise ratio */
+#define WSP_SN_ORIENT   10      /* orientation signal-to-noise ratio */
+
+/* device-specific parameters */
+struct wsp_param {
+	int snratio;        /* signal-to-noise ratio */
+	int min;            /* device minimum reading */
+	int max;            /* device maximum reading */
 };
 
 /* device-specific configuration */
