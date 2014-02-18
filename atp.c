@@ -698,7 +698,7 @@ static boolean_t atp_update_wellspring_strokes(struct atp_softc *,
 static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
-		         wsp_finger_t *, u_int);
+    wsp_finger_t *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
     atp_stroke_t *, boolean_t *);
 static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
@@ -1015,11 +1015,11 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		    sc->sc_status.button ^ sc->sc_status.obutton;
 		if (sc->sc_status.flags & MOUSE_STDBUTTONSCHANGED) {
 		    DPRINTFN(ATP_LLEVEL_INFO, "button %s\n",
-		        ((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
-		        "pressed" : "released"));
+			((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
+			"pressed" : "released"));
 		    printf("button %s\n",
-		        ((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
-		        "pressed" : "released"));
+			((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
+			"pressed" : "released"));
 		}
 
 		if (sc->sc_status.flags &
