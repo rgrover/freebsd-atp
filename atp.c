@@ -140,13 +140,6 @@ typedef enum interface_mode {
 	HID_MODE        = (uint8_t)0x08
 } interface_mode;
 
-
-/* Device methods. */
-static device_probe_t  atp_probe;
-static device_attach_t atp_attach;
-static device_detach_t atp_detach;
-static usb_callback_t  atp_intr;
-
 enum {
 	ATP_INTR_DT,
 	ATP_N_TRANSFER,
@@ -723,8 +716,13 @@ sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
 	[TRACKPAD_FAMILY_WELLSPRING] = atp_interpret_wellspring_data,
 };
 
-
 #define MODE_LENGTH 8 /* num bytes holding the device mode */
+
+/* Device methods. */
+static device_probe_t  atp_probe;
+static device_attach_t atp_attach;
+static device_detach_t atp_detach;
+static usb_callback_t  atp_intr;
 
 static struct usb_config atp_xfer_config[ATP_N_TRANSFER] = {
 	[ATP_INTR_DT] = {
@@ -739,7 +737,6 @@ static struct usb_config atp_xfer_config[ATP_N_TRANSFER] = {
 		.callback  = &atp_intr,
 	},
 };
-
 
 static int
 atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
