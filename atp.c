@@ -170,6 +170,27 @@ enum wellspring_trackpad_type {
 	WSP_TRACKPAD_TYPE3           /* additional header fields since June 2013 */
 };
 
+/* trackpad finger structure - little endian */
+struct wsp_finger_sensor_data {
+	int16_t origin;         /* zero when switching track finger */
+	int16_t abs_x;          /* absolute x coodinate */
+	int16_t abs_y;          /* absolute y coodinate */
+	int16_t rel_x;          /* relative x coodinate */
+	int16_t rel_y;          /* relative y coodinate */
+	int16_t tool_major;     /* tool area, major axis */
+	int16_t tool_minor;     /* tool area, minor axis */
+	int16_t orientation;    /* 16384 when point, else 15 bit angle */
+	int16_t touch_major;    /* touch area, major axis */
+	int16_t touch_minor;    /* touch area, minor axis */
+	int16_t unused[3];      /* zeros */
+	int16_t multi;          /* one finger: varies, more fingers: constant */
+} __packed;
+
+typedef struct wsp_finger_to_match {
+	boolean_t matched; /* to track fingers as they match against strokes. */
+	int       x,y;     /* location (scaled using the mickeys factor) */
+} wsp_finger_t;
+
 /* trackpad finger data offsets, le16-aligned */
 #define WSP_TYPE1_FINGER_DATA_OFFSET  (13 * 2)
 #define WSP_TYPE2_FINGER_DATA_OFFSET  (15 * 2)
@@ -259,27 +280,6 @@ typedef enum atp_stroke_type {
 } atp_stroke_type;
 
 #define ATP_MAX_STROKES         (WSP_MAX_FINGERS)
-
-/* trackpad finger structure - little endian */
-struct wsp_finger_sensor_data {
-	int16_t origin;         /* zero when switching track finger */
-	int16_t abs_x;          /* absolute x coodinate */
-	int16_t abs_y;          /* absolute y coodinate */
-	int16_t rel_x;          /* relative x coodinate */
-	int16_t rel_y;          /* relative y coodinate */
-	int16_t tool_major;     /* tool area, major axis */
-	int16_t tool_minor;     /* tool area, minor axis */
-	int16_t orientation;    /* 16384 when point, else 15 bit angle */
-	int16_t touch_major;    /* touch area, major axis */
-	int16_t touch_minor;    /* touch area, minor axis */
-	int16_t unused[3];      /* zeros */
-	int16_t multi;          /* one finger: varies, more fingers: constant */
-} __packed;
-
-typedef struct wsp_finger_to_match {
-	boolean_t matched; /* to track fingers as they match against strokes. */
-	int       x,y;     /* location (scaled using the mickeys factor) */
-} wsp_finger_t;
 
 /*
  * The following structure captures a finger contact with the
