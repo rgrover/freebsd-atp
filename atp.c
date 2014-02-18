@@ -656,7 +656,14 @@ struct atp_softc {
 
 	struct callout	     sc_callout;
 
-	uint8_t              sc_ibtn;     /* button status */
+	uint8_t              sc_ibtn; /*
+				       * button status. Set to non-zero if the
+				       * mouse-button is physically pressed.
+				       * This state variable is exposed through
+				       * softc to allow reap_sibling_zombies
+				       * to avoid registering taps while the
+				       * trackpad button is pressed.
+				       */
 
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
