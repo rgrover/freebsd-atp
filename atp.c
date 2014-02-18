@@ -78,7 +78,7 @@ __FBSDID("$FreeBSD$");
 
 /* The multiplier used to translate sensor reported positions to mickeys. */
 #ifndef ATP_SCALE_FACTOR
-#define ATP_SCALE_FACTOR 64
+#define ATP_SCALE_FACTOR 8
 #endif
 
 /*
@@ -118,9 +118,9 @@ static u_int atp_touch_timeout = ATP_TOUCH_TIMEOUT;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, touch_timeout, CTLFLAG_RW,
     &atp_touch_timeout, 125000, "age threshold (in micros) for a touch");
 
-static u_int atp_small_movement_threshold = ATP_SCALE_FACTOR >> 3;
+static u_int atp_small_movement_threshold = 30;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
-    &atp_small_movement_threshold, ATP_SCALE_FACTOR >> 3,
+    &atp_small_movement_threshold, 30,
     "the small movement black-hole for filtering noise");
 
 /*
@@ -1228,9 +1228,19 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 		 * scaling down the cumulative contribution of short
 		 * movements.
 		 */
-		strokep->pending_dx -= (strokep->instantaneous_dx << 1);
+		if ((strokep->instantaneous_dx > 8) || (strokep->instantaneous_dx < -8)) {
+			strokep->pending_dx -= (strokep->instantaneous_dx << 1);
+		}
+		else
+			strokep->instantaneous_dx = imin(strokep->instantaneous_dx, -8);
+		if (strokep->instantaneous_dy > 0)
+			strokep->instantaneous_dy = imax(strokep->instantaneous_dy, 8);
+		else
+			strokep->instantaneous_dy = imin(strokep->instantaneous_dy, -8);
+
 		strokep->pending_dy -= (strokep->instantaneous_dy << 1);
 	}
+	printf(" .%d %d. ", strokep->pending_dx, strokep->pending_dy);
 }
 
 // static void
@@ -1322,7 +1332,7 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	 * threshold. This has the effect of filtering away movement
 	 * noise.
 	 */
-	// printf("<%d, %d> -> ", strokep->instantaneous_dx, strokep->instantaneous_dy);
+	printf("<%d, %d> ", strokep->instantaneous_dx, strokep->instantaneous_dy);
 	if (atp_stroke_has_small_movement(strokep))
 		atp_update_pending_mickeys(strokep);
 	else {                /* large movement */
@@ -1330,7 +1340,7 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 		strokep->pending_dx = 0;
 		strokep->pending_dy = 0;
 	}
-	// printf("<%d, %d>\n", strokep->instantaneous_dx, strokep->instantaneous_dy);
+	printf("<%d, %d>\n", strokep->instantaneous_dx, strokep->instantaneous_dy);
 
 	/* Get the scale ratio and smoothen movement. */
 	// int num;   /* numerator of scale ratio */
@@ -1342,8 +1352,8 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	// 	strokep->movement_dy = 0;
 	// 	strokep->velocity_squared >>= 1; /* Erode velocity_squared. */
 	// } else {
-		strokep->movement_dx = (strokep->instantaneous_dx);
-		strokep->movement_dy = (strokep->instantaneous_dy);
+		strokep->movement_dx = (strokep->instantaneous_dx) / 8;
+		strokep->movement_dy = (strokep->instantaneous_dy) / 8;
 		// strokep->movement_dx = (strokep->instantaneous_dx * num) /denom;
 		// strokep->movement_dy = (strokep->instantaneous_dy * num) /denom;
 
@@ -1468,8 +1478,8 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
 			strokep->x                = fingerp->x;
 			strokep->y                = fingerp->y;
 
-			strokep->instantaneous_dx /= 8;
-			strokep->instantaneous_dy /= 8;
+			// strokep->instantaneous_dx /= ATP_SCALE_FACTOR;
+			// strokep->instantaneous_dy /= ATP_SCALE_FACTOR;
 
 			atp_advance_stroke_state(sc, strokep, &movement);
 		}
