@@ -660,9 +660,6 @@ struct atp_softc {
 
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
-
-//         u_int                  sc_idlecount; /* preceding idle interrupts */
-// #define ATP_IDLENESS_THRESHOLD 10
 };
 
 /*
