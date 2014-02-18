@@ -1352,9 +1352,6 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	}
 	// printf("<%d, %d>\n", strokep->instantaneous_dx, strokep->instantaneous_dy);
 
-	strokep->instantaneous_dx /= 8;
-	strokep->instantaneous_dy /= 8;
-
 	/* Get the scale ratio and smoothen movement. */
 	// int num;   /* numerator of scale ratio */
 	// int denom; /* denominator of scale ratio */
@@ -1490,6 +1487,9 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
 			strokep->instantaneous_dy = fingerp->y - strokep->y;
 			strokep->x                = fingerp->x;
 			strokep->y                = fingerp->y;
+
+			strokep->instantaneous_dx /= 8;
+			strokep->instantaneous_dy /= 8;
 
 			atp_advance_stroke_state(sc, strokep, &movement);
 		}
