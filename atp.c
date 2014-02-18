@@ -1217,30 +1217,38 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 {
 	strokep->pending_dx += strokep->instantaneous_dx;
 	strokep->pending_dy += strokep->instantaneous_dy;
-	if ((abs(strokep->pending_dx) <= atp_small_movement_threshold) &&
-	    (abs(strokep->pending_dy) <= atp_small_movement_threshold)) {
-		strokep->instantaneous_dx = 0;
-		strokep->instantaneous_dy = 0;
-	} else {
-		/*
-		 * Penalise pending mickeys for having accumulated
-		 * over short deltas. This operation has the effect of
-		 * scaling down the cumulative contribution of short
-		 * movements.
-		 */
-		if ((strokep->instantaneous_dx > 8) || (strokep->instantaneous_dx < -8)) {
-			strokep->pending_dx -= (strokep->instantaneous_dx << 1);
-		}
-		else
-			strokep->instantaneous_dx = imin(strokep->instantaneous_dx, -8);
-		if (strokep->instantaneous_dy > 0)
-			strokep->instantaneous_dy = imax(strokep->instantaneous_dy, 8);
-		else
-			strokep->instantaneous_dy = imin(strokep->instantaneous_dy, -8);
 
-		strokep->pending_dy -= (strokep->instantaneous_dy << 1);
+	if (abs(strokep->pending_dx) <= atp_small_movement_threshold)
+		strokep->instantaneous_dx = 0;
+	else {
+		if (strokep->instantaneous_dx > 0) {
+			strokep->instantaneous_dx =
+			    ((strokep->instantaneous_dx + (8 - 1)) / 8) * 8;
+			strokep->pending_dx -= (strokep->instantaneous_dx << 1);
+			strokep->pending_dx = imax(strokep->pending_dx, 0);
+		} else {
+			strokep->instantaneous_dx =
+			    ((strokep->instantaneous_dx - (8 - 1)) / 8) * 8;
+			strokep->pending_dx -= (strokep->instantaneous_dx << 1);
+			strokep->pending_dx = imin(strokep->pending_dx, 0);
+		}
 	}
-	printf(" .%d %d. ", strokep->pending_dx, strokep->pending_dy);
+	if (abs(strokep->pending_dy) <= atp_small_movement_threshold)
+		strokep->instantaneous_dy = 0;
+	else {
+		if (strokep->instantaneous_dy > 0) {
+			strokep->instantaneous_dy =
+			    ((strokep->instantaneous_dy + (8 - 1)) / 8) * 8;
+			strokep->pending_dy -= (strokep->instantaneous_dy << 1);
+			strokep->pending_dy = imax(strokep->pending_dy, 0);
+		} else {
+			strokep->instantaneous_dy =
+			    ((strokep->instantaneous_dy - (8 - 1)) / 8) * 8;
+			strokep->pending_dy -= (strokep->instantaneous_dy << 1);
+			strokep->pending_dy = imin(strokep->pending_dy, 0);
+		}
+	}
+	// printf(" .%d %d. ", strokep->pending_dx, strokep->pending_dy);
 }
 
 // static void
@@ -1332,7 +1340,6 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	 * threshold. This has the effect of filtering away movement
 	 * noise.
 	 */
-	printf("<%d, %d> ", strokep->instantaneous_dx, strokep->instantaneous_dy);
 	if (atp_stroke_has_small_movement(strokep))
 		atp_update_pending_mickeys(strokep);
 	else {                /* large movement */
@@ -1340,7 +1347,6 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 		strokep->pending_dx = 0;
 		strokep->pending_dy = 0;
 	}
-	printf("<%d, %d>\n", strokep->instantaneous_dx, strokep->instantaneous_dy);
 
 	/* Get the scale ratio and smoothen movement. */
 	// int num;   /* numerator of scale ratio */
@@ -1352,8 +1358,15 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	// 	strokep->movement_dy = 0;
 	// 	strokep->velocity_squared >>= 1; /* Erode velocity_squared. */
 	// } else {
+
+	if ((abs(strokep->instantaneous_dx) >= 150) ||
+	    (abs(strokep->instantaneous_dy) >= 150)) {
+		strokep->movement_dx = (strokep->instantaneous_dx) / 4;
+		strokep->movement_dy = (strokep->instantaneous_dy) / 4;
+	} else {
 		strokep->movement_dx = (strokep->instantaneous_dx) / 8;
 		strokep->movement_dy = (strokep->instantaneous_dy) / 8;
+	}
 		// strokep->movement_dx = (strokep->instantaneous_dx * num) /denom;
 		// strokep->movement_dy = (strokep->instantaneous_dy * num) /denom;
 
