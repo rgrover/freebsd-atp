@@ -262,89 +262,6 @@ struct wsp_dev_params {
 	struct wsp_param o;          /* orientation limits */
 };
 
-struct atp_softc; /* forward declaration */
-typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
-
-typedef enum atp_stroke_type {
-	ATP_STROKE_TOUCH,
-	ATP_STROKE_SLIDE,
-} atp_stroke_type;
-
-#define ATP_MAX_STROKES         (WSP_MAX_FINGERS)
-
-/*
- * The following structure captures a finger contact with the
- * touchpad. A stroke comprises two p-span components and some state.
- */
-typedef struct atp_stroke {
-	atp_stroke_type      type;
-	uint32_t             flags; /* the state of this stroke */
-#define ATSF_ZOMBIE          0x1
-	boolean_t matched;          /* to track match against fingers.*/
-
-	struct timeval       ctime; /* create time; for coincident siblings. */
-	u_int                age;   /*
-				     * Unit: interrupts; we maintain
-				     * this value in addition to
-				     * 'ctime' in order to avoid the
-				     * expensive call to microtime()
-				     * at every interrupt.
-				     */
-
-	int x, y;                   /* location */
-
-	/* Fields containing information about movement. */
-	int   instantaneous_dx; /* curr. change in X location (un-smoothened) */
-	int   instantaneous_dy; /* curr. change in Y location (un-smoothened) */
-	int   pending_dx;       /* cum. of pending short movements */
-	int   pending_dy;       /* cum. of pending short movements */
-	int   movement_dx;      /* interpreted smoothened movement */
-	int   movement_dy;      /* interpreted smoothened movement */
-	u_int cum_movement;     /* cum. absolute movement so far */
-
-	u_int velocity_squared;/* Avg. magnitude (squared) of recent velocity.*/
-} atp_stroke_t;
-
-struct atp_softc {
-	device_t             sc_dev;
-	struct usb_device   *sc_usb_device;
-	struct mtx           sc_mutex; /* for synchronization */
-	struct usb_fifo_sc   sc_fifo;
-
-	const struct wsp_dev_params *sc_params; /* device configuration */
-
-	mousehw_t            sc_hw;
-	mousemode_t          sc_mode;
-	mousestatus_t        sc_status;
-
-	u_int                sc_state;
-#define ATP_ENABLED          0x01
-#define ATP_ZOMBIES_EXIST    0x02
-#define ATP_DOUBLE_TAP_DRAG  0x04
-#define ATP_VALID            0x08
-
-	struct usb_xfer     *sc_xfer[ATP_N_TRANSFER];
-
-	u_int                sc_pollrate;
-	int                  sc_fflags;
-
-	int8_t              *sensor_data; /* from interrupt packet */
-	sensor_data_interpreter_t sensor_data_interpreter;
-
-	atp_stroke_t         sc_strokes[ATP_MAX_STROKES];
-	u_int                sc_n_strokes;
-
-	struct callout	     sc_callout;
-
-	uint8_t              sc_ibtn;     /* button status */
-
-//         u_int                  sc_left_margin;
-//         u_int                  sc_right_margin;
-
-//         u_int                  sc_idlecount; /* preceding idle interrupts */
-// #define ATP_IDLENESS_THRESHOLD 10
-};
-
 static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING1] = {
 		.caps       = 0,
@@ -663,6 +580,89 @@ static const STRUCT_USB_HOST_ID wsp_devs[] = {
 	ATP_DEV(APPLE, WELLSPRING8_ANSI, WELLSPRING_DRIVER_INFO(WELLSPRING8)),
 	ATP_DEV(APPLE, WELLSPRING8_ISO,  WELLSPRING_DRIVER_INFO(WELLSPRING8)),
 	ATP_DEV(APPLE, WELLSPRING8_JIS,  WELLSPRING_DRIVER_INFO(WELLSPRING8)),
+};
+
+
+struct atp_softc; /* forward declaration */
+typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
+
+typedef enum atp_stroke_type {
+	ATP_STROKE_TOUCH,
+	ATP_STROKE_SLIDE,
+} atp_stroke_type;
+
+#define ATP_MAX_STROKES         (WSP_MAX_FINGERS)
+/*
+ * The following structure captures a finger contact with the
+ * touchpad. A stroke comprises two p-span components and some state.
+ */
+typedef struct atp_stroke {
+	atp_stroke_type      type;
+	uint32_t             flags; /* the state of this stroke */
+#define ATSF_ZOMBIE          0x1
+	boolean_t matched;          /* to track match against fingers.*/
+
+	struct timeval       ctime; /* create time; for coincident siblings. */
+	u_int                age;   /*
+				     * Unit: interrupts; we maintain
+				     * this value in addition to
+				     * 'ctime' in order to avoid the
+				     * expensive call to microtime()
+				     * at every interrupt.
+				     */
+
+	int x, y;                   /* location */
+
+	/* Fields containing information about movement. */
+	int   instantaneous_dx; /* curr. change in X location (un-smoothened) */
+	int   instantaneous_dy; /* curr. change in Y location (un-smoothened) */
+	int   pending_dx;       /* cum. of pending short movements */
+	int   pending_dy;       /* cum. of pending short movements */
+	int   movement_dx;      /* interpreted smoothened movement */
+	int   movement_dy;      /* interpreted smoothened movement */
+	u_int cum_movement;     /* cum. absolute movement so far */
+
+	u_int velocity_squared;/* Avg. magnitude (squared) of recent velocity.*/
+} atp_stroke_t;
+
+struct atp_softc {
+	device_t             sc_dev;
+	struct usb_device   *sc_usb_device;
+	struct mtx           sc_mutex; /* for synchronization */
+	struct usb_fifo_sc   sc_fifo;
+
+	const struct wsp_dev_params *sc_params; /* device configuration */
+
+	mousehw_t            sc_hw;
+	mousemode_t          sc_mode;
+	mousestatus_t        sc_status;
+
+	u_int                sc_state;
+#define ATP_ENABLED          0x01
+#define ATP_ZOMBIES_EXIST    0x02
+#define ATP_DOUBLE_TAP_DRAG  0x04
+#define ATP_VALID            0x08
+
+	struct usb_xfer     *sc_xfer[ATP_N_TRANSFER];
+
+	u_int                sc_pollrate;
+	int                  sc_fflags;
+
+	int8_t              *sensor_data; /* from interrupt packet */
+	sensor_data_interpreter_t sensor_data_interpreter;
+
+	atp_stroke_t         sc_strokes[ATP_MAX_STROKES];
+	u_int                sc_n_strokes;
+
+	struct callout	     sc_callout;
+
+	uint8_t              sc_ibtn;     /* button status */
+
+//         u_int                  sc_left_margin;
+//         u_int                  sc_right_margin;
+
+//         u_int                  sc_idlecount; /* preceding idle interrupts */
+// #define ATP_IDLENESS_THRESHOLD 10
 };
 
 /*
