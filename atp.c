@@ -33,6 +33,7 @@
  *  - rename wsp_dev_params as wellspring_product_params
  *  - borrow code for geyser4
  *  - convert all remaining printfs to DPRINTFN
+ *  - double-tap and drag
  */
 
 #include <sys/cdefs.h>
