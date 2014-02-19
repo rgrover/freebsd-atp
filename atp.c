@@ -118,6 +118,12 @@ static u_int atp_touch_timeout = ATP_TOUCH_TIMEOUT;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, touch_timeout, CTLFLAG_RW,
     &atp_touch_timeout, 125000, "age threshold (in micros) for a touch");
 
+static u_int atp_mickeys_scale_factor = ATP_SCALE_FACTOR;
+static int atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS);
+SYSCTL_PROC(_hw_usb_atp, OID_AUTO, scale_factor, CTLTYPE_UINT | CTLFLAG_RW,
+    &atp_mickeys_scale_factor, sizeof(atp_mickeys_scale_factor),
+    atp_sysctl_scale_factor_handler, "IU", "movement scale factor");
+
 static u_int atp_small_movement_threshold = 30;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
     &atp_small_movement_threshold, 30,
@@ -1694,6 +1700,27 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 
 	mtx_unlock(&sc->sc_mutex);
 	return (error);
+}
+
+static int
+atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS)
+{
+	int error;
+	u_int tmp;
+
+	tmp = atp_mickeys_scale_factor;
+	error = sysctl_handle_int(oidp, &tmp, 0, req);
+	if (error != 0 || req->newptr == NULL)
+		return (error);
+
+	if (tmp == atp_mickeys_scale_factor)
+		return (0);     /* no change */
+
+	atp_mickeys_scale_factor = tmp;
+	DPRINTFN(ATP_LLEVEL_INFO, "%s: resetting mickeys_scale_factor to %u\n",
+	    ATP_DRIVER_NAME, tmp);
+
+	return (0);
 }
 
 static devclass_t atp_devclass;
