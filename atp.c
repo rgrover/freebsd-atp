@@ -82,6 +82,11 @@ __FBSDID("$FreeBSD$");
 #define ATP_SCALE_FACTOR 8
 #endif
 
+/* Threshold of instantaneous deltas beyond which movement is considered fast.*/
+#ifndef ATP_FAST_MOVEMENT_TRESHOLD
+#define ATP_FAST_MOVEMENT_TRESHOLD 150
+#endif
+
 /*
  * This is the age (in microseconds) beyond which a touch is
  * considered to be a slide; and therefore a tap event isn't registered.
@@ -1303,8 +1308,8 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	strokep->movement_dy = (strokep->instantaneous_dy) /
 	    (int)atp_mickeys_scale_factor;
 
-	if ((abs(strokep->instantaneous_dx) >= 150) ||
-	    (abs(strokep->instantaneous_dy) >= 150)) {
+	if ((abs(strokep->instantaneous_dx) >= ATP_FAST_MOVEMENT_TRESHOLD) ||
+	    (abs(strokep->instantaneous_dy) >= ATP_FAST_MOVEMENT_TRESHOLD)) {
 		strokep->movement_dx <<= 1;
 		strokep->movement_dy <<= 1;
 	}
