@@ -1297,8 +1297,12 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 		strokep->pending_dy = 0;
 	}
 
-	strokep->movement_dx = (strokep->instantaneous_dx) / 8;
-	strokep->movement_dy = (strokep->instantaneous_dy) / 8;
+	/* scale movement */
+	strokep->movement_dx = (strokep->instantaneous_dx) /
+	    (int)atp_mickeys_scale_factor;
+	strokep->movement_dy = (strokep->instantaneous_dy) /
+	    (int)atp_mickeys_scale_factor;
+
 	if ((abs(strokep->instantaneous_dx) >= 150) ||
 	    (abs(strokep->instantaneous_dy) >= 150)) {
 		strokep->movement_dx <<= 1;
