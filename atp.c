@@ -34,6 +34,7 @@
  *  - borrow code for geyser4
  *  - convert all remaining printfs to DPRINTFN
  *  - double-tap and drag
+ *  - atp_slide_min_movement
  */
 
 #include <sys/cdefs.h>
