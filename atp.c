@@ -1398,9 +1398,6 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
 			strokep->x                = fingerp->x;
 			strokep->y                = fingerp->y;
 
-			// strokep->instantaneous_dx /= ATP_SCALE_FACTOR;
-			// strokep->instantaneous_dy /= ATP_SCALE_FACTOR;
-
 			atp_advance_stroke_state(sc, strokep, &movement);
 		}
 	}
