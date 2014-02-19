@@ -1215,39 +1215,64 @@ atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 static __inline void
 atp_update_pending_mickeys(atp_stroke_t *strokep)
 {
+	/* accumulate instantaneous movement */
 	strokep->pending_dx += strokep->instantaneous_dx;
 	strokep->pending_dy += strokep->instantaneous_dy;
 
-	if (abs(strokep->pending_dx) <= atp_small_movement_threshold)
-		strokep->instantaneous_dx = 0;
-	else {
-		if (strokep->instantaneous_dx > 0) {
-			strokep->instantaneous_dx =
-			    ((strokep->instantaneous_dx + (8 - 1)) / 8) * 8;
-			strokep->pending_dx -= (strokep->instantaneous_dx << 1);
-			strokep->pending_dx = imax(strokep->pending_dx, 0);
-		} else {
-			strokep->instantaneous_dx =
-			    ((strokep->instantaneous_dx - (8 - 1)) / 8) * 8;
-			strokep->pending_dx -= (strokep->instantaneous_dx << 1);
-			strokep->pending_dx = imin(strokep->pending_dx, 0);
-		}
+#define UPDATE_INSTANTANEOUS_AND_PENDING(I, P)                          \
+	if (abs((P)) <= atp_small_movement_threshold)                   \
+		(I) = 0; /* clobber small movement */                   \
+	else {                                                          \
+		if ((I) > 0) {                                          \
+			/*                                              \
+			 * Round up instantaneous movement to the nearest \
+			 * ceiling. This helps preserve small mickey    \
+			 * movements from being lost in following scaling \
+			 * operation.                                   \
+			 */                                             \
+			(I) = (((I) + (atp_mickeys_scale_factor - 1)) / \
+			       atp_mickeys_scale_factor) *              \
+			      atp_mickeys_scale_factor;                 \
+									\
+			/*                                              \
+			 * Deduct the rounded mickeys from pending mickeys. \
+			 * Note: we multiply by 2 to offset the previous \
+			 * accumulation of instantaneous movement into  \
+			 * pending.                                     \
+			 */                                             \
+			(P) -= ((I) << 1);                              \
+									\
+			/* truncate pending to 0 if it becomes negative. */ \
+			(P) = imax((P), 0);                             \
+		} else {                                                \
+			/*                                              \
+			 * Round down instantaneous movement to the nearest \
+			 * ceiling. This helps preserve small mickey    \
+			 * movements from being lost in following scaling \
+			 * operation.                                   \
+			 */                                             \
+			(I) = (((I) - (atp_mickeys_scale_factor - 1)) / \
+			       atp_mickeys_scale_factor) *              \
+			      atp_mickeys_scale_factor;                 \
+									\
+			/*                                              \
+			 * Deduct the rounded mickeys from pending mickeys. \
+			 * Note: we multiply by 2 to offset the previous \
+			 * accumulation of instantaneous movement into  \
+			 * pending.                                     \
+			 */                                             \
+			(P) -= ((I) << 1);                              \
+									\
+			/* truncate pending to 0 if it becomes positive. */ \
+			(P) = imin((P), 0);                             \
+		}                                                       \
 	}
-	if (abs(strokep->pending_dy) <= atp_small_movement_threshold)
-		strokep->instantaneous_dy = 0;
-	else {
-		if (strokep->instantaneous_dy > 0) {
-			strokep->instantaneous_dy =
-			    ((strokep->instantaneous_dy + (8 - 1)) / 8) * 8;
-			strokep->pending_dy -= (strokep->instantaneous_dy << 1);
-			strokep->pending_dy = imax(strokep->pending_dy, 0);
-		} else {
-			strokep->instantaneous_dy =
-			    ((strokep->instantaneous_dy - (8 - 1)) / 8) * 8;
-			strokep->pending_dy -= (strokep->instantaneous_dy << 1);
-			strokep->pending_dy = imin(strokep->pending_dy, 0);
-		}
-	}
+
+	UPDATE_INSTANTANEOUS_AND_PENDING(strokep->instantaneous_dx,
+	    strokep->pending_dx);
+	UPDATE_INSTANTANEOUS_AND_PENDING(strokep->instantaneous_dy,
+	    strokep->pending_dy);
+
 	// printf(" .%d %d. ", strokep->pending_dx, strokep->pending_dy);
 }
 
