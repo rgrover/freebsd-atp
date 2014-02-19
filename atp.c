@@ -77,7 +77,7 @@ __FBSDID("$FreeBSD$");
  * `options' statements in the kernel configuration file.
  */
 
-/* The multiplier used to translate sensor reported positions to mickeys. */
+/* The divisor used to translate sensor reported positions to mickeys. */
 #ifndef ATP_SCALE_FACTOR
 #define ATP_SCALE_FACTOR 8
 #endif
