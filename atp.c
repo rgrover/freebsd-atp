@@ -99,7 +99,6 @@ __FBSDID("$FreeBSD$");
 #error "ATP_ZOMBIE_STROKE_REAP_WINDOW too large"
 #endif
 
-
 /* Tunables */
 static SYSCTL_NODE(_hw_usb, OID_AUTO, atp, CTLFLAG_RW, 0, "USB atp");
 
@@ -934,10 +933,6 @@ atp_attach(device_t dev)
 
 	sc->sc_state            = 0;
 	sc->sc_ibtn             = 0;
-
-//         sc->sc_left_margin  = atp_mickeys_scale_factor;
-//         sc->sc_right_margin = (sc->sc_params->n_xsensors - 1) *
-//                 atp_mickeys_scale_factor;
 
 	callout_init_mtx(&sc->sc_callout, &sc->sc_mutex, 0);
 
