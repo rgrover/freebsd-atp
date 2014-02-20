@@ -844,14 +844,25 @@ atp_disable(struct atp_softc *sc)
 static int
 atp_softc_populate(struct atp_softc *sc)
 {
-	const struct wsp_dev_params *params = sc->sc_params;
-
-	if (params == NULL) {
+	if (sc->sc_params == NULL) {
 		DPRINTF("params uninitialized!\n");
 		return (ENXIO);
 	}
-	if (params->data_len) {
-		sc->sensor_data = malloc(params->data_len * sizeof(int8_t),
+
+	unsigned expected_data_len = 0;
+	switch (sc->sc_family) {
+	case TRACKPAD_FAMILY_WELLSPRING: {
+		const struct wsp_dev_params *params = sc->sc_params;
+		expected_data_len = params->data_len;
+	}
+	break;
+
+	default:
+		/* TODO: fill this for fountain/geyser. */
+	break;
+	}
+	if (expected_data_len) {
+		sc->sensor_data = malloc(expected_data_len,
 		    M_USB, M_WAITOK | M_ZERO);
 		if (sc->sensor_data == NULL) {
 			DPRINTF("mem for sensor_data\n");
