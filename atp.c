@@ -720,9 +720,9 @@ static struct usb_fifo_methods atp_fifo_methods = {
 };
 
 /* device initialization and shutdown */
-static int  atp_set_device_mode(struct atp_softc *sc, interface_mode mode);
-static int  atp_enable(struct atp_softc *sc);
-static void atp_disable(struct atp_softc *sc);
+static int  atp_set_device_mode(struct atp_softc *, interface_mode mode);
+static int  atp_enable(struct atp_softc *);
+static void atp_disable(struct atp_softc *);
 static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
 
