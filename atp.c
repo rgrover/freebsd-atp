@@ -1285,11 +1285,14 @@ atp_reap_sibling_zombies(void *arg)
 
 	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", n_reaped);
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
+	microtime(&sc->sc_reap_time); /* remember this time */
 
-	if (n_reaped != 0) {
-		microtime(&sc->sc_reap_time); /* remember this time */
+	if (n_reaped == 0)
+		return;
 
-		/* Add a pair of events (button-down and button-up). */
+	/* Add a pair of virtual button events (button-down and button-up) if
+	 * the physical button isn't pressed. */
+	if (sc->sc_ibtn == 0) {
 		switch (n_reaped) {
 		case 1: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
 			break;
