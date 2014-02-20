@@ -34,7 +34,6 @@
  *  - update man page.
  *  - rename wsp_dev_params as wellspring_product_params
  *  - borrow code for geyser4
- *  - convert all remaining printfs to DPRINTFN
  *  - double-tap and drag
  *  - atp_slide_min_movement
  */
@@ -1041,9 +1040,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		    DPRINTFN(ATP_LLEVEL_INFO, "button %s\n",
 			((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
 			"pressed" : "released"));
-		    printf("button %s\n",
-			((sc->sc_status.button & MOUSE_BUTTON1DOWN) ?
-			"pressed" : "released"));
 		}
 
 		if (sc->sc_status.flags &
@@ -1122,9 +1118,6 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 		    imax(params->x.min, source_fingerp->abs_x) - params->x.min;
 		fingers[n_fingers].y       = -params->y.min +
 		    params->y.max - source_fingerp->abs_y;
-		// printf("[%d] ax=%d, ay=%d\n", i,
-		// 	fingers[n_fingers].x,
-		// 	fingers[n_fingers].y);
 
 		++n_fingers;
 	}
@@ -1179,12 +1172,7 @@ atp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
 	if (sc->sc_n_strokes > 1)
 		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
 
-	// DPRINTFN(ATP_LLEVEL_INFO, "[%d,%d], time: %u,%ld\n",
-	//     strokep->x,
-	//     strokep->y,
-	//     (unsigned int)strokep->ctime.tv_sec,
-	//     (unsigned long int)strokep->ctime.tv_usec);
-	// printf("[%d,%d]\n", strokep->x, strokep->y);
+	DPRINTFN(ATP_LLEVEL_INFO, "[%d,%d]\n", strokep->x, strokep->y);
 }
 
 /*
@@ -1295,8 +1283,6 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 	    strokep->pending_dx);
 	UPDATE_INSTANTANEOUS_AND_PENDING(strokep->instantaneous_dy,
 	    strokep->pending_dy);
-
-	// printf(" .%d %d. ", strokep->pending_dx, strokep->pending_dy);
 }
 
 /*
@@ -1564,7 +1550,6 @@ atp_reap_sibling_zombies(void *arg)
 	}
 
 	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", n_reaped);
-	// printf("r %u\n", n_reaped);
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
 
 	if (n_reaped != 0) {
