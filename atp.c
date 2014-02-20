@@ -1063,8 +1063,8 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			}
 			/* average movement if multiple strokes record motion.*/
 			if (n_movements > 1) {
-				dx /= n_movements;
-				dy /= n_movements;
+				dx /= (int)n_movements;
+				dy /= (int)n_movements;
 			}
 
 			sc->sc_status.dx += dx;
