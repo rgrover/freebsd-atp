@@ -27,6 +27,7 @@
 /*
  * TODO:
  *  - two finger scrolling
+ *  - check on all sc_state transitions
  *  - verify well-spring dev params.
  *  - update old atp params
  *  - add comment about not checking mouse subclass in probe()
