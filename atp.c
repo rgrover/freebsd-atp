@@ -997,11 +997,10 @@ atp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
 	 */
 	strokep->type    = ATP_STROKE_TOUCH;
 	strokep->matched = true;
-	strokep->x       = fingerp->x;
-	strokep->y       = fingerp->y;
-
 	microtime(&strokep->ctime);
 	strokep->age     = 1;       /* Unit: interrupts */
+	strokep->x       = fingerp->x;
+	strokep->y       = fingerp->y;
 
 	sc->sc_n_strokes++;
 
