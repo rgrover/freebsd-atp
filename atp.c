@@ -814,12 +814,6 @@ atp_enable(struct atp_softc *sc)
 	if (sc->sc_state & ATP_ENABLED)
 		return (0);
 
-	const struct wsp_dev_params *params = sc->sc_params;
-	if ((params == NULL) || (params->data_len == 0)) {
-		DPRINTF("params uninitialized!\n");
-		return (ENXIO);
-	}
-
 	/* Allocate the dynamic buffers */
 	if (atp_softc_populate(sc) != 0) {
 		atp_softc_unpopulate(sc);
@@ -831,7 +825,6 @@ atp_enable(struct atp_softc *sc)
 
 	memset(sc->sc_strokes, 0, sizeof(sc->sc_strokes));
 	sc->sc_n_strokes = 0;
-	// sc->sc_idlecount = 0;
 	sc->sc_state |= ATP_ENABLED;
 
 	DPRINTFN(ATP_LLEVEL_INFO, "enabled atp\n");
