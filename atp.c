@@ -689,9 +689,6 @@ struct atp_softc {
 				       */
 
 	struct timeval       sc_reap_time; /* time when zombies were reaped */
-
-//         u_int                  sc_left_margin;
-//         u_int                  sc_right_margin;
 };
 
 /*
