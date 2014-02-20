@@ -26,6 +26,8 @@
 
 /*
  * TODO:
+ *  - double-tap and drag
+ *  - two finger scrolling
  *  - verify well-spring dev params.
  *  - update old atp params
  *  - add comment about not checking mouse subclass in probe()
