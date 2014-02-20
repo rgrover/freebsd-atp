@@ -877,9 +877,7 @@ atp_softc_populate(struct atp_softc *sc)
 static void
 atp_softc_unpopulate(struct atp_softc *sc)
 {
-	const struct wsp_dev_params *params = sc->sc_params;
-
-	if (params == NULL) {
+	if (sc->sc_params == NULL) {
 		return;
 	}
 
