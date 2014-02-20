@@ -661,6 +661,8 @@ struct atp_softc {
 
 	trackpad_family_t    sc_family;
 	const void          *sc_params; /* device configuration */
+	int8_t              *sensor_data; /* from interrupt packet */
+	sensor_data_interpreter_t sensor_data_interpreter;
 
 	mousehw_t            sc_hw;
 	mousemode_t          sc_mode;
@@ -675,9 +677,6 @@ struct atp_softc {
 
 	u_int                sc_pollrate;
 	int                  sc_fflags;
-
-	int8_t              *sensor_data; /* from interrupt packet */
-	sensor_data_interpreter_t sensor_data_interpreter;
 
 	atp_stroke_t         sc_strokes[ATP_MAX_STROKES];
 	u_int                sc_n_strokes;
