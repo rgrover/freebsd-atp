@@ -102,9 +102,9 @@ __FBSDID("$FreeBSD$");
  * The wait duration (in ticks) after losing a touch contact
  * before zombied strokes are reaped and turned into button events.
  */
-#define ATP_ZOMBIE_STROKE_REAP_WINDOW   50
-#if ATP_ZOMBIE_STROKE_REAP_WINDOW > 100
-#error "ATP_ZOMBIE_STROKE_REAP_WINDOW too large"
+#define ATP_ZOMBIE_STROKE_REAP_INTERVAL   50
+#if ATP_ZOMBIE_STROKE_REAP_INTERVAL > 100
+#error "ATP_ZOMBIE_STROKE_REAP_INTERVAL too large"
 #endif
 
 /* end of driver specific options */
@@ -1028,7 +1028,7 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 	    (strokep->age > atp_stroke_maturity_threshold)) {
 		strokep->flags |= ATSF_ZOMBIE;
 		sc->sc_state   |= ATP_ZOMBIES_EXIST;
-		callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_WINDOW,
+		callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_INTERVAL,
 		    atp_reap_sibling_zombies, sc);
 	} else {
 		/* Drop this stroke. */
