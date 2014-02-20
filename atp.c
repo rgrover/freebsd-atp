@@ -24,15 +24,6 @@
  * SUCH DAMAGE.
  */
 
-/*
- * TODO:
- *  - ensure sanity of variable settings.
- *  - verify well-spring dev params.
- *  - update old atp params
- *  - update man page.
- *  - borrow code for geyser4
- */
-
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
