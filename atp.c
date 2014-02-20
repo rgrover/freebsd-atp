@@ -32,7 +32,6 @@
  *  - update old atp params
  *  - update man page.
  *  - borrow code for geyser4
- *  - atp_slide_min_movement
  */
 
 #include <sys/cdefs.h>
@@ -148,6 +147,16 @@ static u_int atp_small_movement_threshold = 30;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
     &atp_small_movement_threshold, 30,
     "the small movement black-hole for filtering noise");
+
+/*
+ * Strokes which accumulate at least this amount of absolute movement
+ * from the aggregate of their components are considered as
+ * slides. Unit: mickeys.
+ */
+static u_int atp_slide_min_movement = 64;
+SYSCTL_UINT(_hw_usb_atp, OID_AUTO, slide_min_movement, CTLFLAG_RW,
+    &atp_slide_min_movement, 64,
+    "strokes with at least this amt. of movement are considered slides");
 
 /*
  * The minimum age of a stroke for it to be considered mature; this
@@ -1343,26 +1352,25 @@ atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
 	if (atp_compute_stroke_movement(strokep))
 		*movementp = TRUE;
 
-	/* Compute the stroke's age. */
-	struct timeval tdiff;
-	getmicrotime(&tdiff);
-	if (timevalcmp(&tdiff, &strokep->ctime, >))
-		timevalsub(&tdiff, &strokep->ctime);
-	else {
-		/*
-		 * If we are here, it is because getmicrotime
-		 * reported the current time as being behind
-		 * the stroke's start time; getmicrotime can
-		 * be imprecise.
-		 */
-		tdiff.tv_sec  = 0;
-		tdiff.tv_usec = 0;
-	}
+	if (strokep->type != ATP_STROKE_TOUCH)
+		return;
 
-	if ((tdiff.tv_sec > (atp_touch_timeout / 1000000)) ||
-	    ((tdiff.tv_sec == (atp_touch_timeout / 1000000)) &&
-		(tdiff.tv_usec >= (atp_touch_timeout % 1000000))))
+	/* Convert touch strokes to slides upon detecting movement or age. */
+	if (strokep->cum_movement >= atp_slide_min_movement)
 		atp_convert_to_slide(sc, strokep);
+	else {
+		/* Compute the stroke's age. */
+		struct timeval tdiff;
+		getmicrotime(&tdiff);
+		if (timevalcmp(&tdiff, &strokep->ctime, >)) {
+			timevalsub(&tdiff, &strokep->ctime);
+
+			if ((tdiff.tv_sec > (atp_touch_timeout / 1000000)) ||
+			    ((tdiff.tv_sec == (atp_touch_timeout / 1000000)) &&
+			     (tdiff.tv_usec >= (atp_touch_timeout % 1000000))))
+				atp_convert_to_slide(sc, strokep);
+		}
+	}
 }
 
 /* Switch a given touch stroke to being a slide. */
