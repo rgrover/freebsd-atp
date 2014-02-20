@@ -107,6 +107,9 @@ __FBSDID("$FreeBSD$");
 #error "ATP_ZOMBIE_STROKE_REAP_WINDOW too large"
 #endif
 
+/* end of driver specific options */
+
+
 /* Tunables */
 static SYSCTL_NODE(_hw_usb, OID_AUTO, atp, CTLFLAG_RW, 0, "USB atp");
 
@@ -163,27 +166,67 @@ SYSCTL_UINT(_hw_usb_atp, OID_AUTO, stroke_maturity_threshold, CTLFLAG_RW,
     "the minimum age of a stroke for it to be considered mature");
 
 
-#define WELLSPRING_INTERFACE_INDEX 1
-
-typedef enum interface_mode {
-	RAW_SENSOR_MODE = (uint8_t)0x01,
-	HID_MODE        = (uint8_t)0x08
-} interface_mode;
-
-enum {
-	ATP_INTR_DT,
-	ATP_N_TRANSFER,
+/*
+ * This driver supports two distinct families of products: the latest wellspring
+ * trackpads and the older fountain/gyser products.
+ */
+enum atp_trackpad_family {
+	TRACKPAD_FAMILY_GEYSER,
+	TRACKPAD_FAMILY_WELLSPRING,
+	TRACKPAD_FAMILY_MAX /* keep this at the tail end of the enumeration */
 };
 
-#define ATP_FIFO_BUF_SIZE        8 /* bytes */
-#define ATP_FIFO_QUEUE_MAXLEN   50 /* units */
+enum wellspring_product {
+	WELLSPRING1,
+	WELLSPRING2,
+	WELLSPRING3,
+	WELLSPRING4,
+	WELLSPRING4A,
+	WELLSPRING5,
+	WELLSPRING6A,
+	WELLSPRING6,
+	WELLSPRING5A,
+	WELLSPRING7,
+	WELLSPRING7A,
+	WELLSPRING8,
+	WELLSPRING_PRODUCT_MAX /* keep this at the end of the enumeration */
+};
 
 /* trackpad header types */
 enum wellspring_trackpad_type {
-	WSP_TRACKPAD_TYPE1,          /* plain trackpad */
-	WSP_TRACKPAD_TYPE2,          /* button integrated in trackpad */
-	WSP_TRACKPAD_TYPE3           /* additional header fields since June 2013 */
+	WSP_TRACKPAD_TYPE1,      /* plain trackpad */
+	WSP_TRACKPAD_TYPE2,      /* button integrated in trackpad */
+	WSP_TRACKPAD_TYPE3       /* additional header fields since June 2013 */
 };
+
+/*
+ * Trackpad family and product and family are encoded together in the
+ * driver_info value associated with a trackpad product.
+ */
+#define N_PROD_BITS 8  /* num. bits used to encode product */
+#if (N_PROD_BITS < 8) || (N_PROD_BITS > 24)
+#error "invalid value for N_PROD_BITS"
+#endif
+#define ENCODE_DRIVER_INFO(FAMILY, PROD)      \
+    (((FAMILY) << N_PROD_BITS) | (PROD))
+#define DECODE_FAMILY_FROM_DRIVER_INFO(INFO)  ((INFO) >> N_PROD_BITS)
+#define DECODE_PRODUCT_FROM_DRIVER_INFO(INFO) \
+    ((INFO) & ((1 << N_PROD_BITS) - 1))
+
+#define WELLSPRING_DRIVER_INFO(PRODUCT)       \
+    ENCODE_DRIVER_INFO(TRACKPAD_FAMILY_WELLSPRING, PRODUCT)
+
+/* trackpad finger data offsets, le16-aligned */
+#define WSP_TYPE1_FINGER_DATA_OFFSET  (13 * 2)
+#define WSP_TYPE2_FINGER_DATA_OFFSET  (15 * 2)
+#define WSP_TYPE3_FINGER_DATA_OFFSET  (19 * 2)
+
+/* trackpad button data offsets */
+#define WSP_TYPE2_BUTTON_DATA_OFFSET   15
+#define WSP_TYPE3_BUTTON_DATA_OFFSET   23
+
+/* list of device capability bits */
+#define HAS_INTEGRATED_BUTTON   1
 
 /* trackpad finger structure - little endian */
 struct wsp_finger_sensor_data {
@@ -206,58 +249,12 @@ typedef struct wsp_finger_to_match {
 	int       x,y;     /* location (scaled using the mickeys factor) */
 } wsp_finger_t;
 
-/* trackpad finger data offsets, le16-aligned */
-#define WSP_TYPE1_FINGER_DATA_OFFSET  (13 * 2)
-#define WSP_TYPE2_FINGER_DATA_OFFSET  (15 * 2)
-#define WSP_TYPE3_FINGER_DATA_OFFSET  (19 * 2)
-
-/* trackpad button data offsets */
-#define WSP_TYPE2_BUTTON_DATA_OFFSET   15
-#define WSP_TYPE3_BUTTON_DATA_OFFSET   23
-
-/* list of device capability bits */
-#define HAS_INTEGRATED_BUTTON   1
-
 /* trackpad finger data size, empirically at least ten fingers */
 #define WSP_MAX_FINGERS               16
 #define WSP_SIZEOF_FINGER_SENSOR_DATA sizeof(struct wsp_finger_sensor_data)
 #define WSP_SIZEOF_ALL_FINGER_DATA    (WSP_MAX_FINGERS * WSP_SIZEOF_FINGER_SENSOR_DATA)
 #define WSP_MAX_FINGER_ORIENTATION    16384
 
-#define N_PROD_BITS 8
-#if (N_PROD_BITS < 8) || (N_PROD_BITS > 24)
-#error "invalid value for N_PROD_BITS"
-#endif
-#define ENCODE_DRIVER_INFO(FAMILY, PROD)      \
-    (((FAMILY) << N_PROD_BITS) | (PROD))
-#define WELLSPRING_DRIVER_INFO(PRODUCT)       \
-    ENCODE_DRIVER_INFO(TRACKPAD_FAMILY_WELLSPRING, PRODUCT)
-
-#define DECODE_FAMILY_FROM_DRIVER_INFO(INFO)  ((INFO) >> N_PROD_BITS)
-#define DECODE_PRODUCT_FROM_DRIVER_INFO(INFO) \
-    ((INFO) & ((1 << N_PROD_BITS) - 1))
-
-enum atp_trackpad_family {
-	TRACKPAD_FAMILY_GEYSER,
-	TRACKPAD_FAMILY_WELLSPRING,
-	TRACKPAD_FAMILY_MAX /* keep this at the tail end of the enumeration */
-};
-
-enum wellspring_product {
-	WELLSPRING1,
-	WELLSPRING2,
-	WELLSPRING3,
-	WELLSPRING4,
-	WELLSPRING4A,
-	WELLSPRING5,
-	WELLSPRING6A,
-	WELLSPRING6,
-	WELLSPRING5A,
-	WELLSPRING7,
-	WELLSPRING7A,
-	WELLSPRING8,
-	WELLSPRING_PRODUCT_MAX /* keep this at the end of the enumeration */
-};
 
 /* logical signal quality */
 #define WSP_SN_PRESSURE 45      /* pressure signal-to-noise ratio */
@@ -615,6 +612,16 @@ typedef enum atp_stroke_type {
 } atp_stroke_type;
 
 #define ATP_MAX_STROKES         (WSP_MAX_FINGERS)
+
+
+#define ATP_FIFO_BUF_SIZE        8 /* bytes */
+#define ATP_FIFO_QUEUE_MAXLEN   50 /* units */
+
+enum {
+	ATP_INTR_DT,
+	ATP_N_TRANSFER,
+};
+
 /*
  * The following structure captures a finger contact with the
  * touchpad. A stroke comprises two p-span components and some state.
@@ -689,6 +696,12 @@ struct atp_softc {
 
 	struct timeval       sc_reap_time; /* time when zombies were reaped */
 };
+
+typedef enum interface_mode {
+	RAW_SENSOR_MODE = (uint8_t)0x01,
+	HID_MODE        = (uint8_t)0x08
+} interface_mode;
+
 
 /*
  * function prototypes
@@ -890,6 +903,7 @@ atp_probe(device_t self)
 	 */
 
 	if ((usbd_lookup_id_by_uaa(wsp_devs, sizeof(wsp_devs), uaa)) == 0) {
+#define WELLSPRING_INTERFACE_INDEX 1
 		if (uaa->info.bIfaceIndex == WELLSPRING_INTERFACE_INDEX)
 			return (0);
 	}
