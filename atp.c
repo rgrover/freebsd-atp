@@ -739,7 +739,7 @@ static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
 static void          atp_advance_stroke_state(struct atp_softc *,
     atp_stroke_t *, boolean_t *);
 static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
-static __inline void atp_update_pending_mickeys(atp_stroke_t *);
+static void          atp_update_pending_mickeys(atp_stroke_t *);
 static boolean_t     atp_compute_stroke_movement(atp_stroke_t *);
 
 /* tap detection */
