@@ -651,8 +651,6 @@ typedef struct atp_stroke {
 	int   movement_dx;      /* interpreted smoothened movement */
 	int   movement_dy;      /* interpreted smoothened movement */
 	u_int cum_movement;     /* cum. absolute movement so far */
-
-	u_int velocity_squared;/* Avg. magnitude (squared) of recent velocity.*/
 } atp_stroke_t;
 
 struct atp_softc {
