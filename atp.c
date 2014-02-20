@@ -26,11 +26,12 @@
 
 /*
  * TODO:
+ *  - replace constants in top-level settings with MACROS
+ *  - ensure sanity of variable settings.
  *  - verify well-spring dev params.
  *  - update old atp params
  *  - update man page.
  *  - borrow code for geyser4
- *  - double-tap and drag
  *  - atp_slide_min_movement
  */
 
