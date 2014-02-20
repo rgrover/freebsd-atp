@@ -28,7 +28,6 @@
  * TODO:
  *  - verify well-spring dev params.
  *  - update old atp params
- *  - add comment about not checking mouse subclass in probe()
  *  - update man page.
  *  - borrow code for geyser4
  *  - double-tap and drag
@@ -879,6 +878,11 @@ atp_probe(device_t self)
 
 	if (uaa->info.bInterfaceClass != UICLASS_HID)
 		return (ENXIO);
+	/*
+	 * Note: for some reason, the check
+	 * (uaa->info.bInterfaceProtocol == UIPROTO_MOUSE) doesn't hold true
+	 * for wellspring trackpads, so we've removed it from the common path.
+	 */
 
 	if ((usbd_lookup_id_by_uaa(wsp_devs, sizeof(wsp_devs), uaa)) == 0) {
 		if (uaa->info.bIfaceIndex == WELLSPRING_INTERFACE_INDEX)
