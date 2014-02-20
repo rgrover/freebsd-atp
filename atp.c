@@ -26,7 +26,6 @@
 
 /*
  * TODO:
- *  - double-tap and drag
  *  - two finger scrolling
  *  - verify well-spring dev params.
  *  - update old atp params
@@ -98,6 +97,17 @@ __FBSDID("$FreeBSD$");
 #endif
 
 /*
+ * A double-tap followed by a single-finger slide is treated as a
+ * special gesture. The driver responds to this gesture by assuming a
+ * virtual button-press for the lifetime of the slide. The following
+ * threshold is the maximum time gap (in microseconds) between the two
+ * tap events preceding the slide for such a gesture.
+ */
+#ifndef ATP_DOUBLE_TAP_N_DRAG_THRESHOLD
+#define ATP_DOUBLE_TAP_N_DRAG_THRESHOLD 200000
+#endif
+
+/*
  * The wait duration (in ticks) after losing a touch contact
  * before zombied strokes are reaped and turned into button events.
  */
@@ -124,6 +134,12 @@ SYSCTL_INT(_hw_usb_atp, OID_AUTO, debug, CTLFLAG_RW,
 static u_int atp_touch_timeout = ATP_TOUCH_TIMEOUT;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, touch_timeout, CTLFLAG_RW,
     &atp_touch_timeout, 125000, "age threshold (in micros) for a touch");
+
+static u_int atp_double_tap_threshold = ATP_DOUBLE_TAP_N_DRAG_THRESHOLD;
+SYSCTL_UINT(_hw_usb_atp, OID_AUTO, double_tap_threshold, CTLFLAG_RW,
+    &atp_double_tap_threshold, ATP_DOUBLE_TAP_N_DRAG_THRESHOLD,
+    "maximum time (in micros) to allow association between a double-tap and "
+    "drag gesture");
 
 static u_int atp_mickeys_scale_factor = ATP_SCALE_FACTOR;
 static int atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS);
@@ -671,6 +687,8 @@ struct atp_softc {
 				       * trackpad button is pressed.
 				       */
 
+	struct timeval       sc_reap_time; /* time when zombies were reaped */
+
 //         u_int                  sc_left_margin;
 //         u_int                  sc_right_margin;
 };
@@ -1158,10 +1176,10 @@ atp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
 	strokep->age     = 1;       /* Unit: interrupts */
 
 	sc->sc_n_strokes++;
-	if (sc->sc_n_strokes > 1) {
-		/* Reset double-tap-n-drag if we have more than one strokes. */
+
+	/* Reset double-tap-n-drag if we have more than one strokes. */
+	if (sc->sc_n_strokes > 1)
 		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
-	}
 
 	// DPRINTFN(ATP_LLEVEL_INFO, "[%d,%d], time: %u,%ld\n",
 	//     strokep->x,
@@ -1368,21 +1386,21 @@ atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
 {
 	strokep->type = ATP_STROKE_SLIDE;
 
-	// /* Are we at the beginning of a double-click-n-drag? */
-	// if ((sc->sc_n_strokes == 1) &&
-	//     ((sc->sc_state & ATP_ZOMBIES_EXIST) == 0) &&
-	//     timevalcmp(&stroke->ctime, &sc->sc_reap_time, >)) {
-	// 	struct timeval delta;
-	// 	struct timeval window = {
-	// 		atp_double_tap_threshold / 1000000,
-	// 		atp_double_tap_threshold % 1000000
-	// 	};
+	/* Are we at the beginning of a double-click-n-drag? */
+	if ((sc->sc_n_strokes == 1) &&
+	    ((sc->sc_state & ATP_ZOMBIES_EXIST) == 0) &&
+	    timevalcmp(&strokep->ctime, &sc->sc_reap_time, >)) {
+		struct timeval delta;
+		struct timeval window = {
+			atp_double_tap_threshold / 1000000,
+			atp_double_tap_threshold % 1000000
+		};
 
-	// 	delta = stroke->ctime;
-	// 	timevalsub(&delta, &sc->sc_reap_time);
-	// 	if (timevalcmp(&delta, &window, <=))
-	// 		sc->sc_state |= ATP_DOUBLE_TAP_DRAG;
-	// }
+		delta = strokep->ctime;
+		timevalsub(&delta, &sc->sc_reap_time);
+		if (timevalcmp(&delta, &window, <=))
+			sc->sc_state |= ATP_DOUBLE_TAP_DRAG;
+	}
 }
 
 boolean_t
@@ -1552,6 +1570,8 @@ atp_reap_sibling_zombies(void *arg)
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
 
 	if (n_reaped != 0) {
+		microtime(&sc->sc_reap_time); /* remember this time */
+
 		/* Add a pair of events (button-down and button-up). */
 		switch (n_reaped) {
 		case 1: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
