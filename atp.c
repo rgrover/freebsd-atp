@@ -26,7 +26,6 @@
 
 /*
  * TODO:
- *  - check on all sc_state transitions
  *  - verify well-spring dev params.
  *  - update old atp params
  *  - add comment about not checking mouse subclass in probe()
@@ -661,7 +660,6 @@ struct atp_softc {
 #define ATP_ENABLED          0x01
 #define ATP_ZOMBIES_EXIST    0x02
 #define ATP_DOUBLE_TAP_DRAG  0x04
-#define ATP_VALID            0x08
 
 	struct usb_xfer     *sc_xfer[ATP_N_TRANSFER];
 
@@ -829,7 +827,7 @@ atp_disable(struct atp_softc *sc)
 {
 	atp_softc_unpopulate(sc);
 
-	sc->sc_state &= ~(ATP_ENABLED | ATP_VALID);
+	sc->sc_state &= ~(ATP_ENABLED);
 	DPRINTFN(ATP_LLEVEL_INFO, "disabled atp\n");
 }
 
