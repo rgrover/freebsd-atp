@@ -887,6 +887,487 @@ atp_softc_unpopulate(struct atp_softc *sc)
 	}
 }
 
+void
+atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
+{
+	const struct wsp_dev_params *params = sc->sc_params;
+
+	/* validate sensor data length */
+	if ((data_len < params->finger_data_offset) ||
+	    ((data_len - params->finger_data_offset) %
+	     WSP_SIZEOF_FINGER_SENSOR_DATA) != 0)
+		return;
+
+	unsigned n_source_fingers = (data_len - params->finger_data_offset) /
+	    WSP_SIZEOF_FINGER_SENSOR_DATA;
+	n_source_fingers = min(n_source_fingers, WSP_MAX_FINGERS);
+
+	/* iterate over the source data collecting useful fingers */
+	wsp_finger_t fingers[WSP_MAX_FINGERS];
+	unsigned i, n_fingers = 0;
+	struct wsp_finger_sensor_data *source_fingerp =
+	    (struct wsp_finger_sensor_data *)(sc->sensor_data +
+	     params->finger_data_offset);
+	for (i = 0; i < n_source_fingers; i++, source_fingerp++) {
+		if (le16toh(source_fingerp->touch_major) == 0)
+			continue;
+
+		fingers[n_fingers].matched = false;
+		fingers[n_fingers].x       =
+		    imax(params->x.min, source_fingerp->abs_x) - params->x.min;
+		fingers[n_fingers].y       = -params->y.min +
+		    params->y.max - source_fingerp->abs_y;
+
+		++n_fingers;
+	}
+
+	if ((sc->sc_n_strokes == 0) && (n_fingers == 0))
+		return;
+
+	if (atp_update_wellspring_strokes(sc, fingers, n_fingers))
+		sc->sc_status.flags |= MOUSE_POSCHANGED;
+
+	switch(params->tp_type) {
+	case WSP_TRACKPAD_TYPE2:
+		sc->sc_ibtn = sc->sensor_data[WSP_TYPE2_BUTTON_DATA_OFFSET];
+		break;
+	case WSP_TRACKPAD_TYPE3:
+		sc->sc_ibtn = sc->sensor_data[WSP_TYPE3_BUTTON_DATA_OFFSET];
+		break;
+	default:
+		break;
+	}
+	sc->sc_status.button = sc->sc_ibtn ? MOUSE_BUTTON1DOWN : 0;
+}
+
+/*
+ * Update strokes by matching against current pressure-spans.
+ * Return TRUE if any movement is detected.
+ */
+boolean_t
+atp_update_wellspring_strokes(struct atp_softc *sc,
+    wsp_finger_t *fingers, u_int n_fingers)
+{
+	boolean_t movement = false;
+	unsigned si, fi;
+
+	if (sc->sc_n_strokes > 0) {
+		movement = wsp_match_strokes_against_fingers(sc, fingers,
+		    n_fingers);
+
+		/* handle zombie strokes */
+		atp_stroke_t *strokep = sc->sc_strokes;
+		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+			if (strokep->matched)
+				continue;
+
+			atp_terminate_stroke(sc, si);
+		}
+	}
+
+	/* initialize unmatched fingers as strokes */
+	wsp_finger_t *fingerp;
+	fingerp = fingers;
+	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
+		if (fingerp->matched)
+			continue;
+
+		atp_add_stroke(sc, fingerp);
+	}
+
+	return (movement);
+}
+
+/* Initialize a stroke from an unmatched finger. */
+static __inline void
+atp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
+{
+	atp_stroke_t *strokep;
+
+	if (sc->sc_n_strokes >= ATP_MAX_STROKES)
+		return;
+	strokep = &sc->sc_strokes[sc->sc_n_strokes];
+
+	memset(strokep, 0, sizeof(atp_stroke_t));
+
+	/*
+	 * Strokes begin as potential touches. If a stroke survives
+	 * longer than a threshold, or if it records significant
+	 * cumulative movement, then it is considered a 'slide'.
+	 */
+	strokep->type    = ATP_STROKE_TOUCH;
+	strokep->matched = true;
+	strokep->x       = fingerp->x;
+	strokep->y       = fingerp->y;
+
+	microtime(&strokep->ctime);
+	strokep->age     = 1;       /* Unit: interrupts */
+
+	sc->sc_n_strokes++;
+
+	/* Reset double-tap-n-drag if we have more than one strokes. */
+	if (sc->sc_n_strokes > 1)
+		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
+
+	DPRINTFN(ATP_LLEVEL_INFO, "[%d,%d]\n", strokep->x, strokep->y);
+}
+
+/*
+ * Terminate a stroke. While SLIDE strokes are dropped, TOUCH strokes
+ * are retained as zombies so as to reap all their siblings together;
+ * this helps establish the number of fingers involved in the tap.
+ */
+static void
+atp_terminate_stroke(struct atp_softc *sc, u_int index)
+{
+	atp_stroke_t *strokep = &sc->sc_strokes[index];
+
+	if (strokep->flags & ATSF_ZOMBIE)
+		return;
+
+	if ((strokep->type == ATP_STROKE_TOUCH) &&
+	    (strokep->age > atp_stroke_maturity_threshold)) {
+		strokep->flags |= ATSF_ZOMBIE;
+		sc->sc_state   |= ATP_ZOMBIES_EXIST;
+		callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_WINDOW,
+		    atp_reap_sibling_zombies, sc);
+	} else {
+		/* Drop this stroke. */
+		sc->sc_n_strokes--;
+		if (index < sc->sc_n_strokes)
+			memcpy(strokep, strokep + 1,
+			    (sc->sc_n_strokes - index) * sizeof(atp_stroke_t));
+
+		/*
+		 * Reset the double-click-n-drag at the termination of
+		 * any slide stroke.
+		 */
+		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
+	}
+}
+
+boolean_t
+wsp_match_strokes_against_fingers(struct atp_softc *sc,
+    wsp_finger_t *fingers, u_int n_fingers)
+{
+	boolean_t movement = false;
+	const static unsigned MAX_ALLOWED_FINGER_DISTANCE = 1000000;
+	unsigned si, fi;
+
+	/* reset the matched status for all strokes */
+	atp_stroke_t *strokep = sc->sc_strokes;
+	for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+		strokep->matched = false;
+	}
+
+	wsp_finger_t *fingerp;
+	fingerp = fingers;
+	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
+		unsigned least_distance = MAX_ALLOWED_FINGER_DISTANCE;
+		int best_stroke_index   = -1;
+
+		strokep = sc->sc_strokes;
+		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+			if (strokep->matched)
+				continue;
+
+			int instantaneous_dx = fingerp->x - strokep->x;
+			int instantaneous_dy = fingerp->y - strokep->y;
+
+			/* skip strokes which are far away */
+			unsigned d_squared =
+			    (instantaneous_dx * instantaneous_dx) +
+			    (instantaneous_dy * instantaneous_dy);
+			if (d_squared > MAX_ALLOWED_FINGER_DISTANCE)
+				continue;
+
+			if (d_squared < least_distance) {
+				least_distance    = d_squared;
+				best_stroke_index = si;
+			}
+		}
+
+		if (best_stroke_index != -1) {
+			fingerp->matched = true;
+
+			strokep = &sc->sc_strokes[best_stroke_index];
+			strokep->matched          = true;
+			strokep->instantaneous_dx = fingerp->x - strokep->x;
+			strokep->instantaneous_dy = fingerp->y - strokep->y;
+			strokep->x                = fingerp->x;
+			strokep->y                = fingerp->y;
+
+			atp_advance_stroke_state(sc, strokep, &movement);
+		}
+	}
+
+	return (movement);
+}
+
+void
+atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
+    boolean_t *movementp)
+{
+	/* Revitalize stroke if it had previously been marked as a zombie. */
+	if (strokep->flags & ATSF_ZOMBIE)
+		strokep->flags &= ~ATSF_ZOMBIE;
+
+	strokep->age++;
+	if (strokep->age <= atp_stroke_maturity_threshold) {
+		/* Avoid noise from immature strokes. */
+		strokep->instantaneous_dx = 0;
+		strokep->instantaneous_dy = 0;
+	}
+
+	if (atp_compute_stroke_movement(strokep))
+		*movementp = TRUE;
+
+	if (strokep->type != ATP_STROKE_TOUCH)
+		return;
+
+	/* Convert touch strokes to slides upon detecting movement or age. */
+	if (strokep->cum_movement >= atp_slide_min_movement)
+		atp_convert_to_slide(sc, strokep);
+	else {
+		/* Compute the stroke's age. */
+		struct timeval tdiff;
+		getmicrotime(&tdiff);
+		if (timevalcmp(&tdiff, &strokep->ctime, >)) {
+			timevalsub(&tdiff, &strokep->ctime);
+
+			if ((tdiff.tv_sec > (atp_touch_timeout / 1000000)) ||
+			    ((tdiff.tv_sec == (atp_touch_timeout / 1000000)) &&
+			     (tdiff.tv_usec >= (atp_touch_timeout % 1000000))))
+				atp_convert_to_slide(sc, strokep);
+		}
+	}
+}
+
+static boolean_t
+atp_stroke_has_small_movement(const atp_stroke_t *strokep)
+{
+	return (((u_int)abs(strokep->instantaneous_dx) <=
+		 wsp_small_movement_threshold) &&
+		((u_int)abs(strokep->instantaneous_dy) <=
+		 wsp_small_movement_threshold));
+}
+
+/*
+ * Accumulate instantaneous changes into the stroke's 'pending' bucket; if
+ * the aggregate exceeds the small_movement_threshold, then retain
+ * instantaneous changes for later.
+ */
+static __inline void
+atp_update_pending_mickeys(atp_stroke_t *strokep)
+{
+	/* accumulate instantaneous movement */
+	strokep->pending_dx += strokep->instantaneous_dx;
+	strokep->pending_dy += strokep->instantaneous_dy;
+
+#define UPDATE_INSTANTANEOUS_AND_PENDING(I, P)                          \
+	if (abs((P)) <= wsp_small_movement_threshold)                   \
+		(I) = 0; /* clobber small movement */                   \
+	else {                                                          \
+		if ((I) > 0) {                                          \
+			/*                                              \
+			 * Round up instantaneous movement to the nearest \
+			 * ceiling. This helps preserve small mickey    \
+			 * movements from being lost in following scaling \
+			 * operation.                                   \
+			 */                                             \
+			(I) = (((I) + (wsp_mickeys_scale_factor - 1)) / \
+			       wsp_mickeys_scale_factor) *              \
+			      wsp_mickeys_scale_factor;                 \
+									\
+			/*                                              \
+			 * Deduct the rounded mickeys from pending mickeys. \
+			 * Note: we multiply by 2 to offset the previous \
+			 * accumulation of instantaneous movement into  \
+			 * pending.                                     \
+			 */                                             \
+			(P) -= ((I) << 1);                              \
+									\
+			/* truncate pending to 0 if it becomes negative. */ \
+			(P) = imax((P), 0);                             \
+		} else {                                                \
+			/*                                              \
+			 * Round down instantaneous movement to the nearest \
+			 * ceiling. This helps preserve small mickey    \
+			 * movements from being lost in following scaling \
+			 * operation.                                   \
+			 */                                             \
+			(I) = (((I) - (wsp_mickeys_scale_factor - 1)) / \
+			       wsp_mickeys_scale_factor) *              \
+			      wsp_mickeys_scale_factor;                 \
+									\
+			/*                                              \
+			 * Deduct the rounded mickeys from pending mickeys. \
+			 * Note: we multiply by 2 to offset the previous \
+			 * accumulation of instantaneous movement into  \
+			 * pending.                                     \
+			 */                                             \
+			(P) -= ((I) << 1);                              \
+									\
+			/* truncate pending to 0 if it becomes positive. */ \
+			(P) = imin((P), 0);                             \
+		}                                                       \
+	}
+
+	UPDATE_INSTANTANEOUS_AND_PENDING(strokep->instantaneous_dx,
+	    strokep->pending_dx);
+	UPDATE_INSTANTANEOUS_AND_PENDING(strokep->instantaneous_dy,
+	    strokep->pending_dy);
+}
+
+/*
+ * Compute a smoothened value for the stroke's movement from
+ * instantaneous changes in the X and Y components.
+ */
+static boolean_t
+atp_compute_stroke_movement(atp_stroke_t *strokep)
+{
+	/*
+	 * Short movements are added first to the 'pending' bucket,
+	 * and then acted upon only when their aggregate exceeds a
+	 * threshold. This has the effect of filtering away movement
+	 * noise.
+	 */
+	if (atp_stroke_has_small_movement(strokep))
+		atp_update_pending_mickeys(strokep);
+	else {                /* large movement */
+		/* clear away any pending mickeys if there are large movements*/
+		strokep->pending_dx = 0;
+		strokep->pending_dy = 0;
+	}
+
+	/* scale movement */
+	strokep->movement_dx = (strokep->instantaneous_dx) /
+	    (int)wsp_mickeys_scale_factor;
+	strokep->movement_dy = (strokep->instantaneous_dy) /
+	    (int)wsp_mickeys_scale_factor;
+
+	if ((abs(strokep->instantaneous_dx) >= ATP_FAST_MOVEMENT_TRESHOLD) ||
+	    (abs(strokep->instantaneous_dy) >= ATP_FAST_MOVEMENT_TRESHOLD)) {
+		strokep->movement_dx <<= 1;
+		strokep->movement_dy <<= 1;
+	}
+
+	strokep->cum_movement +=
+	    abs(strokep->movement_dx) + abs(strokep->movement_dy);
+
+	return ((strokep->movement_dx != 0) || (strokep->movement_dy != 0));
+}
+
+static void
+atp_reap_sibling_zombies(void *arg)
+{
+	struct atp_softc *sc = (struct atp_softc *)arg;
+	if (sc->sc_n_strokes == 0)
+		return;
+
+	unsigned n_reaped = 0;
+
+	int i;
+	atp_stroke_t *strokep;
+	for (i = 0; i < sc->sc_n_strokes; i++) {
+		strokep = &sc->sc_strokes[i];
+		if ((strokep->flags & ATSF_ZOMBIE) == 0)
+			continue;
+
+		/* Erase the stroke from the sc. */
+		sc->sc_n_strokes--;
+		if (i < sc->sc_n_strokes)
+			memcpy(strokep, strokep + 1,
+			    (sc->sc_n_strokes - i) * sizeof(atp_stroke_t));
+
+		n_reaped += 1;
+		--i; /* Decr. i to keep it unchanged for the next iteration */
+	}
+
+	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", n_reaped);
+	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
+
+	if (n_reaped != 0) {
+		microtime(&sc->sc_reap_time); /* remember this time */
+
+		/* Add a pair of events (button-down and button-up). */
+		switch (n_reaped) {
+		case 1: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
+			break;
+		case 2: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON2DOWN);
+			break;
+		case 3: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON3DOWN);
+			break;
+		default:
+			break;/* handle taps of only up to 3 fingers */
+		}
+		atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
+	}
+}
+
+/* Switch a given touch stroke to being a slide. */
+void
+atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
+{
+	strokep->type = ATP_STROKE_SLIDE;
+
+	/* Are we at the beginning of a double-click-n-drag? */
+	if ((sc->sc_n_strokes == 1) &&
+	    ((sc->sc_state & ATP_ZOMBIES_EXIST) == 0) &&
+	    timevalcmp(&strokep->ctime, &sc->sc_reap_time, >)) {
+		struct timeval delta;
+		struct timeval window = {
+			atp_double_tap_threshold / 1000000,
+			atp_double_tap_threshold % 1000000
+		};
+
+		delta = strokep->ctime;
+		timevalsub(&delta, &sc->sc_reap_time);
+		if (timevalcmp(&delta, &window, <=))
+			sc->sc_state |= ATP_DOUBLE_TAP_DRAG;
+	}
+}
+
+static void
+atp_add_to_queue(struct atp_softc *sc, int dx, int dy, int dz,
+    uint32_t buttons_in)
+{
+	uint32_t buttons_out;
+	uint8_t  buf[8];
+
+	dx = imin(dx,  254); dx = imax(dx, -256);
+	dy = imin(dy,  254); dy = imax(dy, -256);
+	dz = imin(dz,  126); dz = imax(dz, -128);
+
+	buttons_out = MOUSE_MSC_BUTTONS;
+	if (buttons_in & MOUSE_BUTTON1DOWN)
+		buttons_out &= ~MOUSE_MSC_BUTTON1UP;
+	else if (buttons_in & MOUSE_BUTTON2DOWN)
+		buttons_out &= ~MOUSE_MSC_BUTTON2UP;
+	else if (buttons_in & MOUSE_BUTTON3DOWN)
+		buttons_out &= ~MOUSE_MSC_BUTTON3UP;
+
+	DPRINTFN(ATP_LLEVEL_INFO, "dx=%d, dy=%d, buttons=%x\n",
+	    dx, dy, buttons_out);
+
+	/* Encode the mouse data in standard format; refer to mouse(4) */
+	buf[0] = sc->sc_mode.syncmask[1];
+	buf[0] |= buttons_out;
+	buf[1] = dx >> 1;
+	buf[2] = dy >> 1;
+	buf[3] = dx - (dx >> 1);
+	buf[4] = dy - (dy >> 1);
+	/* Encode extra bytes for level 1 */
+	if (sc->sc_mode.level == 1) {
+		buf[5] = dz >> 1;
+		buf[6] = dz - (dz >> 1);
+		buf[7] = (((~buttons_in) >> 3) & MOUSE_SYS_EXTBUTTONS);
+	}
+
+	usb_fifo_put_data_linear(sc->sc_fifo.fp[USB_FIFO_RX], buf,
+	    sc->sc_mode.packetsize, 1);
+}
+
 static int
 atp_probe(device_t self)
 {
@@ -1114,487 +1595,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			goto tr_setup;
 		}
 	break;
-	}
-}
-
-void
-atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
-{
-	const struct wsp_dev_params *params = sc->sc_params;
-
-	/* validate sensor data length */
-	if ((data_len < params->finger_data_offset) ||
-	    ((data_len - params->finger_data_offset) %
-	     WSP_SIZEOF_FINGER_SENSOR_DATA) != 0)
-		return;
-
-	unsigned n_source_fingers = (data_len - params->finger_data_offset) /
-	    WSP_SIZEOF_FINGER_SENSOR_DATA;
-	n_source_fingers = min(n_source_fingers, WSP_MAX_FINGERS);
-
-	/* iterate over the source data collecting useful fingers */
-	wsp_finger_t fingers[WSP_MAX_FINGERS];
-	unsigned i, n_fingers = 0;
-	struct wsp_finger_sensor_data *source_fingerp =
-	    (struct wsp_finger_sensor_data *)(sc->sensor_data +
-	     params->finger_data_offset);
-	for (i = 0; i < n_source_fingers; i++, source_fingerp++) {
-		if (le16toh(source_fingerp->touch_major) == 0)
-			continue;
-
-		fingers[n_fingers].matched = false;
-		fingers[n_fingers].x       =
-		    imax(params->x.min, source_fingerp->abs_x) - params->x.min;
-		fingers[n_fingers].y       = -params->y.min +
-		    params->y.max - source_fingerp->abs_y;
-
-		++n_fingers;
-	}
-
-	if ((sc->sc_n_strokes == 0) && (n_fingers == 0))
-		return;
-
-	if (atp_update_wellspring_strokes(sc, fingers, n_fingers))
-		sc->sc_status.flags |= MOUSE_POSCHANGED;
-
-	switch(params->tp_type) {
-	case WSP_TRACKPAD_TYPE2:
-		sc->sc_ibtn = sc->sensor_data[WSP_TYPE2_BUTTON_DATA_OFFSET];
-		break;
-	case WSP_TRACKPAD_TYPE3:
-		sc->sc_ibtn = sc->sensor_data[WSP_TYPE3_BUTTON_DATA_OFFSET];
-		break;
-	default:
-		break;
-	}
-	sc->sc_status.button = sc->sc_ibtn ? MOUSE_BUTTON1DOWN : 0;
-}
-
-/* Initialize a stroke from an unmatched finger. */
-static __inline void
-atp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
-{
-	atp_stroke_t *strokep;
-
-	if (sc->sc_n_strokes >= ATP_MAX_STROKES)
-		return;
-	strokep = &sc->sc_strokes[sc->sc_n_strokes];
-
-	memset(strokep, 0, sizeof(atp_stroke_t));
-
-	/*
-	 * Strokes begin as potential touches. If a stroke survives
-	 * longer than a threshold, or if it records significant
-	 * cumulative movement, then it is considered a 'slide'.
-	 */
-	strokep->type    = ATP_STROKE_TOUCH;
-	strokep->matched = true;
-	strokep->x       = fingerp->x;
-	strokep->y       = fingerp->y;
-
-	microtime(&strokep->ctime);
-	strokep->age     = 1;       /* Unit: interrupts */
-
-	sc->sc_n_strokes++;
-
-	/* Reset double-tap-n-drag if we have more than one strokes. */
-	if (sc->sc_n_strokes > 1)
-		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
-
-	DPRINTFN(ATP_LLEVEL_INFO, "[%d,%d]\n", strokep->x, strokep->y);
-}
-
-/*
- * Terminate a stroke. While SLIDE strokes are dropped, TOUCH strokes
- * are retained as zombies so as to reap all their siblings together;
- * this helps establish the number of fingers involved in the tap.
- */
-static void
-atp_terminate_stroke(struct atp_softc *sc, u_int index)
-{
-	atp_stroke_t *strokep = &sc->sc_strokes[index];
-
-	if (strokep->flags & ATSF_ZOMBIE)
-		return;
-
-	if ((strokep->type == ATP_STROKE_TOUCH) &&
-	    (strokep->age > atp_stroke_maturity_threshold)) {
-		strokep->flags |= ATSF_ZOMBIE;
-		sc->sc_state   |= ATP_ZOMBIES_EXIST;
-		callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_WINDOW,
-		    atp_reap_sibling_zombies, sc);
-	} else {
-		/* Drop this stroke. */
-		sc->sc_n_strokes--;
-		if (index < sc->sc_n_strokes)
-			memcpy(strokep, strokep + 1,
-			    (sc->sc_n_strokes - index) * sizeof(atp_stroke_t));
-
-		/*
-		 * Reset the double-click-n-drag at the termination of
-		 * any slide stroke.
-		 */
-		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
-	}
-}
-
-static __inline boolean_t
-atp_stroke_has_small_movement(const atp_stroke_t *strokep)
-{
-	return (((u_int)abs(strokep->instantaneous_dx) <=
-		 wsp_small_movement_threshold) &&
-		((u_int)abs(strokep->instantaneous_dy) <=
-		 wsp_small_movement_threshold));
-}
-
-/*
- * Accumulate instantaneous changes into the stroke's 'pending' bucket; if
- * the aggregate exceeds the small_movement_threshold, then retain
- * instantaneous changes for later.
- */
-static __inline void
-atp_update_pending_mickeys(atp_stroke_t *strokep)
-{
-	/* accumulate instantaneous movement */
-	strokep->pending_dx += strokep->instantaneous_dx;
-	strokep->pending_dy += strokep->instantaneous_dy;
-
-#define UPDATE_INSTANTANEOUS_AND_PENDING(I, P)                          \
-	if (abs((P)) <= wsp_small_movement_threshold)                   \
-		(I) = 0; /* clobber small movement */                   \
-	else {                                                          \
-		if ((I) > 0) {                                          \
-			/*                                              \
-			 * Round up instantaneous movement to the nearest \
-			 * ceiling. This helps preserve small mickey    \
-			 * movements from being lost in following scaling \
-			 * operation.                                   \
-			 */                                             \
-			(I) = (((I) + (wsp_mickeys_scale_factor - 1)) / \
-			       wsp_mickeys_scale_factor) *              \
-			      wsp_mickeys_scale_factor;                 \
-									\
-			/*                                              \
-			 * Deduct the rounded mickeys from pending mickeys. \
-			 * Note: we multiply by 2 to offset the previous \
-			 * accumulation of instantaneous movement into  \
-			 * pending.                                     \
-			 */                                             \
-			(P) -= ((I) << 1);                              \
-									\
-			/* truncate pending to 0 if it becomes negative. */ \
-			(P) = imax((P), 0);                             \
-		} else {                                                \
-			/*                                              \
-			 * Round down instantaneous movement to the nearest \
-			 * ceiling. This helps preserve small mickey    \
-			 * movements from being lost in following scaling \
-			 * operation.                                   \
-			 */                                             \
-			(I) = (((I) - (wsp_mickeys_scale_factor - 1)) / \
-			       wsp_mickeys_scale_factor) *              \
-			      wsp_mickeys_scale_factor;                 \
-									\
-			/*                                              \
-			 * Deduct the rounded mickeys from pending mickeys. \
-			 * Note: we multiply by 2 to offset the previous \
-			 * accumulation of instantaneous movement into  \
-			 * pending.                                     \
-			 */                                             \
-			(P) -= ((I) << 1);                              \
-									\
-			/* truncate pending to 0 if it becomes positive. */ \
-			(P) = imin((P), 0);                             \
-		}                                                       \
-	}
-
-	UPDATE_INSTANTANEOUS_AND_PENDING(strokep->instantaneous_dx,
-	    strokep->pending_dx);
-	UPDATE_INSTANTANEOUS_AND_PENDING(strokep->instantaneous_dy,
-	    strokep->pending_dy);
-}
-
-/*
- * Compute a smoothened value for the stroke's movement from
- * instantaneous changes in the X and Y components.
- */
-static boolean_t
-atp_compute_stroke_movement(atp_stroke_t *strokep)
-{
-	/*
-	 * Short movements are added first to the 'pending' bucket,
-	 * and then acted upon only when their aggregate exceeds a
-	 * threshold. This has the effect of filtering away movement
-	 * noise.
-	 */
-	if (atp_stroke_has_small_movement(strokep))
-		atp_update_pending_mickeys(strokep);
-	else {                /* large movement */
-		/* clear away any pending mickeys if there are large movements*/
-		strokep->pending_dx = 0;
-		strokep->pending_dy = 0;
-	}
-
-	/* scale movement */
-	strokep->movement_dx = (strokep->instantaneous_dx) /
-	    (int)wsp_mickeys_scale_factor;
-	strokep->movement_dy = (strokep->instantaneous_dy) /
-	    (int)wsp_mickeys_scale_factor;
-
-	if ((abs(strokep->instantaneous_dx) >= ATP_FAST_MOVEMENT_TRESHOLD) ||
-	    (abs(strokep->instantaneous_dy) >= ATP_FAST_MOVEMENT_TRESHOLD)) {
-		strokep->movement_dx <<= 1;
-		strokep->movement_dy <<= 1;
-	}
-
-	strokep->cum_movement +=
-	    abs(strokep->movement_dx) + abs(strokep->movement_dy);
-
-	return ((strokep->movement_dx != 0) || (strokep->movement_dy != 0));
-}
-
-void
-atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
-    boolean_t *movementp)
-{
-	/* Revitalize stroke if it had previously been marked as a zombie. */
-	if (strokep->flags & ATSF_ZOMBIE)
-		strokep->flags &= ~ATSF_ZOMBIE;
-
-	strokep->age++;
-	if (strokep->age <= atp_stroke_maturity_threshold) {
-		/* Avoid noise from immature strokes. */
-		strokep->instantaneous_dx = 0;
-		strokep->instantaneous_dy = 0;
-	}
-
-	if (atp_compute_stroke_movement(strokep))
-		*movementp = TRUE;
-
-	if (strokep->type != ATP_STROKE_TOUCH)
-		return;
-
-	/* Convert touch strokes to slides upon detecting movement or age. */
-	if (strokep->cum_movement >= atp_slide_min_movement)
-		atp_convert_to_slide(sc, strokep);
-	else {
-		/* Compute the stroke's age. */
-		struct timeval tdiff;
-		getmicrotime(&tdiff);
-		if (timevalcmp(&tdiff, &strokep->ctime, >)) {
-			timevalsub(&tdiff, &strokep->ctime);
-
-			if ((tdiff.tv_sec > (atp_touch_timeout / 1000000)) ||
-			    ((tdiff.tv_sec == (atp_touch_timeout / 1000000)) &&
-			     (tdiff.tv_usec >= (atp_touch_timeout % 1000000))))
-				atp_convert_to_slide(sc, strokep);
-		}
-	}
-}
-
-/* Switch a given touch stroke to being a slide. */
-void
-atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
-{
-	strokep->type = ATP_STROKE_SLIDE;
-
-	/* Are we at the beginning of a double-click-n-drag? */
-	if ((sc->sc_n_strokes == 1) &&
-	    ((sc->sc_state & ATP_ZOMBIES_EXIST) == 0) &&
-	    timevalcmp(&strokep->ctime, &sc->sc_reap_time, >)) {
-		struct timeval delta;
-		struct timeval window = {
-			atp_double_tap_threshold / 1000000,
-			atp_double_tap_threshold % 1000000
-		};
-
-		delta = strokep->ctime;
-		timevalsub(&delta, &sc->sc_reap_time);
-		if (timevalcmp(&delta, &window, <=))
-			sc->sc_state |= ATP_DOUBLE_TAP_DRAG;
-	}
-}
-
-boolean_t
-wsp_match_strokes_against_fingers(struct atp_softc *sc,
-    wsp_finger_t *fingers, u_int n_fingers)
-{
-	boolean_t movement = false;
-	const static unsigned MAX_ALLOWED_FINGER_DISTANCE = 1000000;
-	unsigned si, fi;
-
-	/* reset the matched status for all strokes */
-	atp_stroke_t *strokep = sc->sc_strokes;
-	for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
-		strokep->matched = false;
-	}
-
-	wsp_finger_t *fingerp;
-	fingerp = fingers;
-	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
-		unsigned least_distance = MAX_ALLOWED_FINGER_DISTANCE;
-		int best_stroke_index   = -1;
-
-		strokep = sc->sc_strokes;
-		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
-			if (strokep->matched)
-				continue;
-
-			int instantaneous_dx = fingerp->x - strokep->x;
-			int instantaneous_dy = fingerp->y - strokep->y;
-
-			/* skip strokes which are far away */
-			unsigned d_squared =
-			    (instantaneous_dx * instantaneous_dx) +
-			    (instantaneous_dy * instantaneous_dy);
-			if (d_squared > MAX_ALLOWED_FINGER_DISTANCE)
-				continue;
-
-			if (d_squared < least_distance) {
-				least_distance    = d_squared;
-				best_stroke_index = si;
-			}
-		}
-
-		if (best_stroke_index != -1) {
-			fingerp->matched = true;
-
-			strokep = &sc->sc_strokes[best_stroke_index];
-			strokep->matched          = true;
-			strokep->instantaneous_dx = fingerp->x - strokep->x;
-			strokep->instantaneous_dy = fingerp->y - strokep->y;
-			strokep->x                = fingerp->x;
-			strokep->y                = fingerp->y;
-
-			atp_advance_stroke_state(sc, strokep, &movement);
-		}
-	}
-
-	return (movement);
-}
-
-/*
- * Update strokes by matching against current pressure-spans.
- * Return TRUE if any movement is detected.
- */
-boolean_t
-atp_update_wellspring_strokes(struct atp_softc *sc,
-    wsp_finger_t *fingers, u_int n_fingers)
-{
-	boolean_t movement = false;
-	unsigned si, fi;
-
-	if (sc->sc_n_strokes > 0) {
-		movement = wsp_match_strokes_against_fingers(sc, fingers,
-		    n_fingers);
-
-		/* handle zombie strokes */
-		atp_stroke_t *strokep = sc->sc_strokes;
-		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
-			if (strokep->matched)
-				continue;
-
-			atp_terminate_stroke(sc, si);
-		}
-	}
-
-	/* initialize unmatched fingers as strokes */
-	wsp_finger_t *fingerp;
-	fingerp = fingers;
-	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
-		if (fingerp->matched)
-			continue;
-
-		atp_add_stroke(sc, fingerp);
-	}
-
-	return (movement);
-}
-
-static void
-atp_add_to_queue(struct atp_softc *sc, int dx, int dy, int dz,
-    uint32_t buttons_in)
-{
-	uint32_t buttons_out;
-	uint8_t  buf[8];
-
-	dx = imin(dx,  254); dx = imax(dx, -256);
-	dy = imin(dy,  254); dy = imax(dy, -256);
-	dz = imin(dz,  126); dz = imax(dz, -128);
-
-	buttons_out = MOUSE_MSC_BUTTONS;
-	if (buttons_in & MOUSE_BUTTON1DOWN)
-		buttons_out &= ~MOUSE_MSC_BUTTON1UP;
-	else if (buttons_in & MOUSE_BUTTON2DOWN)
-		buttons_out &= ~MOUSE_MSC_BUTTON2UP;
-	else if (buttons_in & MOUSE_BUTTON3DOWN)
-		buttons_out &= ~MOUSE_MSC_BUTTON3UP;
-
-	DPRINTFN(ATP_LLEVEL_INFO, "dx=%d, dy=%d, buttons=%x\n",
-	    dx, dy, buttons_out);
-
-	/* Encode the mouse data in standard format; refer to mouse(4) */
-	buf[0] = sc->sc_mode.syncmask[1];
-	buf[0] |= buttons_out;
-	buf[1] = dx >> 1;
-	buf[2] = dy >> 1;
-	buf[3] = dx - (dx >> 1);
-	buf[4] = dy - (dy >> 1);
-	/* Encode extra bytes for level 1 */
-	if (sc->sc_mode.level == 1) {
-		buf[5] = dz >> 1;
-		buf[6] = dz - (dz >> 1);
-		buf[7] = (((~buttons_in) >> 3) & MOUSE_SYS_EXTBUTTONS);
-	}
-
-	usb_fifo_put_data_linear(sc->sc_fifo.fp[USB_FIFO_RX], buf,
-	    sc->sc_mode.packetsize, 1);
-}
-
-static void
-atp_reap_sibling_zombies(void *arg)
-{
-	struct atp_softc *sc = (struct atp_softc *)arg;
-	if (sc->sc_n_strokes == 0)
-		return;
-
-	unsigned n_reaped = 0;
-
-	int i;
-	atp_stroke_t *strokep;
-	for (i = 0; i < sc->sc_n_strokes; i++) {
-		strokep = &sc->sc_strokes[i];
-		if ((strokep->flags & ATSF_ZOMBIE) == 0)
-			continue;
-
-		/* Erase the stroke from the sc. */
-		sc->sc_n_strokes--;
-		if (i < sc->sc_n_strokes)
-			memcpy(strokep, strokep + 1,
-			    (sc->sc_n_strokes - i) * sizeof(atp_stroke_t));
-
-		n_reaped += 1;
-		--i; /* Decr. i to keep it unchanged for the next iteration */
-	}
-
-	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", n_reaped);
-	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
-
-	if (n_reaped != 0) {
-		microtime(&sc->sc_reap_time); /* remember this time */
-
-		/* Add a pair of events (button-down and button-up). */
-		switch (n_reaped) {
-		case 1: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
-			break;
-		case 2: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON2DOWN);
-			break;
-		case 3: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON3DOWN);
-			break;
-		default:
-			break;/* handle taps of only up to 3 fingers */
-		}
-		atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
 	}
 }
 
