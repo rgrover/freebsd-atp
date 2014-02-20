@@ -727,7 +727,7 @@ static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
 
 /* sensor interpretation */
-static void atp_interpret_wellspring_data(struct atp_softc *, unsigned);
+static void      atp_interpret_wellspring_data(struct atp_softc *, unsigned);
 static boolean_t atp_update_wellspring_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
 
