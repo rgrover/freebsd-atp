@@ -102,7 +102,7 @@ __FBSDID("$FreeBSD$");
  * The wait duration (in ticks) after losing a touch contact
  * before zombied strokes are reaped and turned into button events.
  */
-#define ATP_ZOMBIE_STROKE_REAP_INTERVAL   50
+#define ATP_ZOMBIE_STROKE_REAP_INTERVAL 50
 #if ATP_ZOMBIE_STROKE_REAP_INTERVAL > 100
 #error "ATP_ZOMBIE_STROKE_REAP_INTERVAL too large"
 #endif
