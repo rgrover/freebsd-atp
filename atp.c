@@ -170,11 +170,11 @@ SYSCTL_UINT(_hw_usb_atp, OID_AUTO, stroke_maturity_threshold, CTLFLAG_RW,
  * This driver supports two distinct families of products: the latest wellspring
  * trackpads and the older fountain/gyser products.
  */
-enum atp_trackpad_family {
+typedef enum atp_trackpad_family {
 	TRACKPAD_FAMILY_GEYSER,
 	TRACKPAD_FAMILY_WELLSPRING,
 	TRACKPAD_FAMILY_MAX /* keep this at the tail end of the enumeration */
-};
+} trackpad_family_t;
 
 enum wellspring_product {
 	WELLSPRING1,
@@ -659,7 +659,8 @@ struct atp_softc {
 	struct mtx           sc_mutex; /* for synchronization */
 	struct usb_fifo_sc   sc_fifo;
 
-	const struct wsp_dev_params *sc_params; /* device configuration */
+	trackpad_family_t    sc_family;
+	const void          *sc_params; /* device configuration */
 
 	mousehw_t            sc_hw;
 	mousemode_t          sc_mode;
@@ -938,12 +939,15 @@ atp_attach(device_t dev)
 	mtx_init(&sc->sc_mutex, "atpmtx", NULL, MTX_DEF | MTX_RECURSE);
 
 	unsigned long di = USB_GET_DRIVER_INFO(uaa);
-	if (DECODE_FAMILY_FROM_DRIVER_INFO(di) == TRACKPAD_FAMILY_WELLSPRING) {
+
+	sc->sc_family = DECODE_FAMILY_FROM_DRIVER_INFO(di);
+	if (sc->sc_family == TRACKPAD_FAMILY_WELLSPRING) {
 		sc->sc_params =
 		    &wsp_dev_params[DECODE_PRODUCT_FROM_DRIVER_INFO(di)];
 		sc->sensor_data_interpreter = atp_interpret_wellspring_data;
+		atp_xfer_config[ATP_INTR_DT].bufsize =
+		    ((const struct wsp_dev_params *)sc->sc_params)->data_len;
 	}
-	atp_xfer_config[ATP_INTR_DT].bufsize = sc->sc_params->data_len;
 
 	err = usbd_transfer_setup(uaa->device,
 	    &uaa->info.bIfaceIndex, sc->sc_xfer, atp_xfer_config,
@@ -1014,24 +1018,31 @@ atp_detach(device_t dev)
 void
 atp_intr(struct usb_xfer *xfer, usb_error_t error)
 {
-	struct atp_softc            *sc     = usbd_xfer_softc(xfer);
-	const struct wsp_dev_params *params = sc->sc_params;
-	int                          len;
-	struct usb_page_cache       *pc;
+	struct atp_softc      *sc = usbd_xfer_softc(xfer);
+	struct usb_page_cache *pc;
 
+	unsigned expected_data_len;
+	if (sc->sc_family == TRACKPAD_FAMILY_WELLSPRING) {
+		const struct wsp_dev_params *params =
+		    (const struct wsp_dev_params *)sc->sc_params;
+		expected_data_len = params->data_len;
+	} else
+		return; /* TODO: replaced with device-family specific length extraction */
+
+	int len;
 	usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-		if (len > (int)params->data_len) {
+		if (len > (int)expected_data_len) {
 			DPRINTFN(WSP_LLEVEL_ERROR,
 			    "truncating large packet from %u to %u bytes\n",
-			    len, params->data_len);
-			len = params->data_len;
-		} else if (len < params->data_len) {
+			    len, expected_data_len);
+			len = expected_data_len;
+		} else if (len < expected_data_len) {
 			/* zero-out any previous sensor-data state */
 			memset(sc->sensor_data + len, 0,
-			    params->data_len - len);
+			    expected_data_len - len);
 		}
 
 		pc = usbd_xfer_get_frame(xfer, 0);
@@ -1089,8 +1100,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	tr_setup:
 		/* check if we can put more data into the FIFO */
 		if (usb_fifo_put_bytes_max(sc->sc_fifo.fp[USB_FIFO_RX]) != 0) {
-			usbd_xfer_set_frame_len(xfer, 0,
-			    sc->sc_params->data_len);
+			usbd_xfer_set_frame_len(xfer, 0, expected_data_len);
 			usbd_transfer_submit(xfer);
 		}
 		break;
