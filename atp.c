@@ -26,7 +26,6 @@
 
 /*
  * TODO:
- *  - replace constants in top-level settings with MACROS
  *  - ensure sanity of variable settings.
  *  - verify well-spring dev params.
  *  - update old atp params
@@ -75,8 +74,13 @@ __FBSDID("$FreeBSD$");
  */
 
 /* The divisor used to translate sensor reported positions to mickeys. */
-#ifndef ATP_SCALE_FACTOR
-#define ATP_SCALE_FACTOR 8
+#ifndef WSP_SCALE_FACTOR
+#define WSP_SCALE_FACTOR 8
+#endif
+
+/* Threshold for small movement noise (in mickeys) */
+#ifndef WSP_SMALL_MOVEMENT_THRESHOLD
+#define WSP_SMALL_MOVEMENT_THRESHOLD 30
 #endif
 
 /* Threshold of instantaneous deltas beyond which movement is considered fast.*/
@@ -137,15 +141,15 @@ SYSCTL_UINT(_hw_usb_atp, OID_AUTO, double_tap_threshold, CTLFLAG_RW,
     "maximum time (in micros) to allow association between a double-tap and "
     "drag gesture");
 
-static u_int atp_mickeys_scale_factor = ATP_SCALE_FACTOR;
-static int atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS);
+static u_int wsp_mickeys_scale_factor = WSP_SCALE_FACTOR;
+static int wsp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS);
 SYSCTL_PROC(_hw_usb_atp, OID_AUTO, scale_factor, CTLTYPE_UINT | CTLFLAG_RW,
-    &atp_mickeys_scale_factor, sizeof(atp_mickeys_scale_factor),
-    atp_sysctl_scale_factor_handler, "IU", "movement scale factor");
+    &wsp_mickeys_scale_factor, sizeof(wsp_mickeys_scale_factor),
+    wsp_sysctl_scale_factor_handler, "IU", "movement scale factor");
 
-static u_int atp_small_movement_threshold = 30;
+static u_int wsp_small_movement_threshold = WSP_SMALL_MOVEMENT_THRESHOLD;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
-    &atp_small_movement_threshold, 30,
+    &wsp_small_movement_threshold, WSP_SMALL_MOVEMENT_THRESHOLD,
     "the small movement black-hole for filtering noise");
 
 /*
@@ -153,9 +157,9 @@ SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
  * from the aggregate of their components are considered as
  * slides. Unit: mickeys.
  */
-static u_int atp_slide_min_movement = 64;
+static u_int atp_slide_min_movement = 2 * WSP_SMALL_MOVEMENT_THRESHOLD;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, slide_min_movement, CTLFLAG_RW,
-    &atp_slide_min_movement, 64,
+    &atp_slide_min_movement, 2 * WSP_SMALL_MOVEMENT_THRESHOLD,
     "strokes with at least this amt. of movement are considered slides");
 
 /*
@@ -1223,9 +1227,9 @@ static __inline boolean_t
 atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 {
 	return (((u_int)abs(strokep->instantaneous_dx) <=
-		 atp_small_movement_threshold) &&
+		 wsp_small_movement_threshold) &&
 		((u_int)abs(strokep->instantaneous_dy) <=
-		 atp_small_movement_threshold));
+		 wsp_small_movement_threshold));
 }
 
 /*
@@ -1241,7 +1245,7 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 	strokep->pending_dy += strokep->instantaneous_dy;
 
 #define UPDATE_INSTANTANEOUS_AND_PENDING(I, P)                          \
-	if (abs((P)) <= atp_small_movement_threshold)                   \
+	if (abs((P)) <= wsp_small_movement_threshold)                   \
 		(I) = 0; /* clobber small movement */                   \
 	else {                                                          \
 		if ((I) > 0) {                                          \
@@ -1251,9 +1255,9 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 			 * movements from being lost in following scaling \
 			 * operation.                                   \
 			 */                                             \
-			(I) = (((I) + (atp_mickeys_scale_factor - 1)) / \
-			       atp_mickeys_scale_factor) *              \
-			      atp_mickeys_scale_factor;                 \
+			(I) = (((I) + (wsp_mickeys_scale_factor - 1)) / \
+			       wsp_mickeys_scale_factor) *              \
+			      wsp_mickeys_scale_factor;                 \
 									\
 			/*                                              \
 			 * Deduct the rounded mickeys from pending mickeys. \
@@ -1272,9 +1276,9 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 			 * movements from being lost in following scaling \
 			 * operation.                                   \
 			 */                                             \
-			(I) = (((I) - (atp_mickeys_scale_factor - 1)) / \
-			       atp_mickeys_scale_factor) *              \
-			      atp_mickeys_scale_factor;                 \
+			(I) = (((I) - (wsp_mickeys_scale_factor - 1)) / \
+			       wsp_mickeys_scale_factor) *              \
+			      wsp_mickeys_scale_factor;                 \
 									\
 			/*                                              \
 			 * Deduct the rounded mickeys from pending mickeys. \
@@ -1318,9 +1322,9 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 
 	/* scale movement */
 	strokep->movement_dx = (strokep->instantaneous_dx) /
-	    (int)atp_mickeys_scale_factor;
+	    (int)wsp_mickeys_scale_factor;
 	strokep->movement_dy = (strokep->instantaneous_dy) /
-	    (int)atp_mickeys_scale_factor;
+	    (int)wsp_mickeys_scale_factor;
 
 	if ((abs(strokep->instantaneous_dx) >= ATP_FAST_MOVEMENT_TRESHOLD) ||
 	    (abs(strokep->instantaneous_dy) >= ATP_FAST_MOVEMENT_TRESHOLD)) {
@@ -1751,20 +1755,20 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 }
 
 static int
-atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS)
+wsp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS)
 {
 	int error;
 	u_int tmp;
 
-	tmp = atp_mickeys_scale_factor;
+	tmp = wsp_mickeys_scale_factor;
 	error = sysctl_handle_int(oidp, &tmp, 0, req);
 	if (error != 0 || req->newptr == NULL)
 		return (error);
 
-	if (tmp == atp_mickeys_scale_factor)
+	if (tmp == wsp_mickeys_scale_factor)
 		return (0);     /* no change */
 
-	atp_mickeys_scale_factor = tmp;
+	wsp_mickeys_scale_factor = tmp;
 	DPRINTFN(ATP_LLEVEL_INFO, "%s: resetting mickeys_scale_factor to %u\n",
 	    ATP_DRIVER_NAME, tmp);
 
