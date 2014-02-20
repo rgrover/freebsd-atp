@@ -726,6 +726,7 @@ static void atp_disable(struct atp_softc *sc);
 static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
 
+/* sensor interpretation */
 static void atp_interpret_wellspring_data(struct atp_softc *, unsigned);
 static boolean_t atp_update_wellspring_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
@@ -753,8 +754,6 @@ sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
 	[TRACKPAD_FAMILY_WELLSPRING] = atp_interpret_wellspring_data,
 };
 
-#define MODE_LENGTH 8 /* num bytes holding the device mode */
-
 /* Device methods. */
 static device_probe_t  atp_probe;
 static device_attach_t atp_attach;
@@ -779,6 +778,8 @@ static int
 atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 {
 	usb_error_t err;
+
+#define MODE_LENGTH 8 /* num bytes holding the device mode */
 	uint8_t     mode_bytes[MODE_LENGTH];
 
 	if ((newMode != RAW_SENSOR_MODE) && (newMode != HID_MODE))
