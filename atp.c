@@ -863,6 +863,8 @@ static void      fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
 static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
 static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
+// static boolean_t fg_update_strokes(struct atp_softc *,
+//     const fg_pspan *, u_int, const fg_pspan *, u_int);
 
 /* movement detection */
 static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
