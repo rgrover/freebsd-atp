@@ -847,7 +847,7 @@ static void atp_softc_unpopulate(struct atp_softc *);
 static void      fg_interpret_sensor_data(struct atp_softc *, unsigned);
 static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
 			 int *, enum fountain_geyser_trackpad_type);
-// static void      fg_get_pressures(int *, const int *, const int *, int);
+static void      fg_get_pressures(int *, const int *, const int *, int);
 // static void      fg_detect_pspans(int *, u_int, u_int, atp_pspan *, u_int *);
 static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
 static boolean_t wsp_update_strokes(struct atp_softc *,
@@ -1018,6 +1018,8 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	static int cur_y[FG_MAX_YSENSORS];
 	static int base_x[FG_MAX_XSENSORS]; /* base sensor readings */
 	static int base_y[FG_MAX_YSENSORS];
+	static int pressure_x[FG_MAX_XSENSORS]; /* computed pressures */
+	// static int pressure_y[FG_MAX_YSENSORS];
 
 	const struct fg_dev_params *params =
 	    (const struct fg_dev_params *)sc->sc_params;
@@ -1047,10 +1049,9 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 		}
 	}
 
-#if 0
 	/* Get pressure readings and detect p-spans for both axes. */
-	atp_get_pressures(sc->pressure_x, sc->cur_x, sc->base_x,
-	    params->n_xsensors);
+	fg_get_pressures(pressure_x, cur_x, base_x, params->n_xsensors);
+#if 0
 	atp_detect_pspans(sc->pressure_x, params->n_xsensors,
 	    ATP_MAX_PSPANS_PER_AXIS,
 	    pspans_x, &n_xpspans);
@@ -1144,9 +1145,8 @@ fg_extract_sensor_data(const int8_t *sensor_data, u_int num, atp_axis axis,
 	}
 }
 
-#if 0
 static __inline void
-atp_get_pressures(int *p, const int *cur, const int *base, int n)
+fg_get_pressures(int *p, const int *cur, const int *base, int n)
 {
 	int i;
 
@@ -1159,18 +1159,20 @@ atp_get_pressures(int *p, const int *cur, const int *base, int n)
 		if (p[i] < 0)
 			p[i] = 0;
 
+#define FG_SENSOR_NOISE_THRESHOLD 2
 		/*
 		 * Shave off pressures below the noise-pressure
 		 * threshold; this will reduce the contribution from
 		 * lower pressure readings.
 		 */
-		if ((u_int)p[i] <= atp_sensor_noise_threshold)
+		if ((u_int)p[i] <= FG_SENSOR_NOISE_THRESHOLD)
 			p[i] = 0; /* filter away noise */
 		else
-			p[i] -= atp_sensor_noise_threshold;
+			p[i] -= FG_SENSOR_NOISE_THRESHOLD;
 	}
 }
 
+#if 0
 static void
 atp_detect_pspans(int *p, u_int num_sensors,
     u_int       max_spans, /* max # of pspans permitted */
