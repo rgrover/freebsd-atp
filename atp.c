@@ -778,6 +778,7 @@ struct atp_softc {
 #define ATP_ENABLED          0x01
 #define ATP_ZOMBIES_EXIST    0x02
 #define ATP_DOUBLE_TAP_DRAG  0x04
+#define ATP_VALID            0x08
 
 	struct usb_xfer     *sc_xfer[ATP_N_TRANSFER];
 
@@ -799,6 +800,16 @@ struct atp_softc {
 				       */
 
 	struct timeval       sc_reap_time; /* time when zombies were reaped */
+};
+
+/*
+ * The last byte of the fountain-geyser sensor data contains status bits; the
+ * following values define the meanings of these bits.
+ * (only Geyser 3/4)
+ */
+enum geyser34_status_bits {
+	FG_STATUS_BUTTON      = (uint8_t)0x01, /* The button was pressed */
+	FG_STATUS_BASE_UPDATE = (uint8_t)0x04, /* Data from an untouched pad.*/
 };
 
 typedef enum interface_mode {
@@ -947,7 +958,7 @@ atp_disable(struct atp_softc *sc)
 {
 	atp_softc_unpopulate(sc);
 
-	sc->sc_state &= ~(ATP_ENABLED);
+	sc->sc_state &= ~(ATP_ENABLED | ATP_VALID);
 	DPRINTFN(ATP_LLEVEL_INFO, "disabled atp\n");
 }
 
@@ -1005,6 +1016,8 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 #define FG_MAX_YSENSORS    16
 	static int cur_x[FG_MAX_XSENSORS]; /* current sensor readings */
 	static int cur_y[FG_MAX_YSENSORS];
+	static int base_x[FG_MAX_XSENSORS];
+	static int base_y[FG_MAX_YSENSORS];
 
 	const struct fg_dev_params *params =
 	    (const struct fg_dev_params *)sc->sc_params;
@@ -1013,7 +1026,6 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	    params->prot);
 	fg_extract_sensor_data(sc->sensor_data, params->n_ysensors, Y, cur_y,
 	    params->prot);
-#if 0
 
 	/*
 	 * If this is the initial update (from an untouched
@@ -1021,18 +1033,21 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	 * data; deltas with respect to these base values can
 	 * be used as pressure readings subsequently.
 	 */
-	status_bits = sc->sensor_data[params->data_len - 1];
-	if ((params->prot == ATP_PROT_GEYSER3 &&
-	    (status_bits & ATP_STATUS_BASE_UPDATE)) ||
-	    !(sc->sc_state & ATP_VALID)) {
-		memcpy(sc->base_x, sc->cur_x,
-		    params->n_xsensors * sizeof(*(sc->base_x)));
-		memcpy(sc->base_y, sc->cur_y,
-		    params->n_ysensors * sizeof(*(sc->base_y)));
-		sc->sc_state |= ATP_VALID;
-		goto tr_setup;
+	if (((params->prot == FG_TRACKPAD_TYPE_GEYSER3) ||
+	     (params->prot == FG_TRACKPAD_TYPE_GEYSER4))  &&
+	    ((sc->sc_state & ATP_VALID) == 0)) {
+		uint8_t status_bits = sc->sensor_data[params->data_len - 1];
+		if (status_bits & FG_STATUS_BASE_UPDATE) {
+			memcpy(base_x, cur_x,
+			    params->n_xsensors * sizeof(*base_x));
+			memcpy(base_y, cur_y,
+			    params->n_ysensors * sizeof(*base_y));
+			sc->sc_state |= ATP_VALID;
+			return;
+		}
 	}
 
+#if 0
 	/* Get pressure readings and detect p-spans for both axes. */
 	atp_get_pressures(sc->pressure_x, sc->cur_x, sc->base_x,
 	    params->n_xsensors);
