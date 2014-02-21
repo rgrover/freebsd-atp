@@ -1481,11 +1481,14 @@ atp_probe(device_t self)
 	 * for wellspring trackpads, so we've removed it from the common path.
 	 */
 
-	if ((usbd_lookup_id_by_uaa(wsp_devs, sizeof(wsp_devs), uaa)) == 0) {
+	if ((usbd_lookup_id_by_uaa(fg_devs, sizeof(fg_devs), uaa)) == 0)
+		return ((uaa->info.bInterfaceProtocol == UIPROTO_MOUSE) ?
+		 	0 : ENXIO);
+
 #define WELLSPRING_INTERFACE_INDEX 1
+	if ((usbd_lookup_id_by_uaa(wsp_devs, sizeof(wsp_devs), uaa)) == 0)
 		if (uaa->info.bIfaceIndex == WELLSPRING_INTERFACE_INDEX)
 			return (0);
-	}
 
 	return (ENXIO);
 }
