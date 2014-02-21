@@ -172,14 +172,24 @@ SYSCTL_UINT(_hw_usb_atp, OID_AUTO, stroke_maturity_threshold, CTLFLAG_RW,
 
 
 /*
- * This driver supports two distinct families of products: the latest wellspring
- * trackpads and the older fountain/gyser products.
+ * This driver supports two distinct families of products: the older
+ * fountain/geyser and the latest wellspring trackpads.
  */
 typedef enum atp_trackpad_family {
-	TRACKPAD_FAMILY_GEYSER,
+	TRACKPAD_FAMILY_FOUNTAIN_GEYSER,
 	TRACKPAD_FAMILY_WELLSPRING,
 	TRACKPAD_FAMILY_MAX /* keep this at the tail end of the enumeration */
 } trackpad_family_t;
+
+enum fountain_geyser_product {
+	FOUNTAIN,
+	GEYSER1,
+	GEYSER1_17inch,
+	GEYSER2,
+	GEYSER3,
+	GEYSER4,
+	FOUNTAIN_GEYSER_PRODUCT_MAX /* keep this at the end */
+};
 
 enum wellspring_product {
 	WELLSPRING1,
@@ -198,6 +208,12 @@ enum wellspring_product {
 };
 
 /* trackpad header types */
+enum fountain_geyser_trackpad_type {
+	FG_TRACKPAD_TYPE_GEYSER1,
+	FG_TRACKPAD_TYPE_GEYSER2,
+	FG_TRACKPAD_TYPE_GEYSER3,
+	FG_TRACKPAD_TYPE_GEYSER4,
+};
 enum wellspring_trackpad_type {
 	WSP_TRACKPAD_TYPE1,      /* plain trackpad */
 	WSP_TRACKPAD_TYPE2,      /* button integrated in trackpad */
@@ -218,6 +234,8 @@ enum wellspring_trackpad_type {
 #define DECODE_PRODUCT_FROM_DRIVER_INFO(INFO) \
     ((INFO) & ((1 << N_PROD_BITS) - 1))
 
+#define FG_DRIVER_INFO(PRODUCT)               \
+    ENCODE_DRIVER_INFO(TRACKPAD_FAMILY_FOUNTAIN_GEYSER, PRODUCT)
 #define WELLSPRING_DRIVER_INFO(PRODUCT)       \
     ENCODE_DRIVER_INFO(TRACKPAD_FAMILY_WELLSPRING, PRODUCT)
 
@@ -275,6 +293,12 @@ struct wsp_param {
 };
 
 /* device-specific configuration */
+struct fg_dev_params {
+	u_int            data_len;   /* for sensor data */
+	u_int            n_xsensors;
+	u_int            n_ysensors;
+	enum fountain_geyser_trackpad_type prot;
+};
 struct wsp_dev_params {
 	uint8_t  caps;               /* device capability bitmask */
 	uint8_t  tp_type;            /* type of trackpad interface */
@@ -286,6 +310,77 @@ struct wsp_dev_params {
 	struct wsp_param y;          /* vertical limits */
 	struct wsp_param o;          /* orientation limits */
 };
+
+static const struct fg_dev_params fg_dev_params[FOUNTAIN_GEYSER_PRODUCT_MAX] = {
+	[FOUNTAIN] = {
+		.data_len   = 81,
+		.n_xsensors = 16,
+		.n_ysensors = 16,
+		.prot       = FG_TRACKPAD_TYPE_GEYSER1
+	},
+	[GEYSER1] = {
+		.data_len   = 81,
+		.n_xsensors = 16,
+		.n_ysensors = 16,
+		.prot       = FG_TRACKPAD_TYPE_GEYSER1
+	},
+	[GEYSER1_17inch] = {
+		.data_len   = 81,
+		.n_xsensors = 26,
+		.n_ysensors = 16,
+		.prot       = FG_TRACKPAD_TYPE_GEYSER1
+	},
+	[GEYSER2] = {
+		.data_len   = 64,
+		.n_xsensors = 15,
+		.n_ysensors = 9,
+		.prot       = FG_TRACKPAD_TYPE_GEYSER2
+	},
+	[GEYSER3] = {
+		.data_len   = 64,
+		.n_xsensors = 20,
+		.n_ysensors = 10,
+		.prot       = FG_TRACKPAD_TYPE_GEYSER3
+	},
+	[GEYSER4] = {
+		.data_len   = 64,
+		.n_xsensors = 20,
+		.n_ysensors = 10,
+		.prot       = FG_TRACKPAD_TYPE_GEYSER4
+	}
+};
+static const STRUCT_USB_HOST_ID fg_devs[] = {
+	/* PowerBooks Feb 2005, iBooks G4 */
+	{ USB_VPI(USB_VENDOR_APPLE, 0x020e, FG_DRIVER_INFO(FOUNTAIN)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x020f, FG_DRIVER_INFO(FOUNTAIN)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x0210, FG_DRIVER_INFO(FOUNTAIN)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x030a, FG_DRIVER_INFO(FOUNTAIN)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x030b, FG_DRIVER_INFO(GEYSER1)) },
+
+	/* PowerBooks Oct 2005 */
+	{ USB_VPI(USB_VENDOR_APPLE, 0x0214, FG_DRIVER_INFO(GEYSER2)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x0215, FG_DRIVER_INFO(GEYSER2)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x0216, FG_DRIVER_INFO(GEYSER2)) },
+
+	/* Core Duo MacBook & MacBook Pro */
+	{ USB_VPI(USB_VENDOR_APPLE, 0x0217, FG_DRIVER_INFO(GEYSER3)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x0218, FG_DRIVER_INFO(GEYSER3)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x0219, FG_DRIVER_INFO(GEYSER3)) },
+
+	/* Core2 Duo MacBook & MacBook Pro */
+	{ USB_VPI(USB_VENDOR_APPLE, 0x021a, FG_DRIVER_INFO(GEYSER4)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x021b, FG_DRIVER_INFO(GEYSER4)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x021c, FG_DRIVER_INFO(GEYSER4)) },
+
+	/* Core2 Duo MacBook3,1 */
+	{ USB_VPI(USB_VENDOR_APPLE, 0x0229, FG_DRIVER_INFO(GEYSER4)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x022a, FG_DRIVER_INFO(GEYSER4)) },
+	{ USB_VPI(USB_VENDOR_APPLE, 0x022b, FG_DRIVER_INFO(GEYSER4)) },
+
+	/* 17 inch PowerBook */
+	{ USB_VPI(USB_VENDOR_APPLE, 0x020d, FG_DRIVER_INFO(GEYSER1_17inch)) },
+};
+
 
 static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING1] = {
