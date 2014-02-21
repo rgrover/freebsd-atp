@@ -231,10 +231,10 @@ enum wellspring_trackpad_type {
 /* trackpad finger structure - little endian */
 struct wsp_finger_sensor_data {
 	int16_t origin;         /* zero when switching track finger */
-	int16_t abs_x;          /* absolute x coodinate */
-	int16_t abs_y;          /* absolute y coodinate */
-	int16_t rel_x;          /* relative x coodinate */
-	int16_t rel_y;          /* relative y coodinate */
+	int16_t abs_x;          /* absolute x coordinate */
+	int16_t abs_y;          /* absolute y coordinate */
+	int16_t rel_x;          /* relative x coordinate */
+	int16_t rel_y;          /* relative y coordinate */
 	int16_t tool_major;     /* tool area, major axis */
 	int16_t tool_minor;     /* tool area, minor axis */
 	int16_t orientation;    /* 16384 when point, else 15 bit angle */
