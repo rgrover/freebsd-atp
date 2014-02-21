@@ -859,7 +859,7 @@ static void      fg_interpret_sensor_data(struct atp_softc *, unsigned);
 static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
 			 int *, enum fountain_geyser_trackpad_type);
 static void      fg_get_pressures(int *, const int *, const int *, int);
-// static void      fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
+static void      fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
 static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
 static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
@@ -1030,7 +1030,11 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	static int base_x[FG_MAX_XSENSORS]; /* base sensor readings */
 	static int base_y[FG_MAX_YSENSORS];
 	static int pressure_x[FG_MAX_XSENSORS]; /* computed pressures */
-	// static int pressure_y[FG_MAX_YSENSORS];
+	static int pressure_y[FG_MAX_YSENSORS];
+#define FG_MAX_PSPANS_PER_AXIS 3
+	fg_pspan   pspans_x[FG_MAX_PSPANS_PER_AXIS];
+	fg_pspan   pspans_y[FG_MAX_PSPANS_PER_AXIS];
+	u_int      n_xpspans = 0, n_ypspans = 0;
 
 	const struct fg_dev_params *params =
 	    (const struct fg_dev_params *)sc->sc_params;
@@ -1062,16 +1066,13 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 
 	/* Get pressure readings and detect p-spans for both axes. */
 	fg_get_pressures(pressure_x, cur_x, base_x, params->n_xsensors);
-#if 0
-	atp_detect_pspans(sc->pressure_x, params->n_xsensors,
-	    ATP_MAX_PSPANS_PER_AXIS,
+	fg_detect_pspans(pressure_x, params->n_xsensors, FG_MAX_PSPANS_PER_AXIS,
 	    pspans_x, &n_xpspans);
-	atp_get_pressures(sc->pressure_y, sc->cur_y, sc->base_y,
-	    params->n_ysensors);
-	atp_detect_pspans(sc->pressure_y, params->n_ysensors,
-	    ATP_MAX_PSPANS_PER_AXIS,
+	fg_get_pressures(pressure_y, cur_y, base_y, params->n_ysensors);
+	fg_detect_pspans(pressure_y, params->n_ysensors, FG_MAX_PSPANS_PER_AXIS,
 	    pspans_y, &n_ypspans);
 
+#if 0
 	/* Update strokes with new pspans to detect movements. */
 	sc->sc_status.flags &= ~MOUSE_POSCHANGED;
 	if (atp_update_strokes(sc,
@@ -1183,7 +1184,6 @@ fg_get_pressures(int *p, const int *cur, const int *base, int n)
 	}
 }
 
-#if 0
 static void
 fg_detect_pspans(int *p, u_int num_sensors,
     u_int      max_spans, /* max # of pspans permitted */
@@ -1266,11 +1266,15 @@ fg_detect_pspans(int *p, u_int num_sensors,
 	if (state != ATP_PSPAN_INACTIVE)
 		num_spans++;    /* close the last finger span */
 
+#define FG_PSPAN_MIN_CUM_PRESSURE  10
+#define FG_PSPAN_MAX_WIDTH         4
+#define FG_SCALE_FACTOR            48
+
 	/* post-process the spans */
 	for (i = 0; i < num_spans; i++) {
 		/* filter away unwanted pressure spans */
-		if ((spans[i].cum < fg_pspan_min_cum_pressure) ||
-		    (spans[i].width > fg_pspan_max_width)) {
+		if ((spans[i].cum < FG_PSPAN_MIN_CUM_PRESSURE) ||
+		    (spans[i].width > FG_PSPAN_MAX_WIDTH)) {
 			if ((i + 1) < num_spans) {
 				memcpy(&spans[i], &spans[i + 1],
 				    (num_spans - i - 1) * sizeof(fg_pspan));
@@ -1281,7 +1285,7 @@ fg_detect_pspans(int *p, u_int num_sensors,
 		}
 
 		/* compute this span's representative location */
-		spans[i].loc = spans[i].cog * atp_mickeys_scale_factor /
+		spans[i].loc = spans[i].cog * FG_SCALE_FACTOR /
 			spans[i].cum;
 
 		spans[i].matched = FALSE; /* not yet matched against a stroke */
@@ -1290,6 +1294,7 @@ fg_detect_pspans(int *p, u_int num_sensors,
 	*nspans_p = num_spans;
 }
 
+#if 0
 /*
  * Match a pressure-span against a stroke-component. If there is a
  * match, update the component's state and return TRUE.
