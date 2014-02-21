@@ -829,8 +829,12 @@ static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
 
 /* sensor interpretation */
-static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
 static void      fg_interpret_sensor_data(struct atp_softc *, unsigned);
+// static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
+// 			 int *, atp_protocol);
+// static void      fg_get_pressures(int *, const int *, const int *, int);
+// static void      fg_detect_pspans(int *, u_int, u_int, atp_pspan *, u_int *);
+static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
 static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
 
@@ -993,13 +997,21 @@ atp_softc_unpopulate(struct atp_softc *sc)
 void
 fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 {
+#define FG_MAX_XSENSORS    26
+#define FG_MAX_YSENSORS    16
+	// int cur_x[FG_MAX_XSENSORS];       /* current sensor readings */
+	// int cur_y[FG_MAX_YSENSORS];
+
+	// const struct fg_dev_params *params =
+	//     (const struct fg_dev_params *)sc->sc_params;
+
+	// fg_extract_sensor_data(sc->sensor_data,
+	//     params->n_xsensors, X, sc->cur_x,
+	//     params->prot);
+	// fg_extract_sensor_data(sc->sensor_data,
+	//     params->n_ysensors, Y,  sc->cur_y,
+	//     params->prot);
 #if 0
-	atp_interpret_sensor_data(sc->sensor_data,
-	    sc->sc_params->n_xsensors, X, sc->cur_x,
-	    sc->sc_params->prot);
-	atp_interpret_sensor_data(sc->sensor_data,
-	    sc->sc_params->n_ysensors, Y,  sc->cur_y,
-	    sc->sc_params->prot);
 
 	/*
 	 * If this is the initial update (from an untouched
@@ -1007,27 +1019,27 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	 * data; deltas with respect to these base values can
 	 * be used as pressure readings subsequently.
 	 */
-	status_bits = sc->sensor_data[sc->sc_params->data_len - 1];
-	if ((sc->sc_params->prot == ATP_PROT_GEYSER3 &&
+	status_bits = sc->sensor_data[params->data_len - 1];
+	if ((params->prot == ATP_PROT_GEYSER3 &&
 	    (status_bits & ATP_STATUS_BASE_UPDATE)) ||
 	    !(sc->sc_state & ATP_VALID)) {
 		memcpy(sc->base_x, sc->cur_x,
-		    sc->sc_params->n_xsensors * sizeof(*(sc->base_x)));
+		    params->n_xsensors * sizeof(*(sc->base_x)));
 		memcpy(sc->base_y, sc->cur_y,
-		    sc->sc_params->n_ysensors * sizeof(*(sc->base_y)));
+		    params->n_ysensors * sizeof(*(sc->base_y)));
 		sc->sc_state |= ATP_VALID;
 		goto tr_setup;
 	}
 
 	/* Get pressure readings and detect p-spans for both axes. */
 	atp_get_pressures(sc->pressure_x, sc->cur_x, sc->base_x,
-	    sc->sc_params->n_xsensors);
-	atp_detect_pspans(sc->pressure_x, sc->sc_params->n_xsensors,
+	    params->n_xsensors);
+	atp_detect_pspans(sc->pressure_x, params->n_xsensors,
 	    ATP_MAX_PSPANS_PER_AXIS,
 	    pspans_x, &n_xpspans);
 	atp_get_pressures(sc->pressure_y, sc->cur_y, sc->base_y,
-	    sc->sc_params->n_ysensors);
-	atp_detect_pspans(sc->pressure_y, sc->sc_params->n_ysensors,
+	    params->n_ysensors);
+	atp_detect_pspans(sc->pressure_y, params->n_ysensors,
 	    ATP_MAX_PSPANS_PER_AXIS,
 	    pspans_y, &n_ypspans);
 
@@ -1049,6 +1061,439 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	}
 #endif /* #if 0*/
 }
+
+#if 0
+/*
+ * Interpret the data from the X and Y pressure sensors. This function
+ * is called separately for the X and Y sensor arrays. The data in the
+ * USB packet is laid out in the following manner:
+ *
+ * sensor_data:
+ *            --,--,Y1,Y2,--,Y3,Y4,--,Y5,...,Y10, ... X1,X2,--,X3,X4
+ *  indices:   0  1  2  3  4  5  6  7  8 ...  15  ... 20 21 22 23 24
+ *
+ * '--' (in the above) indicates that the value is unimportant.
+ *
+ * Information about the above layout was obtained from the
+ * implementation of the AppleTouch driver in Linux.
+ *
+ * parameters:
+ *   sensor_data
+ *       raw sensor data from the USB packet.
+ *   num
+ *       The number of elements in the array 'arr'.
+ *   axis
+ *       Axis of data to fetch
+ *   arr
+ *       The array to be initialized with the readings.
+ *   prot
+ *       The protocol to use to interpret the data
+ */
+static __inline void
+atp_interpret_sensor_data(const int8_t *sensor_data, u_int num, atp_axis axis,
+    int	*arr, atp_protocol prot)
+{
+	u_int i;
+	u_int di;   /* index into sensor data */
+
+	switch (prot) {
+	case ATP_PROT_GEYSER1:
+		/*
+		 * For Geyser 1, the sensors are laid out in pairs
+		 * every 5 bytes.
+		 */
+		for (i = 0, di = (axis == Y) ? 1 : 2; i < 8; di += 5, i++) {
+			arr[i] = sensor_data[di];
+			arr[i+8] = sensor_data[di+2];
+			if (axis == X && num > 16)
+				arr[i+16] = sensor_data[di+40];
+		}
+
+		break;
+	case ATP_PROT_GEYSER2:
+	case ATP_PROT_GEYSER3:
+		for (i = 0, di = (axis == Y) ? 2 : 20; i < num; /* empty */ ) {
+			arr[i++] = sensor_data[di++];
+			arr[i++] = sensor_data[di++];
+			di++;
+		}
+		break;
+	}
+}
+
+static __inline void
+atp_get_pressures(int *p, const int *cur, const int *base, int n)
+{
+	int i;
+
+	for (i = 0; i < n; i++) {
+		p[i] = cur[i] - base[i];
+		if (p[i] > 127)
+			p[i] -= 256;
+		if (p[i] < -127)
+			p[i] += 256;
+		if (p[i] < 0)
+			p[i] = 0;
+
+		/*
+		 * Shave off pressures below the noise-pressure
+		 * threshold; this will reduce the contribution from
+		 * lower pressure readings.
+		 */
+		if ((u_int)p[i] <= atp_sensor_noise_threshold)
+			p[i] = 0; /* filter away noise */
+		else
+			p[i] -= atp_sensor_noise_threshold;
+	}
+}
+
+static void
+atp_detect_pspans(int *p, u_int num_sensors,
+    u_int       max_spans, /* max # of pspans permitted */
+    atp_pspan  *spans,     /* finger spans */
+    u_int      *nspans_p)  /* num spans detected */
+{
+	u_int i;
+	int   maxp;             /* max pressure seen within a span */
+	u_int num_spans = 0;
+
+	enum atp_pspan_state {
+		ATP_PSPAN_INACTIVE,
+		ATP_PSPAN_INCREASING,
+		ATP_PSPAN_DECREASING,
+	} state; /* state of the pressure span */
+
+	/*
+	 * The following is a simple state machine to track
+	 * the phase of the pressure span.
+	 */
+	memset(spans, 0, max_spans * sizeof(atp_pspan));
+	maxp = 0;
+	state = ATP_PSPAN_INACTIVE;
+	for (i = 0; i < num_sensors; i++) {
+		if (num_spans >= max_spans)
+			break;
+
+		if (p[i] == 0) {
+			if (state == ATP_PSPAN_INACTIVE) {
+				/*
+				 * There is no pressure information for this
+				 * sensor, and we aren't tracking a finger.
+				 */
+				continue;
+			} else {
+				state = ATP_PSPAN_INACTIVE;
+				maxp = 0;
+				num_spans++;
+			}
+		} else {
+			switch (state) {
+			case ATP_PSPAN_INACTIVE:
+				state = ATP_PSPAN_INCREASING;
+				maxp  = p[i];
+				break;
+
+			case ATP_PSPAN_INCREASING:
+				if (p[i] > maxp)
+					maxp = p[i];
+				else if (p[i] <= (maxp >> 1))
+					state = ATP_PSPAN_DECREASING;
+				break;
+
+			case ATP_PSPAN_DECREASING:
+				if (p[i] > p[i - 1]) {
+					/*
+					 * This is the beginning of
+					 * another span; change state
+					 * to give the appearance that
+					 * we're starting from an
+					 * inactive span, and then
+					 * re-process this reading in
+					 * the next iteration.
+					 */
+					num_spans++;
+					state = ATP_PSPAN_INACTIVE;
+					maxp  = 0;
+					i--;
+					continue;
+				}
+				break;
+			}
+
+			/* Update the finger span with this reading. */
+			spans[num_spans].width++;
+			spans[num_spans].cum += p[i];
+			spans[num_spans].cog += p[i] * (i + 1);
+		}
+	}
+	if (state != ATP_PSPAN_INACTIVE)
+		num_spans++;    /* close the last finger span */
+
+	/* post-process the spans */
+	for (i = 0; i < num_spans; i++) {
+		/* filter away unwanted pressure spans */
+		if ((spans[i].cum < atp_pspan_min_cum_pressure) ||
+		    (spans[i].width > atp_pspan_max_width)) {
+			if ((i + 1) < num_spans) {
+				memcpy(&spans[i], &spans[i + 1],
+				    (num_spans - i - 1) * sizeof(atp_pspan));
+				i--;
+			}
+			num_spans--;
+			continue;
+		}
+
+		/* compute this span's representative location */
+		spans[i].loc = spans[i].cog * atp_mickeys_scale_factor /
+			spans[i].cum;
+
+		spans[i].matched = FALSE; /* not yet matched against a stroke */
+	}
+
+	*nspans_p = num_spans;
+}
+
+/*
+ * Match a pressure-span against a stroke-component. If there is a
+ * match, update the component's state and return TRUE.
+ */
+static boolean_t
+atp_match_stroke_component(atp_stroke_component *component,
+    const atp_pspan *pspan, atp_stroke_type stroke_type)
+{
+	int   delta_mickeys;
+	u_int min_pressure;
+
+	delta_mickeys = pspan->loc - component->loc;
+
+	if ((u_int)abs(delta_mickeys) > atp_max_delta_mickeys)
+		return (FALSE); /* the finger span is too far out; no match */
+
+	component->loc          = pspan->loc;
+
+	/*
+	 * A sudden and significant increase in a pspan's cumulative
+	 * pressure indicates the incidence of a new finger
+	 * contact. This usually revises the pspan's
+	 * centre-of-gravity, and hence the location of any/all
+	 * matching stroke component(s). But such a change should
+	 * *not* be interpreted as a movement.
+	 */
+        if (pspan->cum > ((3 * component->cum_pressure) >> 1))
+		delta_mickeys = 0;
+
+	component->cum_pressure = pspan->cum;
+	if (pspan->cum > component->max_cum_pressure)
+		component->max_cum_pressure = pspan->cum;
+
+	/*
+	 * Disregard the component's movement if its cumulative
+	 * pressure drops below a fraction of the maximum; this
+	 * fraction is determined based on the stroke's type.
+	 */
+	if (stroke_type == ATP_STROKE_TOUCH)
+		min_pressure = (3 * component->max_cum_pressure) >> 2;
+	else
+		min_pressure = component->max_cum_pressure >> 2;
+	if (component->cum_pressure < min_pressure)
+		delta_mickeys = 0;
+
+	component->delta_mickeys = delta_mickeys;
+	return (TRUE);
+}
+
+static void
+atp_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
+    atp_pspan *pspans, u_int n_pspans, u_int repeat_count)
+{
+	u_int i, j;
+	u_int repeat_index = 0;
+
+	/* Determine the index of the multi-span. */
+	if (repeat_count) {
+		u_int cum = 0;
+		for (i = 0; i < n_pspans; i++) {
+			if (pspans[i].cum > cum) {
+				repeat_index = i;
+				cum = pspans[i].cum;
+			}
+		}
+	}
+
+	for (i = 0; i < sc->sc_n_strokes; i++) {
+		atp_stroke *stroke  = &sc->sc_strokes[i];
+		if (stroke->components[axis].matched)
+			continue; /* skip matched components */
+
+		for (j = 0; j < n_pspans; j++) {
+			if (pspans[j].matched)
+				continue; /* skip matched pspans */
+
+			if (atp_match_stroke_component(
+				    &stroke->components[axis], &pspans[j],
+				    stroke->type)) {
+				/* There is a match. */
+				stroke->components[axis].matched = TRUE;
+
+				/* Take care to repeat at the multi-span. */
+				if ((repeat_count > 0) && (j == repeat_index))
+					repeat_count--;
+				else
+					pspans[j].matched = TRUE;
+
+				break; /* skip to the next stroke */
+			}
+		} /* loop over pspans */
+	} /* loop over strokes */
+}
+
+/*
+ * Update strokes by matching against current pressure-spans.
+ * Return TRUE if any movement is detected.
+ */
+static boolean_t
+atp_update_strokes(struct atp_softc *sc, atp_pspan *pspans_x,
+    u_int n_xpspans, atp_pspan *pspans_y, u_int n_ypspans)
+{
+	u_int       i, j;
+	atp_stroke *stroke;
+	boolean_t   movement = FALSE;
+	u_int       repeat_count = 0;
+
+	/* Reset X and Y components of all strokes as unmatched. */
+	for (i = 0; i < sc->sc_n_strokes; i++) {
+		stroke = &sc->sc_strokes[i];
+		stroke->components[X].matched = FALSE;
+		stroke->components[Y].matched = FALSE;
+	}
+
+	/*
+	 * Usually, the X and Y pspans come in pairs (the common case
+	 * being a single pair). It is possible, however, that
+	 * multiple contacts resolve to a single pspan along an
+	 * axis, as illustrated in the following:
+	 *
+	 *   F = finger-contact
+	 *
+	 *                pspan  pspan
+	 *        +-----------------------+
+	 *        |         .      .      |
+	 *        |         .      .      |
+	 *        |         .      .      |
+	 *        |         .      .      |
+	 *  pspan |.........F......F      |
+	 *        |                       |
+	 *        |                       |
+	 *        |                       |
+	 *        +-----------------------+
+	 *
+	 *
+	 * The above case can be detected by a difference in the
+	 * number of X and Y pspans. When this happens, X and Y pspans
+	 * aren't easy to pair or match against strokes.
+	 *
+	 * When X and Y pspans differ in number, the axis with the
+	 * smaller number of pspans is regarded as having a repeating
+	 * pspan (or a multi-pspan)--in the above illustration, the
+	 * Y-axis has a repeating pspan. Our approach is to try to
+	 * match the multi-pspan repeatedly against strokes. The
+	 * difference between the number of X and Y pspans gives us a
+	 * crude repeat_count for matching multi-pspans--i.e. the
+	 * multi-pspan along the Y axis (above) has a repeat_count of 1.
+	 */
+	repeat_count = abs(n_xpspans - n_ypspans);
+
+	atp_match_strokes_against_pspans(sc, X, pspans_x, n_xpspans,
+	    (((repeat_count != 0) && ((n_xpspans < n_ypspans))) ?
+		repeat_count : 0));
+	atp_match_strokes_against_pspans(sc, Y, pspans_y, n_ypspans,
+	    (((repeat_count != 0) && (n_ypspans < n_xpspans)) ?
+		repeat_count : 0));
+
+	/* Update the state of strokes based on the above pspan matches. */
+	for (i = 0; i < sc->sc_n_strokes; i++) {
+		stroke = &sc->sc_strokes[i];
+		if (stroke->components[X].matched &&
+		    stroke->components[Y].matched) {
+			atp_advance_stroke_state(sc, stroke, &movement);
+		} else {
+			/*
+			 * At least one component of this stroke
+			 * didn't match against current pspans;
+			 * terminate it.
+			 */
+			atp_terminate_stroke(sc, i);
+		}
+	}
+
+	/* Add new strokes for pairs of unmatched pspans */
+	for (i = 0; i < n_xpspans; i++) {
+		if (pspans_x[i].matched == FALSE) break;
+	}
+	for (j = 0; j < n_ypspans; j++) {
+		if (pspans_y[j].matched == FALSE) break;
+	}
+	if ((i < n_xpspans) && (j < n_ypspans)) {
+#ifdef USB_DEBUG
+		if (atp_debug >= ATP_LLEVEL_INFO) {
+			printf("unmatched pspans:");
+			for (; i < n_xpspans; i++) {
+				if (pspans_x[i].matched)
+					continue;
+				printf(" X:[loc:%u,cum:%u]",
+				    pspans_x[i].loc, pspans_x[i].cum);
+			}
+			for (; j < n_ypspans; j++) {
+				if (pspans_y[j].matched)
+					continue;
+				printf(" Y:[loc:%u,cum:%u]",
+				    pspans_y[j].loc, pspans_y[j].cum);
+			}
+			printf("\n");
+		}
+#endif /* USB_DEBUG */
+		if ((n_xpspans == 1) && (n_ypspans == 1))
+			/* The common case of a single pair of new pspans. */
+			atp_add_stroke(sc, &pspans_x[0], &pspans_y[0]);
+		else
+			atp_add_new_strokes(sc,
+			    pspans_x, n_xpspans,
+			    pspans_y, n_ypspans);
+	}
+
+#ifdef USB_DEBUG
+	if (atp_debug >= ATP_LLEVEL_INFO) {
+		for (i = 0; i < sc->sc_n_strokes; i++) {
+			atp_stroke *stroke = &sc->sc_strokes[i];
+
+			printf(" %s%clc:%u,dm:%d,pnd:%d,cum:%d,max:%d,mv:%d%c"
+			    ",%clc:%u,dm:%d,pnd:%d,cum:%d,max:%d,mv:%d%c",
+			    (stroke->flags & ATSF_ZOMBIE) ? "zomb:" : "",
+			    (stroke->type == ATP_STROKE_TOUCH) ? '[' : '<',
+			    stroke->components[X].loc,
+			    stroke->components[X].delta_mickeys,
+			    stroke->components[X].pending,
+			    stroke->components[X].cum_pressure,
+			    stroke->components[X].max_cum_pressure,
+			    stroke->components[X].movement,
+			    (stroke->type == ATP_STROKE_TOUCH) ? ']' : '>',
+			    (stroke->type == ATP_STROKE_TOUCH) ? '[' : '<',
+			    stroke->components[Y].loc,
+			    stroke->components[Y].delta_mickeys,
+			    stroke->components[Y].pending,
+			    stroke->components[Y].cum_pressure,
+			    stroke->components[Y].max_cum_pressure,
+			    stroke->components[Y].movement,
+			    (stroke->type == ATP_STROKE_TOUCH) ? ']' : '>');
+		}
+		if (sc->sc_n_strokes)
+			printf("\n");
+	}
+#endif /* USB_DEBUG */
+
+	return (movement);
+}
+#endif /* #if 0 */
 
 void
 wsp_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
