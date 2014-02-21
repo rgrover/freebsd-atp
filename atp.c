@@ -733,7 +733,7 @@ static void atp_softc_unpopulate(struct atp_softc *);
 
 /* sensor interpretation */
 static void      atp_interpret_wellspring_data(struct atp_softc *, unsigned);
-static boolean_t atp_update_wellspring_strokes(struct atp_softc *,
+static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
 
 /* movement detection */
@@ -929,7 +929,7 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
 	if ((sc->sc_n_strokes == 0) && (n_fingers == 0))
 		return;
 
-	if (atp_update_wellspring_strokes(sc, fingers, n_fingers))
+	if (wsp_update_strokes(sc, fingers, n_fingers))
 		sc->sc_status.flags |= MOUSE_POSCHANGED;
 
 	switch(params->tp_type) {
@@ -950,8 +950,7 @@ atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
  * Return TRUE if any movement is detected.
  */
 boolean_t
-atp_update_wellspring_strokes(struct atp_softc *sc,
-    wsp_finger_t *fingers, u_int n_fingers)
+wsp_update_strokes(struct atp_softc *sc, wsp_finger_t *fingers, u_int n_fingers)
 {
 	boolean_t movement = false;
 	unsigned si, fi;
