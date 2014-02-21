@@ -1014,9 +1014,9 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 {
 #define FG_MAX_XSENSORS 26
 #define FG_MAX_YSENSORS 16
-	static int cur_x[FG_MAX_XSENSORS]; /* current sensor readings */
+	static int cur_x[FG_MAX_XSENSORS];  /* current sensor readings */
 	static int cur_y[FG_MAX_YSENSORS];
-	static int base_x[FG_MAX_XSENSORS];
+	static int base_x[FG_MAX_XSENSORS]; /* base sensor readings */
 	static int base_y[FG_MAX_YSENSORS];
 
 	const struct fg_dev_params *params =
