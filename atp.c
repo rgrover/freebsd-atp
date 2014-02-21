@@ -241,6 +241,19 @@ enum wellspring_trackpad_type {
 #define WELLSPRING_DRIVER_INFO(PRODUCT)       \
     ENCODE_DRIVER_INFO(TRACKPAD_FAMILY_WELLSPRING, PRODUCT)
 
+/*
+ * The following structure captures the state of a pressure span along
+ * an axis. Each contact with the touchpad results in separate
+ * pressure spans along the two axes.
+ */
+typedef struct fg_pspan {
+	u_int width;   /* in units of sensors */
+	u_int cum;     /* cumulative compression (from all sensors) */
+	u_int cog;     /* center of gravity */
+	u_int loc;     /* location (scaled using the mickeys factor) */
+	boolean_t matched; /* to track pspans as they match against strokes. */
+} fg_pspan;
+
 /* trackpad finger data offsets, le16-aligned */
 #define WSP_TYPE1_FINGER_DATA_OFFSET  (13 * 2)
 #define WSP_TYPE2_FINGER_DATA_OFFSET  (15 * 2)
@@ -848,7 +861,7 @@ static void      fg_interpret_sensor_data(struct atp_softc *, unsigned);
 static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
 			 int *, enum fountain_geyser_trackpad_type);
 static void      fg_get_pressures(int *, const int *, const int *, int);
-// static void      fg_detect_pspans(int *, u_int, u_int, atp_pspan *, u_int *);
+// static void      fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
 static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
 static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
