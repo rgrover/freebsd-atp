@@ -24,6 +24,8 @@
  * SUCH DAMAGE.
  */
 
+/* TODO : fg devices need to be silenced during idleness. */
+
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
