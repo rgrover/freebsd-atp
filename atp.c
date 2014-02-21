@@ -716,10 +716,6 @@ static const STRUCT_USB_HOST_ID wsp_devs[] = {
 	ATP_DEV(APPLE, WELLSPRING8_JIS,  WELLSPRING_DRIVER_INFO(WELLSPRING8)),
 };
 
-
-struct atp_softc; /* forward declaration */
-typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
-
 typedef enum atp_stroke_type {
 	ATP_STROKE_TOUCH,
 	ATP_STROKE_SLIDE,
@@ -732,7 +728,6 @@ typedef enum atp_axis {
 
 #define ATP_MAX_STROKES         (WSP_MAX_FINGERS)
 
-
 #define ATP_FIFO_BUF_SIZE        8 /* bytes */
 #define ATP_FIFO_QUEUE_MAXLEN   50 /* units */
 
@@ -740,6 +735,9 @@ enum {
 	ATP_INTR_DT,
 	ATP_N_TRANSFER,
 };
+
+struct atp_softc; /* forward declaration */
+typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
 
 /*
  * The following structure captures a finger contact with the
