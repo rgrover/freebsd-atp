@@ -1076,7 +1076,6 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 
 #if 0
 	/* Update strokes with new pspans to detect movements. */
-	sc->sc_status.flags &= ~MOUSE_POSCHANGED;
 	if (atp_update_strokes(sc,
 		pspans_x, n_xpspans,
 		pspans_y, n_ypspans))
