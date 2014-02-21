@@ -732,7 +732,7 @@ static int  atp_softc_populate(struct atp_softc *);
 static void atp_softc_unpopulate(struct atp_softc *);
 
 /* sensor interpretation */
-static void      atp_interpret_wellspring_data(struct atp_softc *, unsigned);
+static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
 static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
 
@@ -756,7 +756,7 @@ static void          atp_add_to_queue(struct atp_softc *, int, int, int,
     uint32_t);
 
 sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
-	[TRACKPAD_FAMILY_WELLSPRING] = atp_interpret_wellspring_data,
+	[TRACKPAD_FAMILY_WELLSPRING] = wsp_interpret_sensor_data,
 };
 
 /* Device methods. */
@@ -893,7 +893,7 @@ atp_softc_unpopulate(struct atp_softc *sc)
 }
 
 void
-atp_interpret_wellspring_data(struct atp_softc *sc, unsigned data_len)
+wsp_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 {
 	const struct wsp_dev_params *params = sc->sc_params;
 
@@ -1429,7 +1429,7 @@ atp_attach(device_t dev)
 	if (sc->sc_family == TRACKPAD_FAMILY_WELLSPRING) {
 		sc->sc_params =
 		    &wsp_dev_params[DECODE_PRODUCT_FROM_DRIVER_INFO(di)];
-		sc->sensor_data_interpreter = atp_interpret_wellspring_data;
+		sc->sensor_data_interpreter = wsp_interpret_sensor_data;
 		atp_xfer_config[ATP_INTR_DT].bufsize =
 		    ((const struct wsp_dev_params *)sc->sc_params)->data_len;
 	}
