@@ -712,6 +712,11 @@ typedef enum atp_stroke_type {
 	ATP_STROKE_SLIDE,
 } atp_stroke_type;
 
+typedef enum atp_axis {
+	X = 0,
+	Y = 1
+} atp_axis;
+
 #define ATP_MAX_STROKES         (WSP_MAX_FINGERS)
 
 
@@ -829,8 +834,8 @@ static void atp_softc_unpopulate(struct atp_softc *);
 
 /* sensor interpretation */
 static void      fg_interpret_sensor_data(struct atp_softc *, unsigned);
-// static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
-// 			 int *, atp_protocol);
+static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
+			 int *, enum fountain_geyser_trackpad_type);
 // static void      fg_get_pressures(int *, const int *, const int *, int);
 // static void      fg_detect_pspans(int *, u_int, u_int, atp_pspan *, u_int *);
 static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
@@ -998,18 +1003,16 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 {
 #define FG_MAX_XSENSORS    26
 #define FG_MAX_YSENSORS    16
-	// int cur_x[FG_MAX_XSENSORS];       /* current sensor readings */
-	// int cur_y[FG_MAX_YSENSORS];
+	static int cur_x[FG_MAX_XSENSORS]; /* current sensor readings */
+	static int cur_y[FG_MAX_YSENSORS];
 
-	// const struct fg_dev_params *params =
-	//     (const struct fg_dev_params *)sc->sc_params;
+	const struct fg_dev_params *params =
+	    (const struct fg_dev_params *)sc->sc_params;
 
-	// fg_extract_sensor_data(sc->sensor_data,
-	//     params->n_xsensors, X, sc->cur_x,
-	//     params->prot);
-	// fg_extract_sensor_data(sc->sensor_data,
-	//     params->n_ysensors, Y,  sc->cur_y,
-	//     params->prot);
+	fg_extract_sensor_data(sc->sensor_data, params->n_xsensors, X, cur_x,
+	    params->prot);
+	fg_extract_sensor_data(sc->sensor_data, params->n_ysensors, Y, cur_y,
+	    params->prot);
 #if 0
 
 	/*
@@ -1061,7 +1064,6 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 #endif /* #if 0*/
 }
 
-#if 0
 /*
  * Interpret the data from the X and Y pressure sensors. This function
  * is called separately for the X and Y sensor arrays. The data in the
@@ -1088,15 +1090,15 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
  *   prot
  *       The protocol to use to interpret the data
  */
-static __inline void
-atp_interpret_sensor_data(const int8_t *sensor_data, u_int num, atp_axis axis,
-    int	*arr, atp_protocol prot)
+static void
+fg_extract_sensor_data(const int8_t *sensor_data, u_int num, atp_axis axis,
+    int	*arr, enum fountain_geyser_trackpad_type prot)
 {
 	u_int i;
 	u_int di;   /* index into sensor data */
 
 	switch (prot) {
-	case ATP_PROT_GEYSER1:
+	case FG_TRACKPAD_TYPE_GEYSER1:
 		/*
 		 * For Geyser 1, the sensors are laid out in pairs
 		 * every 5 bytes.
@@ -1104,13 +1106,20 @@ atp_interpret_sensor_data(const int8_t *sensor_data, u_int num, atp_axis axis,
 		for (i = 0, di = (axis == Y) ? 1 : 2; i < 8; di += 5, i++) {
 			arr[i] = sensor_data[di];
 			arr[i+8] = sensor_data[di+2];
-			if (axis == X && num > 16)
+			if ((axis == X) && (num > 16))
 				arr[i+16] = sensor_data[di+40];
 		}
 
 		break;
-	case ATP_PROT_GEYSER2:
-	case ATP_PROT_GEYSER3:
+	case FG_TRACKPAD_TYPE_GEYSER2:
+		for (i = 0, di = (axis == Y) ? 1 : 19; i < num; /* empty */ ) {
+			arr[i++] = sensor_data[di++];
+			arr[i++] = sensor_data[di++];
+			di++;
+		}
+		break;
+	case FG_TRACKPAD_TYPE_GEYSER3:
+	case FG_TRACKPAD_TYPE_GEYSER4:
 		for (i = 0, di = (axis == Y) ? 2 : 20; i < num; /* empty */ ) {
 			arr[i++] = sensor_data[di++];
 			arr[i++] = sensor_data[di++];
@@ -1120,6 +1129,7 @@ atp_interpret_sensor_data(const int8_t *sensor_data, u_int num, atp_axis axis,
 	}
 }
 
+#if 0
 static __inline void
 atp_get_pressures(int *p, const int *cur, const int *base, int n)
 {
