@@ -898,11 +898,10 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 		return (ENXIO);
 	}
 
-	if (mode_bytes[0] == newMode) {
+	if (mode_bytes[0] == newMode)
 		return (0);
-	}
-	mode_bytes[0] = newMode;
 
+	mode_bytes[0] = newMode;
 	return (usbd_req_set_report(sc->sc_usb_device, NULL /* mutex */,
 	    mode_bytes, sizeof(mode_bytes), 0 /* interface index */,
 	    0x03 /* type */, 0x00 /* id */));
