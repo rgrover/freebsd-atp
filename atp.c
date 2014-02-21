@@ -1080,9 +1080,6 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
 			unsigned d_squared =
 			    (instantaneous_dx * instantaneous_dx) +
 			    (instantaneous_dy * instantaneous_dy);
-			if (d_squared > WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ)
-				continue;
-
 			if (d_squared < least_distance_sq) {
 				least_distance_sq    = d_squared;
 				best_stroke_index    = si;
