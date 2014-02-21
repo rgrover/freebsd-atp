@@ -828,6 +828,7 @@ static void atp_softc_unpopulate(struct atp_softc *);
 
 /* sensor interpretation */
 static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
+static void      fg_interpret_sensor_data(struct atp_softc *, unsigned);
 static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
 
@@ -851,7 +852,8 @@ static void          atp_add_to_queue(struct atp_softc *, int, int, int,
     uint32_t);
 
 sensor_data_interpreter_t atp_sensor_data_interpreters[TRACKPAD_FAMILY_MAX] = {
-	[TRACKPAD_FAMILY_WELLSPRING] = wsp_interpret_sensor_data,
+	[TRACKPAD_FAMILY_FOUNTAIN_GEYSER] = fg_interpret_sensor_data,
+	[TRACKPAD_FAMILY_WELLSPRING]      = wsp_interpret_sensor_data,
 };
 
 /* Device methods. */
@@ -984,6 +986,66 @@ atp_softc_unpopulate(struct atp_softc *sc)
 		free(sc->sensor_data, M_USB);
 		sc->sensor_data = NULL;
 	}
+}
+
+void
+fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
+{
+#if 0
+	atp_interpret_sensor_data(sc->sensor_data,
+	    sc->sc_params->n_xsensors, X, sc->cur_x,
+	    sc->sc_params->prot);
+	atp_interpret_sensor_data(sc->sensor_data,
+	    sc->sc_params->n_ysensors, Y,  sc->cur_y,
+	    sc->sc_params->prot);
+
+	/*
+	 * If this is the initial update (from an untouched
+	 * pad), we should set the base values for the sensor
+	 * data; deltas with respect to these base values can
+	 * be used as pressure readings subsequently.
+	 */
+	status_bits = sc->sensor_data[sc->sc_params->data_len - 1];
+	if ((sc->sc_params->prot == ATP_PROT_GEYSER3 &&
+	    (status_bits & ATP_STATUS_BASE_UPDATE)) ||
+	    !(sc->sc_state & ATP_VALID)) {
+		memcpy(sc->base_x, sc->cur_x,
+		    sc->sc_params->n_xsensors * sizeof(*(sc->base_x)));
+		memcpy(sc->base_y, sc->cur_y,
+		    sc->sc_params->n_ysensors * sizeof(*(sc->base_y)));
+		sc->sc_state |= ATP_VALID;
+		goto tr_setup;
+	}
+
+	/* Get pressure readings and detect p-spans for both axes. */
+	atp_get_pressures(sc->pressure_x, sc->cur_x, sc->base_x,
+	    sc->sc_params->n_xsensors);
+	atp_detect_pspans(sc->pressure_x, sc->sc_params->n_xsensors,
+	    ATP_MAX_PSPANS_PER_AXIS,
+	    pspans_x, &n_xpspans);
+	atp_get_pressures(sc->pressure_y, sc->cur_y, sc->base_y,
+	    sc->sc_params->n_ysensors);
+	atp_detect_pspans(sc->pressure_y, sc->sc_params->n_ysensors,
+	    ATP_MAX_PSPANS_PER_AXIS,
+	    pspans_y, &n_ypspans);
+
+	/* Update strokes with new pspans to detect movements. */
+	sc->sc_status.flags &= ~MOUSE_POSCHANGED;
+	if (atp_update_strokes(sc,
+		pspans_x, n_xpspans,
+		pspans_y, n_ypspans))
+		sc->sc_status.flags |= MOUSE_POSCHANGED;
+
+	/* Reap zombies if it is time. */
+	if (sc->sc_state & ATP_ZOMBIES_EXIST) {
+		struct timeval now;
+
+		getmicrotime(&now);
+		if (timevalcmp(&now, &sc->sc_reap_time, >=))
+			atp_reap_zombies(sc, &tap_fingers,
+			    reaped_xlocs);
+	}
+#endif /* #if 0*/
 }
 
 void
@@ -1523,12 +1585,23 @@ atp_attach(device_t dev)
 	unsigned long di = USB_GET_DRIVER_INFO(uaa);
 
 	sc->sc_family = DECODE_FAMILY_FROM_DRIVER_INFO(di);
-	if (sc->sc_family == TRACKPAD_FAMILY_WELLSPRING) {
+	switch(sc->sc_family) {
+	case TRACKPAD_FAMILY_FOUNTAIN_GEYSER:
+		sc->sc_params =
+		    &fg_dev_params[DECODE_PRODUCT_FROM_DRIVER_INFO(di)];
+		sc->sensor_data_interpreter = fg_interpret_sensor_data;
+		atp_xfer_config[ATP_INTR_DT].bufsize =
+		    ((const struct fg_dev_params *)sc->sc_params)->data_len;
+		break;
+	case TRACKPAD_FAMILY_WELLSPRING:
 		sc->sc_params =
 		    &wsp_dev_params[DECODE_PRODUCT_FROM_DRIVER_INFO(di)];
 		sc->sensor_data_interpreter = wsp_interpret_sensor_data;
 		atp_xfer_config[ATP_INTR_DT].bufsize =
 		    ((const struct wsp_dev_params *)sc->sc_params)->data_len;
+		break;
+	default:
+		goto detach;
 	}
 
 	err = usbd_transfer_setup(uaa->device,
