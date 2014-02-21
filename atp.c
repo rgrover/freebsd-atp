@@ -1774,7 +1774,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			usbd_xfer_set_stall(xfer);
 			goto tr_setup;
 		}
-	break;
+		break;
 	}
 }
 
