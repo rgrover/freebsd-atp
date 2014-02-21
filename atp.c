@@ -1690,7 +1690,7 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
 		if (len > (int)expected_data_len) {
-			DPRINTFN(WSP_LLEVEL_ERROR,
+			DPRINTFN(ATP_LLEVEL_ERROR,
 			    "truncating large packet from %u to %u bytes\n",
 			    len, expected_data_len);
 			len = expected_data_len;
