@@ -1677,12 +1677,18 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	struct usb_page_cache *pc;
 
 	unsigned expected_data_len;
-	if (sc->sc_family == TRACKPAD_FAMILY_WELLSPRING) {
-		const struct wsp_dev_params *params =
-		    (const struct wsp_dev_params *)sc->sc_params;
-		expected_data_len = params->data_len;
-	} else
-		return; /* TODO: replaced with device-family specific length extraction */
+	switch(sc->sc_family) {
+	case TRACKPAD_FAMILY_FOUNTAIN_GEYSER:
+		expected_data_len =
+		    ((const struct fg_dev_params *)sc->sc_params)->data_len;
+		break;
+	case TRACKPAD_FAMILY_WELLSPRING:
+		expected_data_len =
+		    ((const struct wsp_dev_params *)sc->sc_params)->data_len;
+		break;
+	default:
+		return;
+	}
 
 	int len;
 	usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
