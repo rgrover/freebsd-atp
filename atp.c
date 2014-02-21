@@ -383,7 +383,6 @@ static const STRUCT_USB_HOST_ID fg_devs[] = {
 	{ USB_VPI(USB_VENDOR_APPLE, 0x020d, FG_DRIVER_INFO(GEYSER1_17inch)) },
 };
 
-
 static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 	[WELLSPRING1] = {
 		.caps       = 0,
