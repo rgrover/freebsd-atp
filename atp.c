@@ -1185,16 +1185,16 @@ fg_get_pressures(int *p, const int *cur, const int *base, int n)
 
 #if 0
 static void
-atp_detect_pspans(int *p, u_int num_sensors,
-    u_int       max_spans, /* max # of pspans permitted */
-    atp_pspan  *spans,     /* finger spans */
-    u_int      *nspans_p)  /* num spans detected */
+fg_detect_pspans(int *p, u_int num_sensors,
+    u_int      max_spans, /* max # of pspans permitted */
+    fg_pspan  *spans,     /* finger spans */
+    u_int     *nspans_p)  /* num spans detected */
 {
 	u_int i;
 	int   maxp;             /* max pressure seen within a span */
 	u_int num_spans = 0;
 
-	enum atp_pspan_state {
+	enum fg_pspan_state {
 		ATP_PSPAN_INACTIVE,
 		ATP_PSPAN_INCREASING,
 		ATP_PSPAN_DECREASING,
@@ -1204,7 +1204,7 @@ atp_detect_pspans(int *p, u_int num_sensors,
 	 * The following is a simple state machine to track
 	 * the phase of the pressure span.
 	 */
-	memset(spans, 0, max_spans * sizeof(atp_pspan));
+	memset(spans, 0, max_spans * sizeof(fg_pspan));
 	maxp = 0;
 	state = ATP_PSPAN_INACTIVE;
 	for (i = 0; i < num_sensors; i++) {
@@ -1269,11 +1269,11 @@ atp_detect_pspans(int *p, u_int num_sensors,
 	/* post-process the spans */
 	for (i = 0; i < num_spans; i++) {
 		/* filter away unwanted pressure spans */
-		if ((spans[i].cum < atp_pspan_min_cum_pressure) ||
-		    (spans[i].width > atp_pspan_max_width)) {
+		if ((spans[i].cum < fg_pspan_min_cum_pressure) ||
+		    (spans[i].width > fg_pspan_max_width)) {
 			if ((i + 1) < num_spans) {
 				memcpy(&spans[i], &spans[i + 1],
-				    (num_spans - i - 1) * sizeof(atp_pspan));
+				    (num_spans - i - 1) * sizeof(fg_pspan));
 				i--;
 			}
 			num_spans--;
@@ -1296,7 +1296,7 @@ atp_detect_pspans(int *p, u_int num_sensors,
  */
 static boolean_t
 atp_match_stroke_component(atp_stroke_component *component,
-    const atp_pspan *pspan, atp_stroke_type stroke_type)
+    const fg_pspan *pspan, atp_stroke_type stroke_type)
 {
 	int   delta_mickeys;
 	u_int min_pressure;
@@ -1341,7 +1341,7 @@ atp_match_stroke_component(atp_stroke_component *component,
 
 static void
 atp_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
-    atp_pspan *pspans, u_int n_pspans, u_int repeat_count)
+    fg_pspan *pspans, u_int n_pspans, u_int repeat_count)
 {
 	u_int i, j;
 	u_int repeat_index = 0;
@@ -1389,8 +1389,8 @@ atp_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
  * Return TRUE if any movement is detected.
  */
 static boolean_t
-atp_update_strokes(struct atp_softc *sc, atp_pspan *pspans_x,
-    u_int n_xpspans, atp_pspan *pspans_y, u_int n_ypspans)
+atp_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
+    u_int n_xpspans, fg_pspan *pspans_y, u_int n_ypspans)
 {
 	u_int       i, j;
 	atp_stroke *stroke;
