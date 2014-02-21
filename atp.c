@@ -74,6 +74,11 @@ __FBSDID("$FreeBSD$");
 #define WSP_SMALL_MOVEMENT_THRESHOLD 30
 #endif
 
+/* Distance-squared threshold for matching a finger with a known stroke */
+#ifndef WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ
+#define WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ 1000000
+#endif
+
 /* Threshold of instantaneous deltas beyond which movement is considered fast.*/
 #ifndef ATP_FAST_MOVEMENT_TRESHOLD
 #define ATP_FAST_MOVEMENT_TRESHOLD 150
@@ -1050,7 +1055,6 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
     wsp_finger_t *fingers, u_int n_fingers)
 {
 	boolean_t movement = false;
-	const static unsigned MAX_ALLOWED_FINGER_DISTANCE = 1000000;
 	unsigned si, fi;
 
 	/* reset the matched status for all strokes */
@@ -1062,8 +1066,8 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
 	wsp_finger_t *fingerp;
 	fingerp = fingers;
 	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
-		unsigned least_distance = MAX_ALLOWED_FINGER_DISTANCE;
-		int best_stroke_index   = -1;
+		unsigned least_distance_sq = WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ;
+		int best_stroke_index      = -1;
 
 		strokep = sc->sc_strokes;
 		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
@@ -1077,12 +1081,12 @@ wsp_match_strokes_against_fingers(struct atp_softc *sc,
 			unsigned d_squared =
 			    (instantaneous_dx * instantaneous_dx) +
 			    (instantaneous_dy * instantaneous_dy);
-			if (d_squared > MAX_ALLOWED_FINGER_DISTANCE)
+			if (d_squared > WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ)
 				continue;
 
-			if (d_squared < least_distance) {
-				least_distance    = d_squared;
-				best_stroke_index = si;
+			if (d_squared < least_distance_sq) {
+				least_distance_sq    = d_squared;
+				best_stroke_index    = si;
 			}
 		}
 
