@@ -897,7 +897,7 @@ static void atp_softc_unpopulate(struct atp_softc *);
 /* sensor interpretation */
 static void      fg_interpret_sensor_data(struct atp_softc *, unsigned);
 static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
-			 int *, enum fountain_geyser_trackpad_type);
+    int *, enum fountain_geyser_trackpad_type);
 static void      fg_get_pressures(int *, const int *, const int *, int);
 static void      fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
 static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
