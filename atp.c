@@ -25,8 +25,6 @@
  */
 
 /* TODO : fg devices need to be silenced during idleness. */
-/* todo: remove 'static' from function definitions */
-/* TODO: relocate #defines for constants to the top */
 /* align definitions with declarations */
 
 #include <sys/cdefs.h>
