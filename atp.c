@@ -72,6 +72,13 @@ __FBSDID("$FreeBSD$");
 /* The multiplier used to translate sensor reported positions to mickeys. */
 #define FG_SCALE_FACTOR                   48
 
+/*
+ * The movement threshold for a stroke; this is the maximum difference
+ * in position which will be resolved as a continuation of a stroke
+ * component.
+ */
+#define FG_MAX_DELTA_MICKEYS             ((3 * (FG_SCALE_FACTOR)) >> 1)
+
 /* The divisor used to translate sensor reported positions to mickeys. */
 #ifndef WSP_SCALE_FACTOR
 #define WSP_SCALE_FACTOR                  8
