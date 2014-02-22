@@ -1508,7 +1508,7 @@ fg_update_strokes(struct atp_softc *sc, const fg_pspan *pspans_x,
 #ifdef USB_DEBUG
 	if (atp_debug >= ATP_LLEVEL_INFO) {
 		for (i = 0; i < sc->sc_n_strokes; i++) {
-			atp_stroke *stroke = &sc->sc_strokes[i];
+			atp_stroke_t *stroke = &sc->sc_strokes[i];
 
 			printf(" %s%clc:%u,dm:%d,pnd:%d,cum:%d,max:%d,mv:%d%c"
 			    ",%clc:%u,dm:%d,pnd:%d,cum:%d,max:%d,mv:%d%c",
