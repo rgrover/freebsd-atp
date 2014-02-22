@@ -2193,17 +2193,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-		if (len > (int)sc->sc_expected_sensor_data_len) {
-			DPRINTFN(ATP_LLEVEL_ERROR,
-			    "truncating large packet from %u to %u bytes\n",
-			    len, sc->sc_expected_sensor_data_len);
-			len = sc->sc_expected_sensor_data_len;
-		} else if (len < sc->sc_expected_sensor_data_len) {
-			/* zero-out any previous sensor-data state */
-			memset(sc->sc_sensor_data + len, 0,
-			    sc->sc_expected_sensor_data_len - len);
-		}
-
 		pc = usbd_xfer_get_frame(xfer, 0);
 		usbd_copy_out(pc, 0, sc->sc_sensor_data, len);
 
