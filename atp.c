@@ -765,6 +765,8 @@ typedef struct fg_stroke_component {
 	u_int cum_pressure;     /* cumulative compression */
 	u_int max_cum_pressure; /* max cumulative compression */
 	boolean_t matched; /*to track components as they match against pspans.*/
+
+	int   delta_mickeys;    /* change in location (un-smoothened movement)*/
 } fg_stroke_component_t;
 
 /*
