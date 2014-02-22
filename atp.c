@@ -337,19 +337,6 @@ typedef struct wsp_finger_to_match {
 
 #define ATP_MAX_STROKES               MAX(WSP_MAX_FINGERS, FG_MAX_STROKES)
 
-/* logical signal quality */
-#define WSP_SN_PRESSURE 45      /* pressure signal-to-noise ratio */
-#define WSP_SN_WIDTH    25      /* width signal-to-noise ratio */
-#define WSP_SN_COORD    250     /* coordinate signal-to-noise ratio */
-#define WSP_SN_ORIENT   10      /* orientation signal-to-noise ratio */
-
-/* device-specific parameters */
-struct wsp_param {
-	int snratio;        /* signal-to-noise ratio */
-	int min;            /* device minimum reading */
-	int max;            /* device maximum reading */
-};
-
 #define FG_MAX_XSENSORS 26
 #define FG_MAX_YSENSORS 16
 
@@ -365,11 +352,6 @@ struct wsp_dev_params {
 	uint8_t  tp_type;            /* type of trackpad interface */
 	uint8_t  finger_data_offset; /* offset to trackpad finger data */
 	uint16_t data_len;           /* data length of the trackpad interface */
-	struct wsp_param p;          /* finger pressure limits */
-	struct wsp_param w;          /* finger width limits */
-	struct wsp_param x;          /* horizontal limits */
-	struct wsp_param y;          /* vertical limits */
-	struct wsp_param o;          /* orientation limits */
 };
 
 static const struct fg_dev_params fg_dev_params[FOUNTAIN_GEYSER_PRODUCT_MAX] = {
@@ -448,252 +430,72 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.tp_type    = WSP_TRACKPAD_TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 256
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4824, 5342
-		},
-		.y = {
-			WSP_SN_COORD, -172, 5820
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING2] = {
 		.caps       = 0,
 		.tp_type    = WSP_TRACKPAD_TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 256
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4824, 4824
-		},
-		.y = {
-			WSP_SN_COORD, -172, 4290
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING3] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4460, 5166
-		},
-		.y = {
-			WSP_SN_COORD, -75, 6700
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING4] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4620, 5140
-		},
-		.y = {
-			WSP_SN_COORD, -150, 6600
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING4A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4616, 5112
-		},
-		.y = {
-			WSP_SN_COORD, -142, 5234
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING5] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4415, 5050
-		},
-		.y = {
-			WSP_SN_COORD, -55, 6680
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING6] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4620, 5140
-		},
-		.y = {
-			WSP_SN_COORD, -150, 6600
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING5A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4750, 5280
-		},
-		.y = {
-			WSP_SN_COORD, -150, 6730
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING6A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4620, 5140
-		},
-		.y = {
-			WSP_SN_COORD, -150, 6600
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING7] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4750, 5280
-		},
-		.y = {
-			WSP_SN_COORD, -150, 6730
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING7A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4750, 5280
-		},
-		.y = {
-			WSP_SN_COORD, -150, 6730
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 	[WELLSPRING8] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE3,
 		.finger_data_offset  = WSP_TYPE3_FINGER_DATA_OFFSET,
 		.data_len   = WSP_TYPE3_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
-		.p = {
-			WSP_SN_PRESSURE, 0, 300
-		},
-		.w = {
-			WSP_SN_WIDTH, 0, 2048
-		},
-		.x = {
-			WSP_SN_COORD, -4620, 5140
-		},
-		.y = {
-			WSP_SN_COORD, -150, 6600
-		},
-		.o = {
-			WSP_SN_ORIENT, -WSP_MAX_FINGER_ORIENTATION, WSP_MAX_FINGER_ORIENTATION
-		},
 	},
 };
 
@@ -1476,11 +1278,8 @@ wsp_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 			continue;
 
 		fingers[n_fingers].matched = false;
-		fingers[n_fingers].x       =
-		    imax(params->x.min, source_fingerp->abs_x) - params->x.min;
-		fingers[n_fingers].y       = -params->y.min +
-		    params->y.max - source_fingerp->abs_y;
-
+		fingers[n_fingers].x       = source_fingerp->abs_x;
+		fingers[n_fingers].y       = -source_fingerp->abs_y;
 		++n_fingers;
 	}
 
