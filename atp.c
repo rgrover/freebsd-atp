@@ -96,16 +96,6 @@ __FBSDID("$FreeBSD$");
  * `options' statements in the kernel configuration file.
  */
 
-/* The multiplier used to translate sensor reported positions to mickeys. */
-#define FG_SCALE_FACTOR                   380
-
-/*
- * The movement threshold for a stroke; this is the maximum difference
- * in position which will be resolved as a continuation of a stroke
- * component.
- */
-#define FG_MAX_DELTA_MICKEYS             ((3 * (FG_SCALE_FACTOR)) >> 1)
-
 /* The divisor used to translate sensor reported positions to mickeys. */
 #ifndef ATP_SCALE_FACTOR
 #define ATP_SCALE_FACTOR                  8
@@ -114,11 +104,6 @@ __FBSDID("$FreeBSD$");
 /* Threshold for small movement noise (in mickeys) */
 #ifndef ATP_SMALL_MOVEMENT_THRESHOLD
 #define ATP_SMALL_MOVEMENT_THRESHOLD      30
-#endif
-
-/* Distance-squared threshold for matching a finger with a known stroke */
-#ifndef WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ
-#define WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ 1000000
 #endif
 
 /* Threshold of instantaneous deltas beyond which movement is considered fast.*/
@@ -152,6 +137,21 @@ __FBSDID("$FreeBSD$");
 #define ATP_ZOMBIE_STROKE_REAP_INTERVAL   50
 #if ATP_ZOMBIE_STROKE_REAP_INTERVAL > 100
 #error "ATP_ZOMBIE_STROKE_REAP_INTERVAL too large"
+#endif
+
+/* The multiplier used to translate sensor reported positions to mickeys. */
+#define FG_SCALE_FACTOR                   380
+
+/*
+ * The movement threshold for a stroke; this is the maximum difference
+ * in position which will be resolved as a continuation of a stroke
+ * component.
+ */
+#define FG_MAX_DELTA_MICKEYS             ((3 * (FG_SCALE_FACTOR)) >> 1)
+
+/* Distance-squared threshold for matching a finger with a known stroke */
+#ifndef WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ
+#define WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ 1000000
 #endif
 
 /* Ignore pressure spans with cumulative press. below this value. */
