@@ -25,6 +25,25 @@
  */
 
 /*
+ * Some tables, structures, definitions and constant values for the
+ * touchpad protocol has been copied from Linux's
+ * "drivers/input/mouse/bcm5974.c" which has the following copyright
+ * holders under GPLv2. All device specific code in this driver has
+ * been written from scratch. The decoding algorithm is based on
+ * output from FreeBSD's usbdump.
+ *
+ * Copyright (C) 2008      Henrik Rydberg (rydberg@euromail.se)
+ * Copyright (C) 2008      Scott Shawcroft (scott.shawcroft@gmail.com)
+ * Copyright (C) 2001-2004 Greg Kroah-Hartman (greg@kroah.com)
+ * Copyright (C) 2005      Johannes Berg (johannes@sipsolutions.net)
+ * Copyright (C) 2005      Stelian Pop (stelian@popies.net)
+ * Copyright (C) 2005      Frank Arnold (frank@scirocco-5v-turbo.de)
+ * Copyright (C) 2005      Peter Osterlund (petero2@telia.com)
+ * Copyright (C) 2005      Michael Hanselmann (linux-kernel@hansmi.ch)
+ * Copyright (C) 2006      Nicolas Boichat (nicolas@boichat.ch)
+ */
+
+/*
  * Author's note: 'atp' supports two distinct families of Apple trackpad
  * products: the older Fountain/Geyser and the latest Wellspring trackpads.
  * The first version made its appearance with FreeBSD8 and worked only with
