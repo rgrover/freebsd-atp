@@ -46,7 +46,7 @@
 /*
  * Author's note: 'atp' supports two distinct families of Apple trackpad
  * products: the older Fountain/Geyser and the latest Wellspring trackpads.
- * The first version made its appearance with FreeBSD8 and worked only with
+ * The first version made its appearance with FreeBSD 8 and worked only with
  * the Fountain/Geyser hardware. A fork of this driver for Wellspring was
  * contributed by Huang Wen Hui. This driver unifies the Wellspring effort
  * and also improves upon the original work.
