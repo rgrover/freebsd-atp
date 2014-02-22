@@ -911,6 +911,10 @@ static boolean_t wsp_update_strokes(struct atp_softc *,
 /* movement detection */
 static boolean_t     fg_match_stroke_component(fg_stroke_component_t *,
     const fg_pspan *, atp_stroke_type);
+static __inline void fg_add_stroke(struct atp_softc *, const fg_pspan *,
+    const fg_pspan *);
+static void          fg_add_new_strokes(struct atp_softc *, fg_pspan *,
+    u_int, fg_pspan *, u_int);
 static __inline void wsp_add_stroke(struct atp_softc *, const wsp_finger_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static void          fg_match_strokes_against_pspans(struct atp_softc *,
@@ -1434,7 +1438,7 @@ static boolean_t
 fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
     u_int n_xpspans, fg_pspan *pspans_y, u_int n_ypspans)
 {
-	unsigned      i;
+	unsigned      i, j;
 	atp_stroke_t *strokep      = sc->sc_strokes;
 	boolean_t     movement     = false;
 	u_int         repeat_count = 0;
@@ -1516,7 +1520,6 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 	for (j = 0; j < n_ypspans; j++) {
 		if (pspans_y[j].matched == false) break;
 	}
-#if 0
 	if ((i < n_xpspans) && (j < n_ypspans)) {
 #ifdef USB_DEBUG
 		if (atp_debug >= ATP_LLEVEL_INFO) {
@@ -1538,10 +1541,9 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 #endif /* USB_DEBUG */
 		if ((n_xpspans == 1) && (n_ypspans == 1))
 			/* The common case of a single pair of new pspans. */
-			atp_add_stroke(sc, &pspans_x[0], &pspans_y[0]);
+			fg_add_stroke(sc, &pspans_x[0], &pspans_y[0]);
 		else
-			atp_add_new_strokes(sc,
-			    pspans_x, n_xpspans,
+			fg_add_new_strokes(sc, pspans_x, n_xpspans,
 			    pspans_y, n_ypspans);
 	}
 
@@ -1574,7 +1576,6 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 			printf("\n");
 	}
 #endif /* USB_DEBUG */
-#endif
 
 	return (movement);
 }
@@ -1667,6 +1668,117 @@ wsp_update_strokes(struct atp_softc *sc, wsp_finger_t *fingers, u_int n_fingers)
 	}
 
 	return (movement);
+}
+
+/* Initialize a stroke using a pressure-span. */
+void
+fg_add_stroke(struct atp_softc *sc, const fg_pspan *pspan_x,
+    const fg_pspan *pspan_y)
+{
+	atp_stroke_t *strokep;
+
+	if (sc->sc_n_strokes >= FG_MAX_STROKES)
+		return;
+	strokep = &sc->sc_strokes[sc->sc_n_strokes];
+
+	memset(strokep, 0, sizeof(atp_stroke_t));
+
+	/*
+	 * Strokes begin as potential touches. If a stroke survives
+	 * longer than a threshold, or if it records significant
+	 * cumulative movement, then it is considered a 'slide'.
+	 */
+	strokep->type    = ATP_STROKE_TOUCH;
+	strokep->matched = false;
+	microtime(&strokep->ctime);
+	strokep->age     = 1;       /* Unit: interrupts */
+	strokep->x       = pspan_x->loc;
+	strokep->y       = pspan_y->loc;
+
+	strokep->components[X].loc              = pspan_x->loc;
+	strokep->components[X].cum_pressure     = pspan_x->cum;
+	strokep->components[X].max_cum_pressure = pspan_x->cum;
+	strokep->components[X].matched          = true;
+
+	strokep->components[Y].loc              = pspan_y->loc;
+	strokep->components[Y].cum_pressure     = pspan_y->cum;
+	strokep->components[Y].max_cum_pressure = pspan_y->cum;
+	strokep->components[Y].matched          = true;
+
+	sc->sc_n_strokes++;
+	if (sc->sc_n_strokes > 1) {
+		/* Reset double-tap-n-drag if we have more than one strokes. */
+		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
+	}
+
+	DPRINTFN(ATP_LLEVEL_INFO, "[%u,%u], time: %u,%ld\n",
+	    strokep->components[X].loc,
+	    strokep->components[Y].loc,
+	    (unsigned int)strokep->ctime.tv_sec,
+	    (unsigned long int)strokep->ctime.tv_usec);
+}
+
+void
+fg_add_new_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
+    u_int n_xpspans, fg_pspan *pspans_y, u_int n_ypspans)
+{
+	fg_pspan spans[2][FG_MAX_PSPANS_PER_AXIS];
+	u_int nspans[2];
+	u_int i;
+	u_int j;
+
+	/* Copy unmatched pspans into the local arrays. */
+	for (i = 0, nspans[X] = 0; i < n_xpspans; i++) {
+		if (pspans_x[i].matched == FALSE) {
+			spans[X][nspans[X]] = pspans_x[i];
+			nspans[X]++;
+		}
+	}
+	for (j = 0, nspans[Y] = 0; j < n_ypspans; j++) {
+		if (pspans_y[j].matched == FALSE) {
+			spans[Y][nspans[Y]] = pspans_y[j];
+			nspans[Y]++;
+		}
+	}
+
+	if (nspans[X] == nspans[Y]) {
+		/* Create new strokes from pairs of unmatched pspans */
+		for (i = 0, j = 0; (i < nspans[X]) && (j < nspans[Y]); i++, j++)
+			fg_add_stroke(sc, &spans[X][i], &spans[Y][j]);
+	} else {
+		u_int    cum = 0;
+		atp_axis repeat_axis;      /* axis with multi-pspans */
+		u_int    repeat_count;     /* repeat count for the multi-pspan*/
+		u_int    repeat_index = 0; /* index of the multi-span */
+
+		repeat_axis  = (nspans[X] > nspans[Y]) ? Y : X;
+		repeat_count = abs(nspans[X] - nspans[Y]);
+		for (i = 0; i < nspans[repeat_axis]; i++) {
+			if (spans[repeat_axis][i].cum > cum) {
+				repeat_index = i;
+				cum = spans[repeat_axis][i].cum;
+			}
+		}
+
+		/* Create new strokes from pairs of unmatched pspans */
+		i = 0, j = 0;
+		for (; (i < nspans[X]) && (j < nspans[Y]); i++, j++) {
+			fg_add_stroke(sc, &spans[X][i], &spans[Y][j]);
+
+			/* Take care to repeat at the multi-pspan. */
+			if (repeat_count > 0) {
+				if ((repeat_axis == X) &&
+				    (repeat_index == i)) {
+					i--; /* counter loop increment */
+					repeat_count--;
+				} else if ((repeat_axis == Y) &&
+				    (repeat_index == j)) {
+					j--; /* counter loop increment */
+					repeat_count--;
+				}
+			}
+		}
+	}
 }
 
 /* Initialize a stroke from an unmatched finger. */
