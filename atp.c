@@ -29,7 +29,6 @@
 /* todo : merge scale factors for fg and wsp */
 /* TODO: relocate #defines for constants to the top */
 /* align definitions with declarations */
-/* FALSE to false; TRUE to true */
 /* compile with USB_DEBUG for no warnings. */
 
 #include <sys/cdefs.h>
@@ -1331,7 +1330,7 @@ fg_detect_pspans(int *p, u_int num_sensors,
 		spans[i].loc = spans[i].cog * FG_SCALE_FACTOR /
 			spans[i].cum;
 
-		spans[i].matched = FALSE; /* not yet matched against a stroke */
+		spans[i].matched = false; /* not yet matched against a stroke */
 	}
 
 	*nspans_p = num_spans;
@@ -1339,7 +1338,7 @@ fg_detect_pspans(int *p, u_int num_sensors,
 
 /*
  * Match a pressure-span against a stroke-component. If there is a
- * match, update the component's state and return TRUE.
+ * match, update the component's state and return true.
  */
 static boolean_t
 fg_match_stroke_component(fg_stroke_component_t *component,
@@ -1383,7 +1382,7 @@ fg_match_stroke_component(fg_stroke_component_t *component,
 		delta_mickeys = 0;
 
 	component->delta_mickeys = delta_mickeys;
-	return (TRUE);
+	return (true);
 }
 
 static void
@@ -1433,7 +1432,7 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
 
 /*
  * Update strokes by matching against current pressure-spans.
- * Return TRUE if any movement is detected.
+ * Return true if any movement is detected.
  */
 static boolean_t
 fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
@@ -1636,7 +1635,7 @@ wsp_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 
 /*
  * Update strokes by matching against current pressure-spans.
- * Return TRUE if any movement is detected.
+ * Return true if any movement is detected.
  */
 boolean_t
 wsp_update_strokes(struct atp_softc *sc, wsp_finger_t *fingers, u_int n_fingers)
@@ -1730,13 +1729,13 @@ fg_add_new_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 
 	/* Copy unmatched pspans into the local arrays. */
 	for (i = 0, nspans[X] = 0; i < n_xpspans; i++) {
-		if (pspans_x[i].matched == FALSE) {
+		if (pspans_x[i].matched == false) {
 			spans[X][nspans[X]] = pspans_x[i];
 			nspans[X]++;
 		}
 	}
 	for (j = 0, nspans[Y] = 0; j < n_ypspans; j++) {
-		if (pspans_y[j].matched == FALSE) {
+		if (pspans_y[j].matched == false) {
 			spans[Y][nspans[Y]] = pspans_y[j];
 			nspans[Y]++;
 		}
@@ -1919,7 +1918,7 @@ atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
 	}
 
 	if (atp_compute_stroke_movement(strokep))
-		*movementp = TRUE;
+		*movementp = true;
 
 	if (strokep->type != ATP_STROKE_TOUCH)
 		return;
