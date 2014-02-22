@@ -29,7 +29,6 @@
 /* todo : merge scale factors for fg and wsp */
 /* TODO: relocate #defines for constants to the top */
 /* align definitions with declarations */
-/* compile with USB_DEBUG for no warnings. */
 
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
@@ -1552,24 +1551,20 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 		for (i = 0; i < sc->sc_n_strokes; i++) {
 			atp_stroke_t *stroke = &sc->sc_strokes[i];
 
-			printf(" %s%clc:%u,dm:%d,pnd:%d,cum:%d,max:%d,mv:%d%c"
-			    ",%clc:%u,dm:%d,pnd:%d,cum:%d,max:%d,mv:%d%c",
+			printf(" %s%clc:%u,dm:%d,cum:%d,max:%d,%c"
+			    ",%clc:%u,dm:%d,cum:%d,max:%d,%c",
 			    (stroke->flags & ATSF_ZOMBIE) ? "zomb:" : "",
 			    (stroke->type == ATP_STROKE_TOUCH) ? '[' : '<',
 			    stroke->components[X].loc,
 			    stroke->components[X].delta_mickeys,
-			    stroke->components[X].pending,
 			    stroke->components[X].cum_pressure,
 			    stroke->components[X].max_cum_pressure,
-			    stroke->components[X].movement,
 			    (stroke->type == ATP_STROKE_TOUCH) ? ']' : '>',
 			    (stroke->type == ATP_STROKE_TOUCH) ? '[' : '<',
 			    stroke->components[Y].loc,
 			    stroke->components[Y].delta_mickeys,
-			    stroke->components[Y].pending,
 			    stroke->components[Y].cum_pressure,
 			    stroke->components[Y].max_cum_pressure,
-			    stroke->components[Y].movement,
 			    (stroke->type == ATP_STROKE_TOUCH) ? ']' : '>');
 		}
 		if (sc->sc_n_strokes)
