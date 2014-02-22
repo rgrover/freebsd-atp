@@ -2195,6 +2195,11 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	case USB_ST_TRANSFERRED:
 		pc = usbd_xfer_get_frame(xfer, 0);
 		usbd_copy_out(pc, 0, sc->sc_sensor_data, len);
+		if (len < sc->sc_expected_sensor_data_len) {
+        		/* make sure we don't process old data */
+        		memset(sc->sc_sensor_data + len, 0,
+        		    sc->sc_expected_sensor_data_len - len);
+        	}
 
 		sc->sc_status.flags &= ~(MOUSE_STDBUTTONSCHANGED |
 		    MOUSE_POSCHANGED);
