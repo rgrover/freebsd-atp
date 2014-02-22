@@ -25,6 +25,7 @@
  */
 
 /* TODO : fg devices need to be silenced during idleness. */
+/* todo: remove 'static' from function definitions */
 
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
