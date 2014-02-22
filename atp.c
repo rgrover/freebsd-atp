@@ -27,6 +27,7 @@
 /* TODO : fg devices need to be silenced during idleness. */
 /* todo: remove 'static' from function definitions */
 /* todo : merge scale factors for fg and wsp */
+/* TODO: relocate #defines for constants to the top */
 
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
