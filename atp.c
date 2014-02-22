@@ -330,9 +330,9 @@ struct wsp_param {
 
 /* device-specific configuration */
 struct fg_dev_params {
-	u_int            data_len;   /* for sensor data */
-	u_int            n_xsensors;
-	u_int            n_ysensors;
+	u_int                              data_len;   /* for sensor data */
+	u_int                              n_xsensors;
+	u_int                              n_ysensors;
 	enum fountain_geyser_trackpad_type prot;
 };
 struct wsp_dev_params {
