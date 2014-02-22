@@ -30,6 +30,7 @@
 /* TODO: relocate #defines for constants to the top */
 /* align definitions with declarations */
 /* FALSE to false; TRUE to true */
+/* compile with USB_DEBUG for no warnings. */
 
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
