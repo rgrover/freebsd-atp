@@ -1400,17 +1400,14 @@ static boolean_t
 fg_update_strokes(struct atp_softc *sc, const fg_pspan *pspans_x,
     u_int n_xpspans, const fg_pspan *pspans_y, u_int n_ypspans)
 {
-	#if 0
-	u_int       i, j;
-	atp_stroke *stroke;
-	boolean_t   movement = FALSE;
-	u_int       repeat_count = 0;
+	unsigned      i;
+	atp_stroke_t *strokep      = sc->sc_strokes;
+	// boolean_t     movement     = false;
+	u_int         repeat_count = 0;
 
 	/* Reset X and Y components of all strokes as unmatched. */
-	for (i = 0; i < sc->sc_n_strokes; i++) {
-		stroke = &sc->sc_strokes[i];
-		stroke->components[X].matched = FALSE;
-		stroke->components[Y].matched = FALSE;
+	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
+		strokep->matched = false;
 	}
 
 	/*
@@ -1452,6 +1449,7 @@ fg_update_strokes(struct atp_softc *sc, const fg_pspan *pspans_x,
 	fg_match_strokes_against_pspans(sc, X, pspans_x, n_xpspans,
 	    (((repeat_count != 0) && ((n_xpspans < n_ypspans))) ?
 		repeat_count : 0));
+	#if 0
 	fg_match_strokes_against_pspans(sc, Y, pspans_y, n_ypspans,
 	    (((repeat_count != 0) && (n_ypspans < n_xpspans)) ?
 		repeat_count : 0));
