@@ -901,8 +901,8 @@ static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
 static void      fg_get_pressures(int *, const int *, const int *, int);
 static void      fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
 static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
-static boolean_t fg_update_strokes(struct atp_softc *, const fg_pspan *, u_int,
-	const fg_pspan *, u_int);
+static boolean_t fg_update_strokes(struct atp_softc *, fg_pspan *, u_int,
+    fg_pspan *, u_int);
 static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
 
@@ -910,7 +910,7 @@ static boolean_t wsp_update_strokes(struct atp_softc *,
 static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static void          fg_match_strokes_against_pspans(struct atp_softc *,
-    atp_axis, const fg_pspan *, u_int, u_int);
+    atp_axis, fg_pspan *, u_int, u_int);
 static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
     wsp_finger_t *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
@@ -1381,7 +1381,7 @@ atp_match_stroke_component(atp_stroke_component *component,
 
 static void
 fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
-    const fg_pspan *pspans, u_int n_pspans, u_int repeat_count)
+    fg_pspan *pspans, u_int n_pspans, u_int repeat_count)
 {
 	u_int i, j;
 	u_int repeat_index = 0;
@@ -1429,8 +1429,8 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
  * Return TRUE if any movement is detected.
  */
 static boolean_t
-fg_update_strokes(struct atp_softc *sc, const fg_pspan *pspans_x,
-    u_int n_xpspans, const fg_pspan *pspans_y, u_int n_ypspans)
+fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
+    u_int n_xpspans, fg_pspan *pspans_y, u_int n_ypspans)
 {
 	unsigned      i;
 	atp_stroke_t *strokep      = sc->sc_strokes;
