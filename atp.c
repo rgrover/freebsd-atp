@@ -26,7 +26,6 @@
 
 /* TODO : fg devices need to be silenced during idleness. */
 /* todo: remove 'static' from function definitions */
-/* todo : merge scale factors for fg and wsp */
 /* TODO: relocate #defines for constants to the top */
 /* align definitions with declarations */
 
@@ -71,7 +70,7 @@ __FBSDID("$FreeBSD$");
  */
 
 /* The multiplier used to translate sensor reported positions to mickeys. */
-#define FG_SCALE_FACTOR                   48
+#define FG_SCALE_FACTOR                   380
 
 /*
  * The movement threshold for a stroke; this is the maximum difference
@@ -161,11 +160,11 @@ SYSCTL_UINT(_hw_usb_atp, OID_AUTO, double_tap_threshold, CTLFLAG_RW,
     "maximum time (in micros) to allow association between a double-tap and "
     "drag gesture");
 
-static u_int wsp_mickeys_scale_factor = WSP_SCALE_FACTOR;
-static int wsp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS);
+static u_int atp_mickeys_scale_factor = WSP_SCALE_FACTOR;
+static int atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS);
 SYSCTL_PROC(_hw_usb_atp, OID_AUTO, scale_factor, CTLTYPE_UINT | CTLFLAG_RW,
-    &wsp_mickeys_scale_factor, sizeof(wsp_mickeys_scale_factor),
-    wsp_sysctl_scale_factor_handler, "IU", "movement scale factor");
+    &atp_mickeys_scale_factor, sizeof(atp_mickeys_scale_factor),
+    atp_sysctl_scale_factor_handler, "IU", "movement scale factor");
 
 static u_int wsp_small_movement_threshold = WSP_SMALL_MOVEMENT_THRESHOLD;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
@@ -1960,9 +1959,9 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 			 * movements from being lost in following scaling \
 			 * operation.                                   \
 			 */                                             \
-			(I) = (((I) + (wsp_mickeys_scale_factor - 1)) / \
-			       wsp_mickeys_scale_factor) *              \
-			      wsp_mickeys_scale_factor;                 \
+			(I) = (((I) + (atp_mickeys_scale_factor - 1)) / \
+			       atp_mickeys_scale_factor) *              \
+			      atp_mickeys_scale_factor;                 \
 									\
 			/*                                              \
 			 * Deduct the rounded mickeys from pending mickeys. \
@@ -1981,9 +1980,9 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 			 * movements from being lost in following scaling \
 			 * operation.                                   \
 			 */                                             \
-			(I) = (((I) - (wsp_mickeys_scale_factor - 1)) / \
-			       wsp_mickeys_scale_factor) *              \
-			      wsp_mickeys_scale_factor;                 \
+			(I) = (((I) - (atp_mickeys_scale_factor - 1)) / \
+			       atp_mickeys_scale_factor) *              \
+			      atp_mickeys_scale_factor;                 \
 									\
 			/*                                              \
 			 * Deduct the rounded mickeys from pending mickeys. \
@@ -2027,9 +2026,9 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 
 	/* scale movement */
 	strokep->movement_dx = (strokep->instantaneous_dx) /
-	    (int)wsp_mickeys_scale_factor;
+	    (int)atp_mickeys_scale_factor;
 	strokep->movement_dy = (strokep->instantaneous_dy) /
-	    (int)wsp_mickeys_scale_factor;
+	    (int)atp_mickeys_scale_factor;
 
 	if ((abs(strokep->instantaneous_dx) >= ATP_FAST_MOVEMENT_TRESHOLD) ||
 	    (abs(strokep->instantaneous_dy) >= ATP_FAST_MOVEMENT_TRESHOLD)) {
@@ -2578,20 +2577,20 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 }
 
 static int
-wsp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS)
+atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS)
 {
 	int error;
 	u_int tmp;
 
-	tmp = wsp_mickeys_scale_factor;
+	tmp = atp_mickeys_scale_factor;
 	error = sysctl_handle_int(oidp, &tmp, 0, req);
 	if (error != 0 || req->newptr == NULL)
 		return (error);
 
-	if (tmp == wsp_mickeys_scale_factor)
+	if (tmp == atp_mickeys_scale_factor)
 		return (0);     /* no change */
 
-	wsp_mickeys_scale_factor = tmp;
+	atp_mickeys_scale_factor = tmp;
 	DPRINTFN(ATP_LLEVEL_INFO, "%s: resetting mickeys_scale_factor to %u\n",
 	    ATP_DRIVER_NAME, tmp);
 
