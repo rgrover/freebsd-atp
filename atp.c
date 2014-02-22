@@ -966,12 +966,12 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 	if ((newMode != RAW_SENSOR_MODE) && (newMode != HID_MODE))
 		return (ENXIO);
 
-	uint8_t modeValue;
+	uint8_t mode_value;
 	if ((newMode       == RAW_SENSOR_MODE) &&
 	    (sc->sc_family == TRACKPAD_FAMILY_FOUNTAIN_GEYSER))
-		modeValue = (uint8_t)0x04;
+		mode_value = (uint8_t)0x04;
 	else
-		modeValue = newMode;
+		mode_value = newMode;
 
 	/*
 	 * Read the mode; perhaps this could be cached in a static variable
@@ -986,10 +986,10 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 		return (ENXIO);
 	}
 
-	if (mode_bytes[0] == modeValue)
+	if (mode_bytes[0] == mode_value)
 		return (0);
 
-	mode_bytes[0] = modeValue;
+	mode_bytes[0] = mode_value;
 	return (usbd_req_set_report(sc->sc_usb_device, NULL /* mutex */,
 	    mode_bytes, sizeof(mode_bytes), 0 /* interface index */,
 	    0x03 /* type */, 0x00 /* id */));
