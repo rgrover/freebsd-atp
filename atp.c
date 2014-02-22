@@ -1351,34 +1351,34 @@ static void
 fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
     const fg_pspan *pspans, u_int n_pspans, u_int repeat_count)
 {
-	// u_int i, j;
-	// u_int repeat_index = 0;
+	u_int i, j;
+	u_int repeat_index = 0;
 
-	// /* Determine the index of the multi-span. */
-	// if (repeat_count) {
-	// 	u_int cum = 0;
-	// 	for (i = 0; i < n_pspans; i++) {
-	// 		if (pspans[i].cum > cum) {
-	// 			repeat_index = i;
-	// 			cum = pspans[i].cum;
-	// 		}
-	// 	}
-	// }
+	/* Determine the index of the multi-span. */
+	if (repeat_count) {
+		u_int cum = 0;
+		for (i = 0; i < n_pspans; i++) {
+			if (pspans[i].cum > cum) {
+				repeat_index = i;
+				cum = pspans[i].cum;
+			}
+		}
+	}
 
-	// for (i = 0; i < sc->sc_n_strokes; i++) {
-	// 	atp_stroke *stroke  = &sc->sc_strokes[i];
-	// 	if (stroke->components[axis].matched)
-	// 		continue; /* skip matched components */
+	atp_stroke_t *strokep  = sc->sc_strokes;
+	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
+		if (strokep->matched)
+			continue; /* skip matched components */
 
-	// 	for (j = 0; j < n_pspans; j++) {
-	// 		if (pspans[j].matched)
-	// 			continue; /* skip matched pspans */
+		for (j = 0; j < n_pspans; j++) {
+			if (pspans[j].matched)
+				continue; /* skip matched pspans */
 
 	// 		if (atp_match_stroke_component(
-	// 			    &stroke->components[axis], &pspans[j],
-	// 			    stroke->type)) {
+	// 			    &strokep->components[axis], &pspans[j],
+	// 			    strokep->type)) {
 	// 			/* There is a match. */
-	// 			stroke->components[axis].matched = TRUE;
+	// 			strokep->components[axis].matched = TRUE;
 
 	// 			/* Take care to repeat at the multi-span. */
 	// 			if ((repeat_count > 0) && (j == repeat_index))
@@ -1386,10 +1386,10 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
 	// 			else
 	// 				pspans[j].matched = TRUE;
 
-	// 			break; /* skip to the next stroke */
+	// 			break; /* skip to the next strokep */
 	// 		}
-	// 	} /* loop over pspans */
-	// } /* loop over strokes */
+		} /* loop over pspans */
+	} /* loop over strokes */
 }
 
 /*
