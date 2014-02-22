@@ -1098,10 +1098,10 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	 * data; deltas with respect to these base values can
 	 * be used as pressure readings subsequently.
 	 */
+	uint8_t status_bits = sc->sensor_data[params->data_len - 1];
 	if (((params->prot == FG_TRACKPAD_TYPE_GEYSER3) ||
 	     (params->prot == FG_TRACKPAD_TYPE_GEYSER4))  &&
 	    ((sc->sc_state & ATP_VALID) == 0)) {
-		uint8_t status_bits = sc->sensor_data[params->data_len - 1];
 		if (status_bits & FG_STATUS_BASE_UPDATE) {
 			memcpy(base_x, cur_x,
 			    params->n_xsensors * sizeof(*base_x));
@@ -1123,18 +1123,10 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	/* Update strokes with new pspans to detect movements. */
 	if (fg_update_strokes(sc, pspans_x, n_xpspans, pspans_y, n_ypspans))
 		sc->sc_status.flags |= MOUSE_POSCHANGED;
-#if 0
 
-	/* Reap zombies if it is time. */
-	if (sc->sc_state & ATP_ZOMBIES_EXIST) {
-		struct timeval now;
-
-		getmicrotime(&now);
-		if (timevalcmp(&now, &sc->sc_reap_time, >=))
-			atp_reap_zombies(sc, &tap_fingers,
-			    reaped_xlocs);
-	}
-#endif /* #if 0*/
+	sc->sc_ibtn = (status_bits & FG_STATUS_BUTTON) ?
+		MOUSE_BUTTON1DOWN : 0;
+	sc->sc_status.button = sc->sc_ibtn;
 }
 
 /*
