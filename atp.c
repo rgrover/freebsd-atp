@@ -861,10 +861,10 @@ static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
 static void      fg_get_pressures(int *, const int *, const int *, int);
 static void      fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
 static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
+static boolean_t fg_update_strokes(struct atp_softc *, const fg_pspan *, u_int,
+	const fg_pspan *, u_int);
 static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
-// static boolean_t fg_update_strokes(struct atp_softc *,
-//     const fg_pspan *, u_int, const fg_pspan *, u_int);
 
 /* movement detection */
 static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
@@ -1074,12 +1074,10 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	fg_detect_pspans(pressure_y, params->n_ysensors, FG_MAX_PSPANS_PER_AXIS,
 	    pspans_y, &n_ypspans);
 
-#if 0
 	/* Update strokes with new pspans to detect movements. */
-	if (atp_update_strokes(sc,
-		pspans_x, n_xpspans,
-		pspans_y, n_ypspans))
+	if (fg_update_strokes(sc, pspans_x, n_xpspans, pspans_y, n_ypspans))
 		sc->sc_status.flags |= MOUSE_POSCHANGED;
+#if 0
 
 	/* Reap zombies if it is time. */
 	if (sc->sc_state & ATP_ZOMBIES_EXIST) {
@@ -1389,15 +1387,17 @@ atp_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
 		} /* loop over pspans */
 	} /* loop over strokes */
 }
+#endif /* #if 0 */
 
 /*
  * Update strokes by matching against current pressure-spans.
  * Return TRUE if any movement is detected.
  */
 static boolean_t
-atp_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
-    u_int n_xpspans, fg_pspan *pspans_y, u_int n_ypspans)
+fg_update_strokes(struct atp_softc *sc, const fg_pspan *pspans_x,
+    u_int n_xpspans, const fg_pspan *pspans_y, u_int n_ypspans)
 {
+	#if 0
 	u_int       i, j;
 	atp_stroke *stroke;
 	boolean_t   movement = FALSE;
@@ -1535,8 +1535,9 @@ atp_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 #endif /* USB_DEBUG */
 
 	return (movement);
+	#endif
+	return (false);
 }
-#endif /* #if 0 */
 
 void
 wsp_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
