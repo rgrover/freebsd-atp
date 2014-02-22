@@ -85,7 +85,6 @@ __FBSDID("$FreeBSD$");
 #include "usbdevs.h"
 
 /* TODO: small movement threshold should not have a WSP prefix */
-/* populate and unpopulate are un-necessary */
 
 #define USB_DEBUG_VAR atp_debug
 #include <dev/usb/usb_debug.h>
@@ -720,8 +719,6 @@ static int           atp_set_device_mode(struct atp_softc *, interface_mode);
 static void          atp_reset_callback(struct usb_xfer *, usb_error_t);
 static int           atp_enable(struct atp_softc *);
 static void          atp_disable(struct atp_softc *);
-static int           atp_softc_populate(struct atp_softc *);
-static void          atp_softc_unpopulate(struct atp_softc *);
 
 /* sensor interpretation */
 static void          fg_interpret_sensor_data(struct atp_softc *, unsigned);
@@ -882,12 +879,6 @@ atp_enable(struct atp_softc *sc)
 	if (sc->sc_state & ATP_ENABLED)
 		return (0);
 
-	/* Allocate the dynamic buffers */
-	if (atp_softc_populate(sc) != 0) {
-		atp_softc_unpopulate(sc);
-		return (ENOMEM);
-	}
-
 	/* reset status */
 	memset(&sc->sc_status, 0, sizeof(sc->sc_status));
 
@@ -902,23 +893,8 @@ atp_enable(struct atp_softc *sc)
 void
 atp_disable(struct atp_softc *sc)
 {
-	atp_softc_unpopulate(sc);
-
 	sc->sc_state &= ~(ATP_ENABLED | ATP_VALID);
 	DPRINTFN(ATP_LLEVEL_INFO, "disabled atp\n");
-}
-
-/* Allocate dynamic memory for some fields in softc. */
-int
-atp_softc_populate(struct atp_softc *sc)
-{
-	return (0);
-}
-
-/* Free dynamic memory allocated for some fields in softc. */
-void
-atp_softc_unpopulate(struct atp_softc *sc)
-{
 }
 
 void
