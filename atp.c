@@ -24,8 +24,6 @@
  * SUCH DAMAGE.
  */
 
-/* TODO : fg devices need to be silenced during idleness. */
-
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
@@ -753,6 +751,7 @@ typedef enum atp_axis {
 
 enum {
 	ATP_INTR_DT,
+	ATP_RESET,
 	ATP_N_TRANSFER,
 };
 
@@ -888,6 +887,7 @@ static struct usb_fifo_methods atp_fifo_methods = {
 
 /* device initialization and shutdown */
 static int           atp_set_device_mode(struct atp_softc *, interface_mode);
+static void          atp_reset_callback(struct usb_xfer *, usb_error_t);
 static int           atp_enable(struct atp_softc *);
 static void          atp_disable(struct atp_softc *);
 static int           atp_softc_populate(struct atp_softc *);
@@ -956,6 +956,14 @@ static struct usb_config atp_xfer_config[ATP_N_TRANSFER] = {
 		.bufsize   = 0, /* use wMaxPacketSize */
 		.callback  = &atp_intr,
 	},
+	[ATP_RESET] = {
+		.type      = UE_CONTROL,
+		.endpoint  = 0, /* Control pipe */
+		.direction = UE_DIR_ANY,
+		.bufsize   = sizeof(struct usb_device_request) + MODE_LENGTH,
+		.callback  = &atp_reset_callback,
+		.interval  = 0,  /* no pre-delay */
+	},
 };
 
 int
@@ -993,6 +1001,46 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 	return (usbd_req_set_report(sc->sc_usb_device, NULL /* mutex */,
 	    sc->sc_mode_bytes, sizeof(sc->sc_mode_bytes), 0 /* interface idx */,
 	    0x03 /* type */, 0x00 /* id */));
+}
+
+void
+atp_reset_callback(struct usb_xfer *xfer, usb_error_t error)
+{
+	usb_device_request_t   req;
+	struct usb_page_cache *pc;
+	struct atp_softc      *sc = usbd_xfer_softc(xfer);
+
+	uint8_t mode_value;
+	if (sc->sc_family == TRACKPAD_FAMILY_FOUNTAIN_GEYSER)
+		mode_value = 0x04;
+	else
+		mode_value = RAW_SENSOR_MODE;
+
+	switch (USB_GET_STATE(xfer)) {
+	case USB_ST_SETUP:
+		sc->sc_mode_bytes[0] = mode_value;
+		req.bmRequestType = UT_WRITE_CLASS_INTERFACE;
+		req.bRequest = UR_SET_REPORT;
+		USETW2(req.wValue,
+		    (uint8_t)0x03 /* type */, (uint8_t)0x00 /* id */);
+		USETW(req.wIndex, 0);
+		USETW(req.wLength, MODE_LENGTH);
+
+		pc = usbd_xfer_get_frame(xfer, 0);
+		usbd_copy_in(pc, 0, &req, sizeof(req));
+		pc = usbd_xfer_get_frame(xfer, 1);
+		usbd_copy_in(pc, 0, sc->sc_mode_bytes, MODE_LENGTH);
+
+		usbd_xfer_set_frame_len(xfer, 0, sizeof(req));
+		usbd_xfer_set_frame_len(xfer, 1, MODE_LENGTH);
+		usbd_xfer_set_frames(xfer, 2);
+		usbd_transfer_submit(xfer);
+		break;
+
+	case USB_ST_TRANSFERRED:
+	default:
+		break;
+	}
 }
 
 int
@@ -1130,6 +1178,43 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	sc->sc_ibtn = (status_bits & FG_STATUS_BUTTON) ?
 		MOUSE_BUTTON1DOWN : 0;
 	sc->sc_status.button = sc->sc_ibtn;
+
+	/*
+	 * The Fountain/Geyser device continues to trigger interrupts
+	 * at a fast rate even after touchpad activity has
+	 * stopped. Upon detecting that the device has
+	 * remained idle beyond a threshold, we reinitialize
+	 * it to silence the interrupts.
+	 */
+	static unsigned idlecount = 0;
+	#define ATP_IDLENESS_THRESHOLD 10
+	if ((sc->sc_status.flags  == 0) &&
+	    (sc->sc_n_strokes     == 0)) {
+		idlecount++;
+		if (idlecount >= ATP_IDLENESS_THRESHOLD) {
+			DPRINTFN(ATP_LLEVEL_INFO, "idle\n");
+
+			/*
+			 * Use the last frame before we go idle for
+			 * calibration on pads which do not send
+			 * calibration frames.
+			 */
+			const struct fg_dev_params *params =
+			    (const struct fg_dev_params *)sc->sc_params;
+
+			if (params->prot < FG_TRACKPAD_TYPE_GEYSER3) {
+				memcpy(base_x, cur_x,
+				    params->n_xsensors * sizeof(*(base_x)));
+				memcpy(base_y, cur_y,
+				    params->n_ysensors * sizeof(*(base_y)));
+			}
+
+			idlecount = 0;
+			usbd_transfer_start(sc->sc_xfer[ATP_RESET]);
+		}
+	} else
+		idlecount = 0;
+
 }
 
 /*
