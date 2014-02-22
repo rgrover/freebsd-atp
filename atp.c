@@ -968,6 +968,13 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 	if ((newMode != RAW_SENSOR_MODE) && (newMode != HID_MODE))
 		return (ENXIO);
 
+	uint8_t modeValue;
+	if ((newMode       == RAW_SENSOR_MODE) &&
+	    (sc->sc_family == TRACKPAD_FAMILY_FOUNTAIN_GEYSER))
+		modeValue = (uint8_t)0x04;
+	else
+		modeValue = newMode;
+
 	/*
 	 * Read the mode; perhaps this could be cached in a static variable
 	 * or in the softc, but reading it live from the device may not cause
@@ -981,10 +988,10 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 		return (ENXIO);
 	}
 
-	if (mode_bytes[0] == newMode)
+	if (mode_bytes[0] == modeValue)
 		return (0);
 
-	mode_bytes[0] = newMode;
+	mode_bytes[0] = modeValue;
 	return (usbd_req_set_report(sc->sc_usb_device, NULL /* mutex */,
 	    mode_bytes, sizeof(mode_bytes), 0 /* interface index */,
 	    0x03 /* type */, 0x00 /* id */));
