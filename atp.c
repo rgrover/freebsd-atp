@@ -738,9 +738,6 @@ enum {
 	ATP_N_TRANSFER,
 };
 
-struct atp_softc; /* forward declaration */
-typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
-
 /*
  * The following structure captures a finger contact with the
  * touchpad. A stroke comprises two p-span components and some state.
@@ -771,6 +768,9 @@ typedef struct atp_stroke {
 	int   movement_dy;      /* interpreted smoothened movement */
 	u_int cum_movement;     /* cum. absolute movement so far */
 } atp_stroke_t;
+
+struct atp_softc; /* forward declaration */
+typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
 
 struct atp_softc {
 	device_t             sc_dev;
