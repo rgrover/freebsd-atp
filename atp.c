@@ -870,6 +870,8 @@ static boolean_t wsp_update_strokes(struct atp_softc *,
 /* movement detection */
 static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
+static void          fg_match_strokes_against_pspans(struct atp_softc *,
+    atp_axis, const fg_pspan *, u_int, u_int);
 static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
     wsp_finger_t *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
@@ -1343,52 +1345,52 @@ atp_match_stroke_component(atp_stroke_component *component,
 	component->delta_mickeys = delta_mickeys;
 	return (TRUE);
 }
+#endif
 
 static void
-atp_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
-    fg_pspan *pspans, u_int n_pspans, u_int repeat_count)
+fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
+    const fg_pspan *pspans, u_int n_pspans, u_int repeat_count)
 {
-	u_int i, j;
-	u_int repeat_index = 0;
+	// u_int i, j;
+	// u_int repeat_index = 0;
 
-	/* Determine the index of the multi-span. */
-	if (repeat_count) {
-		u_int cum = 0;
-		for (i = 0; i < n_pspans; i++) {
-			if (pspans[i].cum > cum) {
-				repeat_index = i;
-				cum = pspans[i].cum;
-			}
-		}
-	}
+	// /* Determine the index of the multi-span. */
+	// if (repeat_count) {
+	// 	u_int cum = 0;
+	// 	for (i = 0; i < n_pspans; i++) {
+	// 		if (pspans[i].cum > cum) {
+	// 			repeat_index = i;
+	// 			cum = pspans[i].cum;
+	// 		}
+	// 	}
+	// }
 
-	for (i = 0; i < sc->sc_n_strokes; i++) {
-		atp_stroke *stroke  = &sc->sc_strokes[i];
-		if (stroke->components[axis].matched)
-			continue; /* skip matched components */
+	// for (i = 0; i < sc->sc_n_strokes; i++) {
+	// 	atp_stroke *stroke  = &sc->sc_strokes[i];
+	// 	if (stroke->components[axis].matched)
+	// 		continue; /* skip matched components */
 
-		for (j = 0; j < n_pspans; j++) {
-			if (pspans[j].matched)
-				continue; /* skip matched pspans */
+	// 	for (j = 0; j < n_pspans; j++) {
+	// 		if (pspans[j].matched)
+	// 			continue; /* skip matched pspans */
 
-			if (atp_match_stroke_component(
-				    &stroke->components[axis], &pspans[j],
-				    stroke->type)) {
-				/* There is a match. */
-				stroke->components[axis].matched = TRUE;
+	// 		if (atp_match_stroke_component(
+	// 			    &stroke->components[axis], &pspans[j],
+	// 			    stroke->type)) {
+	// 			/* There is a match. */
+	// 			stroke->components[axis].matched = TRUE;
 
-				/* Take care to repeat at the multi-span. */
-				if ((repeat_count > 0) && (j == repeat_index))
-					repeat_count--;
-				else
-					pspans[j].matched = TRUE;
+	// 			/* Take care to repeat at the multi-span. */
+	// 			if ((repeat_count > 0) && (j == repeat_index))
+	// 				repeat_count--;
+	// 			else
+	// 				pspans[j].matched = TRUE;
 
-				break; /* skip to the next stroke */
-			}
-		} /* loop over pspans */
-	} /* loop over strokes */
+	// 			break; /* skip to the next stroke */
+	// 		}
+	// 	} /* loop over pspans */
+	// } /* loop over strokes */
 }
-#endif /* #if 0 */
 
 /*
  * Update strokes by matching against current pressure-spans.
@@ -1447,10 +1449,10 @@ fg_update_strokes(struct atp_softc *sc, const fg_pspan *pspans_x,
 	 */
 	repeat_count = abs(n_xpspans - n_ypspans);
 
-	atp_match_strokes_against_pspans(sc, X, pspans_x, n_xpspans,
+	fg_match_strokes_against_pspans(sc, X, pspans_x, n_xpspans,
 	    (((repeat_count != 0) && ((n_xpspans < n_ypspans))) ?
 		repeat_count : 0));
-	atp_match_strokes_against_pspans(sc, Y, pspans_y, n_ypspans,
+	fg_match_strokes_against_pspans(sc, Y, pspans_y, n_ypspans,
 	    (((repeat_count != 0) && (n_ypspans < n_xpspans)) ?
 		repeat_count : 0));
 
