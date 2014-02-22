@@ -1491,7 +1491,7 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
 		if (strokep->components[X].matched &&
 		    strokep->components[Y].matched) {
-		    	strokep->matched = true;
+		    	strokep->matched          = true;
 		    	strokep->instantaneous_dx =
 		    	    strokep->components[X].delta_mickeys;
 		    	strokep->instantaneous_dy =
@@ -1507,14 +1507,14 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 		}
 	}
 
-	#if 0
 	/* Add new strokes for pairs of unmatched pspans */
 	for (i = 0; i < n_xpspans; i++) {
-		if (pspans_x[i].matched == FALSE) break;
+		if (pspans_x[i].matched == false) break;
 	}
 	for (j = 0; j < n_ypspans; j++) {
-		if (pspans_y[j].matched == FALSE) break;
+		if (pspans_y[j].matched == false) break;
 	}
+#if 0
 	if ((i < n_xpspans) && (j < n_ypspans)) {
 #ifdef USB_DEBUG
 		if (atp_debug >= ATP_LLEVEL_INFO) {
@@ -1572,10 +1572,9 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 			printf("\n");
 	}
 #endif /* USB_DEBUG */
+#endif
 
 	return (movement);
-	#endif
-	return (false);
 }
 
 void
