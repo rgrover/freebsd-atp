@@ -909,7 +909,7 @@ static boolean_t wsp_update_strokes(struct atp_softc *,
 /* movement detection */
 static boolean_t     fg_match_stroke_component(fg_stroke_component_t *,
     const fg_pspan *, atp_stroke_type);
-static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
+static __inline void wsp_add_stroke(struct atp_softc *, const wsp_finger_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static void          fg_match_strokes_against_pspans(struct atp_softc *,
     atp_axis, fg_pspan *, u_int, u_int);
@@ -1434,7 +1434,7 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 {
 	unsigned      i;
 	atp_stroke_t *strokep      = sc->sc_strokes;
-	// boolean_t     movement     = false;
+	boolean_t     movement     = false;
 	u_int         repeat_count = 0;
 
 	/* Reset X and Y components of all strokes as unmatched. */
@@ -1486,13 +1486,17 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 	    (((repeat_count != 0) && (n_ypspans < n_xpspans)) ?
 		repeat_count : 0));
 
-	#if 0
 	/* Update the state of strokes based on the above pspan matches. */
-	for (i = 0; i < sc->sc_n_strokes; i++) {
-		stroke = &sc->sc_strokes[i];
-		if (stroke->components[X].matched &&
-		    stroke->components[Y].matched) {
-			atp_advance_stroke_state(sc, stroke, &movement);
+	strokep = sc->sc_strokes;
+	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
+		if (strokep->components[X].matched &&
+		    strokep->components[Y].matched) {
+		    	strokep->matched = true;
+		    	strokep->instantaneous_dx =
+		    	    strokep->components[X].delta_mickeys;
+		    	strokep->instantaneous_dy =
+		    	    strokep->components[Y].delta_mickeys;
+			atp_advance_stroke_state(sc, strokep, &movement);
 		} else {
 			/*
 			 * At least one component of this stroke
@@ -1503,6 +1507,7 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 		}
 	}
 
+	#if 0
 	/* Add new strokes for pairs of unmatched pspans */
 	for (i = 0; i < n_xpspans; i++) {
 		if (pspans_x[i].matched == FALSE) break;
@@ -1657,7 +1662,7 @@ wsp_update_strokes(struct atp_softc *sc, wsp_finger_t *fingers, u_int n_fingers)
 		if (fingerp->matched)
 			continue;
 
-		atp_add_stroke(sc, fingerp);
+		wsp_add_stroke(sc, fingerp);
 	}
 
 	return (movement);
@@ -1665,7 +1670,7 @@ wsp_update_strokes(struct atp_softc *sc, wsp_finger_t *fingers, u_int n_fingers)
 
 /* Initialize a stroke from an unmatched finger. */
 static __inline void
-atp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
+wsp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
 {
 	atp_stroke_t *strokep;
 
