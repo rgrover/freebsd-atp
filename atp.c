@@ -989,11 +989,6 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 	else
 		mode_value = newMode;
 
-	/*
-	 * Read the mode; perhaps this could be cached in a static variable
-	 * or in the softc, but reading it live from the device may not cause
-	 * much overhead either.
-	 */
 	err = usbd_req_get_report(sc->sc_usb_device, NULL /* mutex */,
 	    sc->sc_mode_bytes, sizeof(sc->sc_mode_bytes), 0 /* interface idx */,
 	    0x03 /* type */, 0x00 /* id */);
