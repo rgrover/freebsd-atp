@@ -907,6 +907,8 @@ static boolean_t wsp_update_strokes(struct atp_softc *,
     wsp_finger_t [WSP_MAX_FINGERS], u_int);
 
 /* movement detection */
+static boolean_t     fg_match_stroke_component(fg_stroke_component_t *,
+    const fg_pspan *, atp_stroke_type);
 static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static void          fg_match_strokes_against_pspans(struct atp_softc *,
@@ -1328,13 +1330,12 @@ fg_detect_pspans(int *p, u_int num_sensors,
 	*nspans_p = num_spans;
 }
 
-#if 0
 /*
  * Match a pressure-span against a stroke-component. If there is a
  * match, update the component's state and return TRUE.
  */
 static boolean_t
-atp_match_stroke_component(atp_stroke_component *component,
+fg_match_stroke_component(fg_stroke_component_t *component,
     const fg_pspan *pspan, atp_stroke_type stroke_type)
 {
 	int   delta_mickeys;
@@ -1342,10 +1343,10 @@ atp_match_stroke_component(atp_stroke_component *component,
 
 	delta_mickeys = pspan->loc - component->loc;
 
-	if ((u_int)abs(delta_mickeys) > atp_max_delta_mickeys)
-		return (FALSE); /* the finger span is too far out; no match */
+	if ((u_int)abs(delta_mickeys) > FG_MAX_DELTA_MICKEYS)
+		return (false); /* the finger span is too far out; no match */
 
-	component->loc          = pspan->loc;
+	component->loc = pspan->loc;
 
 	/*
 	 * A sudden and significant increase in a pspan's cumulative
@@ -1377,7 +1378,6 @@ atp_match_stroke_component(atp_stroke_component *component,
 	component->delta_mickeys = delta_mickeys;
 	return (TRUE);
 }
-#endif
 
 static void
 fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
@@ -1406,20 +1406,20 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
 			if (pspans[j].matched)
 				continue; /* skip matched pspans */
 
-	// 		if (atp_match_stroke_component(
-	// 			    &strokep->components[axis], &pspans[j],
-	// 			    strokep->type)) {
-	// 			/* There is a match. */
-	// 			components_matched[i] = TRUE;
+			if (fg_match_stroke_component(
+			        &strokep->components[axis], &pspans[j],
+			        strokep->type)) {
+				/* There is a match. */
+				strokep->components[axis].matched = true;
 
-	// 			/* Take care to repeat at the multi-span. */
-	// 			if ((repeat_count > 0) && (j == repeat_index))
-	// 				repeat_count--;
-	// 			else
-	// 				pspans[j].matched = TRUE;
+				/* Take care to repeat at the multi-span. */
+				if ((repeat_count > 0) && (j == repeat_index))
+					repeat_count--;
+				else
+					pspans[j].matched = true;
 
-	// 			break; /* skip to the next strokep */
-	// 		}
+				break; /* skip to the next strokep */
+			}
 		} /* loop over pspans */
 	} /* loop over strokes */
 }
