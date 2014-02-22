@@ -84,8 +84,6 @@ __FBSDID("$FreeBSD$");
 
 #include "usbdevs.h"
 
-/* TODO: small movement threshold should not have a WSP prefix */
-
 #define USB_DEBUG_VAR atp_debug
 #include <dev/usb/usb_debug.h>
 
@@ -114,8 +112,8 @@ __FBSDID("$FreeBSD$");
 #endif
 
 /* Threshold for small movement noise (in mickeys) */
-#ifndef WSP_SMALL_MOVEMENT_THRESHOLD
-#define WSP_SMALL_MOVEMENT_THRESHOLD      30
+#ifndef ATP_SMALL_MOVEMENT_THRESHOLD
+#define ATP_SMALL_MOVEMENT_THRESHOLD      30
 #endif
 
 /* Distance-squared threshold for matching a finger with a known stroke */
@@ -195,9 +193,9 @@ SYSCTL_PROC(_hw_usb_atp, OID_AUTO, scale_factor, CTLTYPE_UINT | CTLFLAG_RW,
     &atp_mickeys_scale_factor, sizeof(atp_mickeys_scale_factor),
     atp_sysctl_scale_factor_handler, "IU", "movement scale factor");
 
-static u_int wsp_small_movement_threshold = WSP_SMALL_MOVEMENT_THRESHOLD;
+static u_int atp_small_movement_threshold = ATP_SMALL_MOVEMENT_THRESHOLD;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
-    &wsp_small_movement_threshold, WSP_SMALL_MOVEMENT_THRESHOLD,
+    &atp_small_movement_threshold, ATP_SMALL_MOVEMENT_THRESHOLD,
     "the small movement black-hole for filtering noise");
 
 /*
@@ -205,9 +203,9 @@ SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
  * from the aggregate of their components are considered as
  * slides. Unit: mickeys.
  */
-static u_int atp_slide_min_movement = 2 * WSP_SMALL_MOVEMENT_THRESHOLD;
+static u_int atp_slide_min_movement = 2 * ATP_SMALL_MOVEMENT_THRESHOLD;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, slide_min_movement, CTLFLAG_RW,
-    &atp_slide_min_movement, 2 * WSP_SMALL_MOVEMENT_THRESHOLD,
+    &atp_slide_min_movement, 2 * ATP_SMALL_MOVEMENT_THRESHOLD,
     "strokes with at least this amt. of movement are considered slides");
 
 /*
@@ -1758,9 +1756,9 @@ boolean_t
 atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 {
 	return (((u_int)abs(strokep->instantaneous_dx) <=
-		 wsp_small_movement_threshold) &&
+		 atp_small_movement_threshold) &&
 		((u_int)abs(strokep->instantaneous_dy) <=
-		 wsp_small_movement_threshold));
+		 atp_small_movement_threshold));
 }
 
 /*
@@ -1776,7 +1774,7 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
 	strokep->pending_dy += strokep->instantaneous_dy;
 
 #define UPDATE_INSTANTANEOUS_AND_PENDING(I, P)                          \
-	if (abs((P)) <= wsp_small_movement_threshold)                   \
+	if (abs((P)) <= atp_small_movement_threshold)                   \
 		(I) = 0; /* clobber small movement */                   \
 	else {                                                          \
 		if ((I) > 0) {                                          \
