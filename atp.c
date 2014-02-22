@@ -68,6 +68,9 @@ __FBSDID("$FreeBSD$");
  * `options' statements in the kernel configuration file.
  */
 
+/* The multiplier used to translate sensor reported positions to mickeys. */
+#define FG_SCALE_FACTOR                   48
+
 /* The divisor used to translate sensor reported positions to mickeys. */
 #ifndef WSP_SCALE_FACTOR
 #define WSP_SCALE_FACTOR 8
@@ -115,6 +118,12 @@ __FBSDID("$FreeBSD$");
 #if ATP_ZOMBIE_STROKE_REAP_INTERVAL > 100
 #error "ATP_ZOMBIE_STROKE_REAP_INTERVAL too large"
 #endif
+
+/* Ignore pressure spans with cumulative press. below this value. */
+#define FG_PSPAN_MIN_CUM_PRESSURE  10
+
+/* Maximum allowed width for pressure-spans.*/
+#define FG_PSPAN_MAX_WIDTH         4
 
 /* end of driver specific options */
 
@@ -1284,10 +1293,6 @@ fg_detect_pspans(int *p, u_int num_sensors,
 	}
 	if (state != ATP_PSPAN_INACTIVE)
 		num_spans++;    /* close the last finger span */
-
-#define FG_PSPAN_MIN_CUM_PRESSURE  10
-#define FG_PSPAN_MAX_WIDTH         4
-#define FG_SCALE_FACTOR            48
 
 	/* post-process the spans */
 	for (i = 0; i < num_spans; i++) {
