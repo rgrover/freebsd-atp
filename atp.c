@@ -930,6 +930,7 @@ static void          atp_reap_sibling_zombies(void *);
 static void          atp_convert_to_slide(struct atp_softc *, atp_stroke_t *);
 
 /* updating fifo */
+static void          atp_reset_buf(struct atp_softc *);
 static void          atp_add_to_queue(struct atp_softc *, int, int, int,
     uint32_t);
 
@@ -958,7 +959,7 @@ static struct usb_config atp_xfer_config[ATP_N_TRANSFER] = {
 	},
 };
 
-static int
+int
 atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 {
 	usb_error_t err;
@@ -991,7 +992,7 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 	    0x03 /* type */, 0x00 /* id */));
 }
 
-static int
+int
 atp_enable(struct atp_softc *sc)
 {
 	if (sc->sc_state & ATP_ENABLED)
@@ -1014,7 +1015,7 @@ atp_enable(struct atp_softc *sc)
 	return (0);
 }
 
-static void
+void
 atp_disable(struct atp_softc *sc)
 {
 	atp_softc_unpopulate(sc);
@@ -1024,7 +1025,7 @@ atp_disable(struct atp_softc *sc)
 }
 
 /* Allocate dynamic memory for some fields in softc. */
-static int
+int
 atp_softc_populate(struct atp_softc *sc)
 {
 	if (sc->sc_params == NULL) {
@@ -1057,7 +1058,7 @@ atp_softc_populate(struct atp_softc *sc)
 }
 
 /* Free dynamic memory allocated for some fields in softc. */
-static void
+void
 atp_softc_unpopulate(struct atp_softc *sc)
 {
 	if (sc->sc_params == NULL) {
@@ -1154,7 +1155,7 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
  *   prot
  *       The protocol to use to interpret the data
  */
-static void
+void
 fg_extract_sensor_data(const int8_t *sensor_data, u_int num, atp_axis axis,
     int	*arr, enum fountain_geyser_trackpad_type prot)
 {
@@ -1193,7 +1194,7 @@ fg_extract_sensor_data(const int8_t *sensor_data, u_int num, atp_axis axis,
 	}
 }
 
-static __inline void
+__inline void
 fg_get_pressures(int *p, const int *cur, const int *base, int n)
 {
 	int i;
@@ -1220,7 +1221,7 @@ fg_get_pressures(int *p, const int *cur, const int *base, int n)
 	}
 }
 
-static void
+void
 fg_detect_pspans(int *p, u_int num_sensors,
     u_int      max_spans, /* max # of pspans permitted */
     fg_pspan  *spans,     /* finger spans */
@@ -1330,7 +1331,7 @@ fg_detect_pspans(int *p, u_int num_sensors,
  * Match a pressure-span against a stroke-component. If there is a
  * match, update the component's state and return true.
  */
-static boolean_t
+boolean_t
 fg_match_stroke_component(fg_stroke_component_t *component,
     const fg_pspan *pspan, atp_stroke_type stroke_type)
 {
@@ -1375,7 +1376,7 @@ fg_match_stroke_component(fg_stroke_component_t *component,
 	return (true);
 }
 
-static void
+void
 fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
     fg_pspan *pspans, u_int n_pspans, u_int repeat_count)
 {
@@ -1424,7 +1425,7 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
  * Update strokes by matching against current pressure-spans.
  * Return true if any movement is detected.
  */
-static boolean_t
+boolean_t
 fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
     u_int n_xpspans, fg_pspan *pspans_y, u_int n_ypspans)
 {
@@ -1768,7 +1769,7 @@ fg_add_new_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 }
 
 /* Initialize a stroke from an unmatched finger. */
-static __inline void
+__inline void
 wsp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
 {
 	atp_stroke_t *strokep;
@@ -1805,7 +1806,7 @@ wsp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
  * are retained as zombies so as to reap all their siblings together;
  * this helps establish the number of fingers involved in the tap.
  */
-static void
+void
 atp_terminate_stroke(struct atp_softc *sc, u_int index)
 {
 	atp_stroke_t *strokep = &sc->sc_strokes[index];
@@ -1927,7 +1928,7 @@ atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
 	}
 }
 
-static boolean_t
+boolean_t
 atp_stroke_has_small_movement(const atp_stroke_t *strokep)
 {
 	return (((u_int)abs(strokep->instantaneous_dx) <=
@@ -1941,7 +1942,7 @@ atp_stroke_has_small_movement(const atp_stroke_t *strokep)
  * the aggregate exceeds the small_movement_threshold, then retain
  * instantaneous changes for later.
  */
-static __inline void
+__inline void
 atp_update_pending_mickeys(atp_stroke_t *strokep)
 {
 	/* accumulate instantaneous movement */
@@ -2007,7 +2008,7 @@ atp_update_pending_mickeys(atp_stroke_t *strokep)
  * Compute a smoothened value for the stroke's movement from
  * instantaneous changes in the X and Y components.
  */
-static boolean_t
+boolean_t
 atp_compute_stroke_movement(atp_stroke_t *strokep)
 {
 	/*
@@ -2042,7 +2043,7 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	return ((strokep->movement_dx != 0) || (strokep->movement_dy != 0));
 }
 
-static void
+void
 atp_reap_sibling_zombies(void *arg)
 {
 	struct atp_softc *sc = (struct atp_softc *)arg;
@@ -2115,7 +2116,7 @@ atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
 	}
 }
 
-static void
+void
 atp_add_to_queue(struct atp_softc *sc, int dx, int dy, int dz,
     uint32_t buttons_in)
 {
@@ -2155,7 +2156,7 @@ atp_add_to_queue(struct atp_softc *sc, int dx, int dy, int dz,
 	    sc->sc_mode.packetsize, 1);
 }
 
-static int
+int
 atp_probe(device_t self)
 {
 	struct usb_attach_arg *uaa = device_get_ivars(self);
@@ -2183,7 +2184,7 @@ atp_probe(device_t self)
 	return (ENXIO);
 }
 
-static int
+int
 atp_attach(device_t dev)
 {
 	struct atp_softc      *sc  = device_get_softc(dev);
@@ -2276,7 +2277,7 @@ detach:
 	return (ENOMEM);
 }
 
-static int
+int
 atp_detach(device_t dev)
 {
 	struct atp_softc *sc;
@@ -2405,14 +2406,14 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	}
 }
 
-static void
+void
 atp_reset_buf(struct atp_softc *sc)
 {
 	/* reset read queue */
 	usb_fifo_reset(sc->sc_fifo.fp[USB_FIFO_RX]);
 }
 
-static void
+void
 atp_start_read(struct usb_fifo *fifo)
 {
 	struct atp_softc *sc = usb_fifo_softc(fifo);
@@ -2436,14 +2437,14 @@ atp_start_read(struct usb_fifo *fifo)
 	usbd_transfer_start(sc->sc_xfer[ATP_INTR_DT]);
 }
 
-static void
+void
 atp_stop_read(struct usb_fifo *fifo)
 {
 	struct atp_softc *sc = usb_fifo_softc(fifo);
 	usbd_transfer_stop(sc->sc_xfer[ATP_INTR_DT]);
 }
 
-static int
+int
 atp_open(struct usb_fifo *fifo, int fflags)
 {
 	struct atp_softc *sc = usb_fifo_softc(fifo);
@@ -2470,7 +2471,7 @@ atp_open(struct usb_fifo *fifo, int fflags)
 	return (0);
 }
 
-static void
+void
 atp_close(struct usb_fifo *fifo, int fflags)
 {
 	struct atp_softc *sc = usb_fifo_softc(fifo);
@@ -2576,7 +2577,7 @@ atp_ioctl(struct usb_fifo *fifo, u_long cmd, void *addr, int fflags)
 	return (error);
 }
 
-static int
+int
 atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS)
 {
 	int error;
