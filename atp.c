@@ -338,7 +338,7 @@ typedef struct wsp_finger_to_match {
 
 #define ATP_SENSOR_DATA_BUF_MAX       1024
 #if (ATP_SENSOR_DATA_BUF_MAX < ((WSP_MAX_FINGERS * 14 * 2) + \
-			      	WSP_TYPE3_FINGER_DATA_OFFSET))
+				WSP_TYPE3_FINGER_DATA_OFFSET))
 /* note: 14 * 2 in the above is based on sizeof(struct wsp_finger_sensor_data)*/
 #error "ATP_SENSOR_DATA_BUF_MAX is too small"
 #endif
@@ -2194,10 +2194,10 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		pc = usbd_xfer_get_frame(xfer, 0);
 		usbd_copy_out(pc, 0, sc->sc_sensor_data, len);
 		if (len < sc->sc_expected_sensor_data_len) {
-        		/* make sure we don't process old data */
-        		memset(sc->sc_sensor_data + len, 0,
-        		    sc->sc_expected_sensor_data_len - len);
-        	}
+			/* make sure we don't process old data */
+			memset(sc->sc_sensor_data + len, 0,
+			    sc->sc_expected_sensor_data_len - len);
+		}
 
 		sc->sc_status.flags &= ~(MOUSE_STDBUTTONSCHANGED |
 		    MOUSE_POSCHANGED);
