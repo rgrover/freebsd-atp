@@ -728,7 +728,8 @@ typedef enum atp_stroke_type {
 
 typedef enum atp_axis {
 	X = 0,
-	Y = 1
+	Y = 1,
+	NUM_AXES
 } atp_axis;
 
 #define ATP_FIFO_BUF_SIZE        8 /* bytes */
@@ -738,6 +739,14 @@ enum {
 	ATP_INTR_DT,
 	ATP_N_TRANSFER,
 };
+
+typedef struct fg_stroke_component {
+	/* Fields encapsulating the pressure-span. */
+	u_int loc;              /* location (scaled) */
+	u_int cum_pressure;     /* cumulative compression */
+	u_int max_cum_pressure; /* max cumulative compression */
+	boolean_t matched; /*to track components as they match against pspans.*/
+} fg_stroke_component_t;
 
 /*
  * The following structure captures a finger contact with the
@@ -768,6 +777,13 @@ typedef struct atp_stroke {
 	int   movement_dx;      /* interpreted smoothened movement */
 	int   movement_dy;      /* interpreted smoothened movement */
 	u_int cum_movement;     /* cum. absolute movement so far */
+
+	/*
+	 * The following member is relevant only for fountain-geyser trackpads.
+	 * For these, there is the need to track pressure-spans and cumulative
+	 * pressures for stroke components.
+	 */
+	fg_stroke_component_t components[NUM_AXES];
 } atp_stroke_t;
 
 struct atp_softc; /* forward declaration */
