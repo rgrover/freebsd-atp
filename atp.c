@@ -871,7 +871,7 @@ static boolean_t wsp_update_strokes(struct atp_softc *,
 static __inline void atp_add_stroke(struct atp_softc *, const wsp_finger_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 static void          fg_match_strokes_against_pspans(struct atp_softc *,
-    atp_axis, const fg_pspan *, u_int, u_int);
+    atp_axis, const fg_pspan *, u_int, u_int, boolean_t *);
 static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
     wsp_finger_t *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
@@ -1349,7 +1349,8 @@ atp_match_stroke_component(atp_stroke_component *component,
 
 static void
 fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
-    const fg_pspan *pspans, u_int n_pspans, u_int repeat_count)
+    const fg_pspan *pspans, u_int n_pspans, u_int repeat_count,
+    boolean_t components_matched[FG_MAX_PSPANS_PER_AXIS])
 {
 	u_int i, j;
 	u_int repeat_index = 0;
@@ -1367,7 +1368,7 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
 
 	atp_stroke_t *strokep  = sc->sc_strokes;
 	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
-		if (strokep->matched)
+		if (components_matched[i])
 			continue; /* skip matched components */
 
 		for (j = 0; j < n_pspans; j++) {
@@ -1378,7 +1379,7 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
 	// 			    &strokep->components[axis], &pspans[j],
 	// 			    strokep->type)) {
 	// 			/* There is a match. */
-	// 			strokep->components[axis].matched = TRUE;
+	// 			components_matched[i] = TRUE;
 
 	// 			/* Take care to repeat at the multi-span. */
 	// 			if ((repeat_count > 0) && (j == repeat_index))
@@ -1406,8 +1407,11 @@ fg_update_strokes(struct atp_softc *sc, const fg_pspan *pspans_x,
 	u_int         repeat_count = 0;
 
 	/* Reset X and Y components of all strokes as unmatched. */
+	boolean_t stroke_X_matched[FG_MAX_PSPANS_PER_AXIS];
+	boolean_t stroke_Y_matched[FG_MAX_PSPANS_PER_AXIS];
 	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
-		strokep->matched = false;
+		stroke_X_matched[i] = false;
+		stroke_Y_matched[i] = false;
 	}
 
 	/*
@@ -1448,7 +1452,9 @@ fg_update_strokes(struct atp_softc *sc, const fg_pspan *pspans_x,
 
 	fg_match_strokes_against_pspans(sc, X, pspans_x, n_xpspans,
 	    (((repeat_count != 0) && ((n_xpspans < n_ypspans))) ?
-		repeat_count : 0));
+		repeat_count : 0),
+	    stroke_X_matched);
+
 	#if 0
 	fg_match_strokes_against_pspans(sc, Y, pspans_y, n_ypspans,
 	    (((repeat_count != 0) && (n_ypspans < n_xpspans)) ?
