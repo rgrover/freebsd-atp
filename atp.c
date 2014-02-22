@@ -1351,7 +1351,7 @@ fg_match_stroke_component(fg_stroke_component_t *component,
 	 * matching stroke component(s). But such a change should
 	 * *not* be interpreted as a movement.
 	 */
-        if (pspan->cum > ((3 * component->cum_pressure) >> 1))
+	if (pspan->cum > ((3 * component->cum_pressure) >> 1))
 		delta_mickeys = 0;
 
 	component->cum_pressure = pspan->cum;
@@ -1402,8 +1402,8 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
 				continue; /* skip matched pspans */
 
 			if (fg_match_stroke_component(
-			        &strokep->components[axis], &pspans[j],
-			        strokep->type)) {
+				&strokep->components[axis], &pspans[j],
+				strokep->type)) {
 				/* There is a match. */
 				strokep->components[axis].matched = true;
 
@@ -1486,11 +1486,11 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
 		if (strokep->components[X].matched &&
 		    strokep->components[Y].matched) {
-		    	strokep->matched          = true;
-		    	strokep->instantaneous_dx =
-		    	    strokep->components[X].delta_mickeys;
-		    	strokep->instantaneous_dy =
-		    	    strokep->components[Y].delta_mickeys;
+			strokep->matched          = true;
+			strokep->instantaneous_dx =
+			    strokep->components[X].delta_mickeys;
+			strokep->instantaneous_dy =
+			    strokep->components[Y].delta_mickeys;
 			atp_advance_stroke_state(sc, strokep, &movement);
 		} else {
 			/*
@@ -2172,7 +2172,7 @@ atp_probe(device_t self)
 
 	if ((usbd_lookup_id_by_uaa(fg_devs, sizeof(fg_devs), uaa)) == 0)
 		return ((uaa->info.bInterfaceProtocol == UIPROTO_MOUSE) ?
-		 	0 : ENXIO);
+			0 : ENXIO);
 
 #define WELLSPRING_INTERFACE_INDEX 1
 	if ((usbd_lookup_id_by_uaa(wsp_devs, sizeof(wsp_devs), uaa)) == 0)
