@@ -25,7 +25,6 @@
  */
 
 /* TODO : fg devices need to be silenced during idleness. */
-/* align definitions with declarations */
 
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
@@ -1331,6 +1330,59 @@ fg_detect_pspans(int *p, u_int num_sensors,
 	*nspans_p = num_spans;
 }
 
+void
+wsp_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
+{
+	const struct wsp_dev_params *params = sc->sc_params;
+
+	/* validate sensor data length */
+	if ((data_len < params->finger_data_offset) ||
+	    ((data_len - params->finger_data_offset) %
+	     WSP_SIZEOF_FINGER_SENSOR_DATA) != 0)
+		return;
+
+	unsigned n_source_fingers = (data_len - params->finger_data_offset) /
+	    WSP_SIZEOF_FINGER_SENSOR_DATA;
+	n_source_fingers = min(n_source_fingers, WSP_MAX_FINGERS);
+
+	/* iterate over the source data collecting useful fingers */
+	wsp_finger_t fingers[WSP_MAX_FINGERS];
+	unsigned i, n_fingers = 0;
+	struct wsp_finger_sensor_data *source_fingerp =
+	    (struct wsp_finger_sensor_data *)(sc->sensor_data +
+	     params->finger_data_offset);
+	for (i = 0; i < n_source_fingers; i++, source_fingerp++) {
+		if (le16toh(source_fingerp->touch_major) == 0)
+			continue;
+
+		fingers[n_fingers].matched = false;
+		fingers[n_fingers].x       =
+		    imax(params->x.min, source_fingerp->abs_x) - params->x.min;
+		fingers[n_fingers].y       = -params->y.min +
+		    params->y.max - source_fingerp->abs_y;
+
+		++n_fingers;
+	}
+
+	if ((sc->sc_n_strokes == 0) && (n_fingers == 0))
+		return;
+
+	if (wsp_update_strokes(sc, fingers, n_fingers))
+		sc->sc_status.flags |= MOUSE_POSCHANGED;
+
+	switch(params->tp_type) {
+	case WSP_TRACKPAD_TYPE2:
+		sc->sc_ibtn = sc->sensor_data[WSP_TYPE2_BUTTON_DATA_OFFSET];
+		break;
+	case WSP_TRACKPAD_TYPE3:
+		sc->sc_ibtn = sc->sensor_data[WSP_TYPE3_BUTTON_DATA_OFFSET];
+		break;
+	default:
+		break;
+	}
+	sc->sc_status.button = sc->sc_ibtn ? MOUSE_BUTTON1DOWN : 0;
+}
+
 /*
  * Match a pressure-span against a stroke-component. If there is a
  * match, update the component's state and return true.
@@ -1423,6 +1475,60 @@ fg_match_strokes_against_pspans(struct atp_softc *sc, atp_axis axis,
 			}
 		} /* loop over pspans */
 	} /* loop over strokes */
+}
+
+boolean_t
+wsp_match_strokes_against_fingers(struct atp_softc *sc,
+    wsp_finger_t *fingers, u_int n_fingers)
+{
+	boolean_t movement = false;
+	unsigned si, fi;
+
+	/* reset the matched status for all strokes */
+	atp_stroke_t *strokep = sc->sc_strokes;
+	for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+		strokep->matched = false;
+	}
+
+	wsp_finger_t *fingerp;
+	fingerp = fingers;
+	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
+		unsigned least_distance_sq = WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ;
+		int best_stroke_index      = -1;
+
+		strokep = sc->sc_strokes;
+		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
+			if (strokep->matched)
+				continue;
+
+			int instantaneous_dx = fingerp->x - strokep->x;
+			int instantaneous_dy = fingerp->y - strokep->y;
+
+			/* skip strokes which are far away */
+			unsigned d_squared =
+			    (instantaneous_dx * instantaneous_dx) +
+			    (instantaneous_dy * instantaneous_dy);
+			if (d_squared < least_distance_sq) {
+				least_distance_sq    = d_squared;
+				best_stroke_index    = si;
+			}
+		}
+
+		if (best_stroke_index != -1) {
+			fingerp->matched = true;
+
+			strokep = &sc->sc_strokes[best_stroke_index];
+			strokep->matched          = true;
+			strokep->instantaneous_dx = fingerp->x - strokep->x;
+			strokep->instantaneous_dy = fingerp->y - strokep->y;
+			strokep->x                = fingerp->x;
+			strokep->y                = fingerp->y;
+
+			atp_advance_stroke_state(sc, strokep, &movement);
+		}
+	}
+
+	return (movement);
 }
 
 /*
@@ -1569,59 +1675,6 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 #endif /* USB_DEBUG */
 
 	return (movement);
-}
-
-void
-wsp_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
-{
-	const struct wsp_dev_params *params = sc->sc_params;
-
-	/* validate sensor data length */
-	if ((data_len < params->finger_data_offset) ||
-	    ((data_len - params->finger_data_offset) %
-	     WSP_SIZEOF_FINGER_SENSOR_DATA) != 0)
-		return;
-
-	unsigned n_source_fingers = (data_len - params->finger_data_offset) /
-	    WSP_SIZEOF_FINGER_SENSOR_DATA;
-	n_source_fingers = min(n_source_fingers, WSP_MAX_FINGERS);
-
-	/* iterate over the source data collecting useful fingers */
-	wsp_finger_t fingers[WSP_MAX_FINGERS];
-	unsigned i, n_fingers = 0;
-	struct wsp_finger_sensor_data *source_fingerp =
-	    (struct wsp_finger_sensor_data *)(sc->sensor_data +
-	     params->finger_data_offset);
-	for (i = 0; i < n_source_fingers; i++, source_fingerp++) {
-		if (le16toh(source_fingerp->touch_major) == 0)
-			continue;
-
-		fingers[n_fingers].matched = false;
-		fingers[n_fingers].x       =
-		    imax(params->x.min, source_fingerp->abs_x) - params->x.min;
-		fingers[n_fingers].y       = -params->y.min +
-		    params->y.max - source_fingerp->abs_y;
-
-		++n_fingers;
-	}
-
-	if ((sc->sc_n_strokes == 0) && (n_fingers == 0))
-		return;
-
-	if (wsp_update_strokes(sc, fingers, n_fingers))
-		sc->sc_status.flags |= MOUSE_POSCHANGED;
-
-	switch(params->tp_type) {
-	case WSP_TRACKPAD_TYPE2:
-		sc->sc_ibtn = sc->sensor_data[WSP_TYPE2_BUTTON_DATA_OFFSET];
-		break;
-	case WSP_TRACKPAD_TYPE3:
-		sc->sc_ibtn = sc->sensor_data[WSP_TYPE3_BUTTON_DATA_OFFSET];
-		break;
-	default:
-		break;
-	}
-	sc->sc_status.button = sc->sc_ibtn ? MOUSE_BUTTON1DOWN : 0;
 }
 
 /*
@@ -1805,94 +1858,6 @@ wsp_add_stroke(struct atp_softc *sc, const wsp_finger_t *fingerp)
 	DPRINTFN(ATP_LLEVEL_INFO, "[%d,%d]\n", strokep->x, strokep->y);
 }
 
-/*
- * Terminate a stroke. While SLIDE strokes are dropped, TOUCH strokes
- * are retained as zombies so as to reap all their siblings together;
- * this helps establish the number of fingers involved in the tap.
- */
-void
-atp_terminate_stroke(struct atp_softc *sc, u_int index)
-{
-	atp_stroke_t *strokep = &sc->sc_strokes[index];
-
-	if (strokep->flags & ATSF_ZOMBIE)
-		return;
-
-	if ((strokep->type == ATP_STROKE_TOUCH) &&
-	    (strokep->age > atp_stroke_maturity_threshold)) {
-		strokep->flags |= ATSF_ZOMBIE;
-		sc->sc_state   |= ATP_ZOMBIES_EXIST;
-		callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_INTERVAL,
-		    atp_reap_sibling_zombies, sc);
-	} else {
-		/* Drop this stroke. */
-		sc->sc_n_strokes--;
-		if (index < sc->sc_n_strokes)
-			memcpy(strokep, strokep + 1,
-			    (sc->sc_n_strokes - index) * sizeof(atp_stroke_t));
-
-		/*
-		 * Reset the double-click-n-drag at the termination of
-		 * any slide stroke.
-		 */
-		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
-	}
-}
-
-boolean_t
-wsp_match_strokes_against_fingers(struct atp_softc *sc,
-    wsp_finger_t *fingers, u_int n_fingers)
-{
-	boolean_t movement = false;
-	unsigned si, fi;
-
-	/* reset the matched status for all strokes */
-	atp_stroke_t *strokep = sc->sc_strokes;
-	for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
-		strokep->matched = false;
-	}
-
-	wsp_finger_t *fingerp;
-	fingerp = fingers;
-	for (fi = 0; fi < n_fingers; fi++, fingerp++) {
-		unsigned least_distance_sq = WSP_MAX_ALLOWED_MATCH_DISTANCE_SQ;
-		int best_stroke_index      = -1;
-
-		strokep = sc->sc_strokes;
-		for (si = 0; si < sc->sc_n_strokes; si++, strokep++) {
-			if (strokep->matched)
-				continue;
-
-			int instantaneous_dx = fingerp->x - strokep->x;
-			int instantaneous_dy = fingerp->y - strokep->y;
-
-			/* skip strokes which are far away */
-			unsigned d_squared =
-			    (instantaneous_dx * instantaneous_dx) +
-			    (instantaneous_dy * instantaneous_dy);
-			if (d_squared < least_distance_sq) {
-				least_distance_sq    = d_squared;
-				best_stroke_index    = si;
-			}
-		}
-
-		if (best_stroke_index != -1) {
-			fingerp->matched = true;
-
-			strokep = &sc->sc_strokes[best_stroke_index];
-			strokep->matched          = true;
-			strokep->instantaneous_dx = fingerp->x - strokep->x;
-			strokep->instantaneous_dy = fingerp->y - strokep->y;
-			strokep->x                = fingerp->x;
-			strokep->y                = fingerp->y;
-
-			atp_advance_stroke_state(sc, strokep, &movement);
-		}
-	}
-
-	return (movement);
-}
-
 void
 atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
     boolean_t *movementp)
@@ -2047,6 +2012,40 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 	return ((strokep->movement_dx != 0) || (strokep->movement_dy != 0));
 }
 
+/*
+ * Terminate a stroke. While SLIDE strokes are dropped, TOUCH strokes
+ * are retained as zombies so as to reap all their siblings together;
+ * this helps establish the number of fingers involved in the tap.
+ */
+void
+atp_terminate_stroke(struct atp_softc *sc, u_int index)
+{
+	atp_stroke_t *strokep = &sc->sc_strokes[index];
+
+	if (strokep->flags & ATSF_ZOMBIE)
+		return;
+
+	if ((strokep->type == ATP_STROKE_TOUCH) &&
+	    (strokep->age > atp_stroke_maturity_threshold)) {
+		strokep->flags |= ATSF_ZOMBIE;
+		sc->sc_state   |= ATP_ZOMBIES_EXIST;
+		callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_INTERVAL,
+		    atp_reap_sibling_zombies, sc);
+	} else {
+		/* Drop this stroke. */
+		sc->sc_n_strokes--;
+		if (index < sc->sc_n_strokes)
+			memcpy(strokep, strokep + 1,
+			    (sc->sc_n_strokes - index) * sizeof(atp_stroke_t));
+
+		/*
+		 * Reset the double-click-n-drag at the termination of
+		 * any slide stroke.
+		 */
+		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
+	}
+}
+
 void
 atp_reap_sibling_zombies(void *arg)
 {
@@ -2118,6 +2117,13 @@ atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
 		if (timevalcmp(&delta, &window, <=))
 			sc->sc_state |= ATP_DOUBLE_TAP_DRAG;
 	}
+}
+
+void
+atp_reset_buf(struct atp_softc *sc)
+{
+	/* reset read queue */
+	usb_fifo_reset(sc->sc_fifo.fp[USB_FIFO_RX]);
 }
 
 void
@@ -2408,13 +2414,6 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 		}
 		break;
 	}
-}
-
-void
-atp_reset_buf(struct atp_softc *sc)
-{
-	/* reset read queue */
-	usb_fifo_reset(sc->sc_fifo.fp[USB_FIFO_RX]);
 }
 
 void
