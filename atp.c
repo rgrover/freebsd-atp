@@ -885,42 +885,42 @@ static struct usb_fifo_methods atp_fifo_methods = {
 };
 
 /* device initialization and shutdown */
-static int  atp_set_device_mode(struct atp_softc *, interface_mode mode);
-static int  atp_enable(struct atp_softc *);
-static void atp_disable(struct atp_softc *);
-static int  atp_softc_populate(struct atp_softc *);
-static void atp_softc_unpopulate(struct atp_softc *);
+static int           atp_set_device_mode(struct atp_softc *, interface_mode);
+static int           atp_enable(struct atp_softc *);
+static void          atp_disable(struct atp_softc *);
+static int           atp_softc_populate(struct atp_softc *);
+static void          atp_softc_unpopulate(struct atp_softc *);
 
 /* sensor interpretation */
-static void      fg_interpret_sensor_data(struct atp_softc *, unsigned);
-static void      fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
+static void          fg_interpret_sensor_data(struct atp_softc *, unsigned);
+static void          fg_extract_sensor_data(const int8_t *, u_int, atp_axis,
     int *, enum fountain_geyser_trackpad_type);
-static void      fg_get_pressures(int *, const int *, const int *, int);
-static void      fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
-static void      wsp_interpret_sensor_data(struct atp_softc *, unsigned);
-static boolean_t fg_update_strokes(struct atp_softc *, fg_pspan *, u_int,
-    fg_pspan *, u_int);
-static boolean_t wsp_update_strokes(struct atp_softc *,
-    wsp_finger_t [WSP_MAX_FINGERS], u_int);
+static void          fg_get_pressures(int *, const int *, const int *, int);
+static void          fg_detect_pspans(int *, u_int, u_int, fg_pspan *, u_int *);
+static void          wsp_interpret_sensor_data(struct atp_softc *, unsigned);
 
 /* movement detection */
 static boolean_t     fg_match_stroke_component(fg_stroke_component_t *,
     const fg_pspan *, atp_stroke_type);
+static void          fg_match_strokes_against_pspans(struct atp_softc *,
+    atp_axis, fg_pspan *, u_int, u_int);
+static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
+    wsp_finger_t *, u_int);
+static boolean_t     fg_update_strokes(struct atp_softc *, fg_pspan *, u_int,
+    fg_pspan *, u_int);
+static boolean_t     wsp_update_strokes(struct atp_softc *,
+    wsp_finger_t [WSP_MAX_FINGERS], u_int);
 static __inline void fg_add_stroke(struct atp_softc *, const fg_pspan *,
     const fg_pspan *);
 static void          fg_add_new_strokes(struct atp_softc *, fg_pspan *,
     u_int, fg_pspan *, u_int);
 static __inline void wsp_add_stroke(struct atp_softc *, const wsp_finger_t *);
-static void          atp_terminate_stroke(struct atp_softc *, u_int);
-static void          fg_match_strokes_against_pspans(struct atp_softc *,
-    atp_axis, fg_pspan *, u_int, u_int);
-static boolean_t     wsp_match_strokes_against_fingers(struct atp_softc *,
-    wsp_finger_t *, u_int);
 static void          atp_advance_stroke_state(struct atp_softc *,
     atp_stroke_t *, boolean_t *);
 static __inline boolean_t atp_stroke_has_small_movement(const atp_stroke_t *);
 static void          atp_update_pending_mickeys(atp_stroke_t *);
 static boolean_t     atp_compute_stroke_movement(atp_stroke_t *);
+static void          atp_terminate_stroke(struct atp_softc *, u_int);
 
 /* tap detection */
 static void          atp_reap_sibling_zombies(void *);
