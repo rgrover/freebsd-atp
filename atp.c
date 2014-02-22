@@ -84,6 +84,9 @@ __FBSDID("$FreeBSD$");
 
 #include "usbdevs.h"
 
+/* TODO: small movement threshold should not have a WSP prefix */
+/* populate and unpopulate are un-necessary */
+
 #define USB_DEBUG_VAR atp_debug
 #include <dev/usb/usb_debug.h>
 
@@ -336,6 +339,13 @@ typedef struct wsp_finger_to_match {
 				       WSP_SIZEOF_FINGER_SENSOR_DATA)
 #define WSP_MAX_FINGER_ORIENTATION    16384
 
+#define ATP_SENSOR_DATA_BUF_MAX       1024
+#if (ATP_SENSOR_DATA_BUF_MAX < ((WSP_MAX_FINGERS * 14 * 2) + \
+			      	WSP_TYPE3_FINGER_DATA_OFFSET))
+/* note: 14 * 2 in the above is based on sizeof(struct wsp_finger_sensor_data)*/
+#error "ATP_SENSOR_DATA_BUF_MAX is too small"
+#endif
+
 #define ATP_MAX_STROKES               MAX(WSP_MAX_FINGERS, FG_MAX_STROKES)
 
 #define FG_MAX_XSENSORS 26
@@ -352,7 +362,6 @@ struct wsp_dev_params {
 	uint8_t  caps;               /* device capability bitmask */
 	uint8_t  tp_type;            /* type of trackpad interface */
 	uint8_t  finger_data_offset; /* offset to trackpad finger data */
-	uint16_t data_len;           /* data length of the trackpad interface */
 };
 
 static const struct fg_dev_params fg_dev_params[FOUNTAIN_GEYSER_PRODUCT_MAX] = {
@@ -430,73 +439,61 @@ static const struct wsp_dev_params wsp_dev_params[WELLSPRING_PRODUCT_MAX] = {
 		.caps       = 0,
 		.tp_type    = WSP_TRACKPAD_TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING2] = {
 		.caps       = 0,
 		.tp_type    = WSP_TRACKPAD_TYPE1,
 		.finger_data_offset  = WSP_TYPE1_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE1_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING3] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING4] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING4A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING5] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING6] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING5A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING6A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING7] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING7A] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE2,
 		.finger_data_offset  = WSP_TYPE2_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE2_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 	[WELLSPRING8] = {
 		.caps       = HAS_INTEGRATED_BUTTON,
 		.tp_type    = WSP_TRACKPAD_TYPE3,
 		.finger_data_offset  = WSP_TYPE3_FINGER_DATA_OFFSET,
-		.data_len   = WSP_TYPE3_FINGER_DATA_OFFSET + WSP_SIZEOF_ALL_FINGER_DATA,
 	},
 };
 
@@ -646,7 +643,6 @@ struct atp_softc {
 
 	trackpad_family_t   sc_family;
 	const void         *sc_params; /* device configuration */
-	int8_t             *sensor_data; /* from interrupt packet */
 	sensor_data_interpreter_t sensor_data_interpreter;
 
 	mousehw_t           sc_hw;
@@ -679,6 +675,10 @@ struct atp_softc {
 				      */
 
 	struct timeval      sc_reap_time; /* time when zombies were reaped */
+
+	/* Regarding the data transferred from t-pad in USB INTR packets. */
+	u_int   sc_expected_sensor_data_len;
+	uint8_t sc_sensor_data[ATP_SENSOR_DATA_BUF_MAX] __aligned(4);
 };
 
 /*
@@ -774,7 +774,7 @@ static device_attach_t atp_attach;
 static device_detach_t atp_detach;
 static usb_callback_t  atp_intr;
 
-static struct usb_config atp_xfer_config[ATP_N_TRANSFER] = {
+static const struct usb_config atp_xfer_config[ATP_N_TRANSFER] = {
 	[ATP_INTR_DT] = {
 		.type      = UE_INTERRUPT,
 		.endpoint  = UE_ADDR_ANY,
@@ -783,7 +783,7 @@ static struct usb_config atp_xfer_config[ATP_N_TRANSFER] = {
 			.pipe_bof = 1, /* block pipe on failure */
 			.short_xfer_ok = 1,
 		},
-		.bufsize   = 0, /* use wMaxPacketSize */
+		.bufsize   = ATP_SENSOR_DATA_BUF_MAX,
 		.callback  = &atp_intr,
 	},
 	[ATP_RESET] = {
@@ -912,37 +912,6 @@ atp_disable(struct atp_softc *sc)
 int
 atp_softc_populate(struct atp_softc *sc)
 {
-	if (sc->sc_params == NULL) {
-		DPRINTF("params uninitialized!\n");
-		return (ENXIO);
-	}
-
-	unsigned expected_data_len = 0;
-	switch (sc->sc_family) {
-	case TRACKPAD_FAMILY_WELLSPRING: {
-		const struct wsp_dev_params *params = sc->sc_params;
-		expected_data_len = params->data_len;
-	}
-	break;
-	case TRACKPAD_FAMILY_FOUNTAIN_GEYSER: {
-		const struct fg_dev_params *params = sc->sc_params;
-		expected_data_len = params->data_len;
-	}
-	break;
-
-	default:
-		/* TODO: fill this for fountain/geyser. */
-	break;
-	}
-	if (expected_data_len) {
-		sc->sensor_data = malloc(expected_data_len,
-		    M_USB, M_WAITOK | M_ZERO);
-		if (sc->sensor_data == NULL) {
-			DPRINTF("mem for sensor_data\n");
-			return (ENXIO);
-		}
-	}
-
 	return (0);
 }
 
@@ -950,14 +919,6 @@ atp_softc_populate(struct atp_softc *sc)
 void
 atp_softc_unpopulate(struct atp_softc *sc)
 {
-	if (sc->sc_params == NULL) {
-		return;
-	}
-
-	if (sc->sensor_data != NULL) {
-		free(sc->sensor_data, M_USB);
-		sc->sensor_data = NULL;
-	}
 }
 
 void
@@ -976,9 +937,9 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	const struct fg_dev_params *params =
 	    (const struct fg_dev_params *)sc->sc_params;
 
-	fg_extract_sensor_data(sc->sensor_data, params->n_xsensors, X, cur_x,
+	fg_extract_sensor_data(sc->sc_sensor_data, params->n_xsensors, X, cur_x,
 	    params->prot);
-	fg_extract_sensor_data(sc->sensor_data, params->n_ysensors, Y, cur_y,
+	fg_extract_sensor_data(sc->sc_sensor_data, params->n_ysensors, Y, cur_y,
 	    params->prot);
 
 	/*
@@ -987,7 +948,7 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	 * data; deltas with respect to these base values can
 	 * be used as pressure readings subsequently.
 	 */
-	uint8_t status_bits = sc->sensor_data[params->data_len - 1];
+	uint8_t status_bits = sc->sc_sensor_data[params->data_len - 1];
 	if (((params->prot == FG_TRACKPAD_TYPE_GEYSER3) ||
 	     (params->prot == FG_TRACKPAD_TYPE_GEYSER4))  &&
 	    ((sc->sc_state & ATP_VALID) == 0)) {
@@ -1272,7 +1233,7 @@ wsp_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	wsp_finger_t fingers[WSP_MAX_FINGERS];
 	unsigned i, n_fingers = 0;
 	struct wsp_finger_sensor_data *source_fingerp =
-	    (struct wsp_finger_sensor_data *)(sc->sensor_data +
+	    (struct wsp_finger_sensor_data *)(sc->sc_sensor_data +
 	     params->finger_data_offset);
 	for (i = 0; i < n_source_fingers; i++, source_fingerp++) {
 		if (le16toh(source_fingerp->touch_major) == 0)
@@ -1292,10 +1253,10 @@ wsp_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 
 	switch(params->tp_type) {
 	case WSP_TRACKPAD_TYPE2:
-		sc->sc_ibtn = sc->sensor_data[WSP_TYPE2_BUTTON_DATA_OFFSET];
+		sc->sc_ibtn = sc->sc_sensor_data[WSP_TYPE2_BUTTON_DATA_OFFSET];
 		break;
 	case WSP_TRACKPAD_TYPE3:
-		sc->sc_ibtn = sc->sensor_data[WSP_TYPE3_BUTTON_DATA_OFFSET];
+		sc->sc_ibtn = sc->sc_sensor_data[WSP_TYPE3_BUTTON_DATA_OFFSET];
 		break;
 	default:
 		break;
@@ -2126,6 +2087,25 @@ atp_attach(device_t dev)
 	sc->sc_dev        = dev;
 	sc->sc_usb_device = uaa->device;
 
+	/* Get HID descriptor */
+	void     *descriptor_ptr = NULL;
+	uint16_t  descriptor_len;
+	if (usbd_req_get_hid_desc(uaa->device, NULL, &descriptor_ptr,
+	    &descriptor_len, M_TEMP, uaa->info.bIfaceIndex) !=
+	    USB_ERR_NORMAL_COMPLETION)
+		return (ENXIO);
+
+	/* Get HID report descriptor length */
+	sc->sc_expected_sensor_data_len = hid_report_size(descriptor_ptr,
+	    descriptor_len, hid_input, NULL);
+	free(descriptor_ptr, M_TEMP);
+	if ((sc->sc_expected_sensor_data_len <= 0) ||
+	    (sc->sc_expected_sensor_data_len > ATP_SENSOR_DATA_BUF_MAX)) {
+		DPRINTF("atp_attach: datalength invalid or too large: %d\n",
+			sc->sc_expected_sensor_data_len);
+		return (ENXIO);
+	}
+
 	/*
 	 * By default the touchpad behaves like an HID device, sending
 	 * packets with reportID = 2. Such reports contain only
@@ -2150,15 +2130,11 @@ atp_attach(device_t dev)
 		sc->sc_params =
 		    &fg_dev_params[DECODE_PRODUCT_FROM_DRIVER_INFO(di)];
 		sc->sensor_data_interpreter = fg_interpret_sensor_data;
-		atp_xfer_config[ATP_INTR_DT].bufsize =
-		    ((const struct fg_dev_params *)sc->sc_params)->data_len;
 		break;
 	case TRACKPAD_FAMILY_WELLSPRING:
 		sc->sc_params =
 		    &wsp_dev_params[DECODE_PRODUCT_FROM_DRIVER_INFO(di)];
 		sc->sensor_data_interpreter = wsp_interpret_sensor_data;
-		atp_xfer_config[ATP_INTR_DT].bufsize =
-		    ((const struct wsp_dev_params *)sc->sc_params)->data_len;
 		break;
 	default:
 		goto detach;
@@ -2236,38 +2212,24 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	struct atp_softc      *sc = usbd_xfer_softc(xfer);
 	struct usb_page_cache *pc;
 
-	unsigned expected_data_len;
-	switch(sc->sc_family) {
-	case TRACKPAD_FAMILY_FOUNTAIN_GEYSER:
-		expected_data_len =
-		    ((const struct fg_dev_params *)sc->sc_params)->data_len;
-		break;
-	case TRACKPAD_FAMILY_WELLSPRING:
-		expected_data_len =
-		    ((const struct wsp_dev_params *)sc->sc_params)->data_len;
-		break;
-	default:
-		return;
-	}
-
 	int len;
 	usbd_xfer_status(xfer, &len, NULL, NULL, NULL);
 
 	switch (USB_GET_STATE(xfer)) {
 	case USB_ST_TRANSFERRED:
-		if (len > (int)expected_data_len) {
+		if (len > (int)sc->sc_expected_sensor_data_len) {
 			DPRINTFN(ATP_LLEVEL_ERROR,
 			    "truncating large packet from %u to %u bytes\n",
-			    len, expected_data_len);
-			len = expected_data_len;
-		} else if (len < expected_data_len) {
+			    len, sc->sc_expected_sensor_data_len);
+			len = sc->sc_expected_sensor_data_len;
+		} else if (len < sc->sc_expected_sensor_data_len) {
 			/* zero-out any previous sensor-data state */
-			memset(sc->sensor_data + len, 0,
-			    expected_data_len - len);
+			memset(sc->sc_sensor_data + len, 0,
+			    sc->sc_expected_sensor_data_len - len);
 		}
 
 		pc = usbd_xfer_get_frame(xfer, 0);
-		usbd_copy_out(pc, 0, sc->sensor_data, len);
+		usbd_copy_out(pc, 0, sc->sc_sensor_data, len);
 
 		sc->sc_status.flags &= ~(MOUSE_STDBUTTONSCHANGED |
 		    MOUSE_POSCHANGED);
@@ -2321,7 +2283,8 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 	tr_setup:
 		/* check if we can put more data into the FIFO */
 		if (usb_fifo_put_bytes_max(sc->sc_fifo.fp[USB_FIFO_RX]) != 0) {
-			usbd_xfer_set_frame_len(xfer, 0, expected_data_len);
+			usbd_xfer_set_frame_len(xfer, 0,
+			    sc->sc_expected_sensor_data_len);
 			usbd_transfer_submit(xfer);
 		}
 		break;
