@@ -812,6 +812,9 @@ struct atp_softc {
 	struct mtx          sc_mutex; /* for synchronization */
 	struct usb_fifo_sc  sc_fifo;
 
+	#define MODE_LENGTH 8
+	char                sc_mode_bytes[MODE_LENGTH]; /* device mode */
+
 	trackpad_family_t   sc_family;
 	const void         *sc_params; /* device configuration */
 	int8_t             *sensor_data; /* from interrupt packet */
@@ -960,9 +963,6 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 {
 	usb_error_t err;
 
-#define MODE_LENGTH 8 /* num bytes holding the device mode */
-	uint8_t     mode_bytes[MODE_LENGTH];
-
 	if ((newMode != RAW_SENSOR_MODE) && (newMode != HID_MODE))
 		return (ENXIO);
 
@@ -979,19 +979,19 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 	 * much overhead either.
 	 */
 	err = usbd_req_get_report(sc->sc_usb_device, NULL /* mutex */,
-	    mode_bytes, sizeof(mode_bytes), 0 /* interface index */,
+	    sc->sc_mode_bytes, sizeof(sc->sc_mode_bytes), 0 /* interface idx */,
 	    0x03 /* type */, 0x00 /* id */);
 	if (err != USB_ERR_NORMAL_COMPLETION) {
 		DPRINTF("Failed to read device mode (%d)\n", err);
 		return (ENXIO);
 	}
 
-	if (mode_bytes[0] == mode_value)
+	if (sc->sc_mode_bytes[0] == mode_value)
 		return (0);
 
-	mode_bytes[0] = mode_value;
+	sc->sc_mode_bytes[0] = mode_value;
 	return (usbd_req_set_report(sc->sc_usb_device, NULL /* mutex */,
-	    mode_bytes, sizeof(mode_bytes), 0 /* interface index */,
+	    sc->sc_mode_bytes, sizeof(sc->sc_mode_bytes), 0 /* interface idx */,
 	    0x03 /* type */, 0x00 /* id */));
 }
 
