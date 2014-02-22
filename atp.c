@@ -73,12 +73,12 @@ __FBSDID("$FreeBSD$");
 
 /* The divisor used to translate sensor reported positions to mickeys. */
 #ifndef WSP_SCALE_FACTOR
-#define WSP_SCALE_FACTOR 8
+#define WSP_SCALE_FACTOR                  8
 #endif
 
 /* Threshold for small movement noise (in mickeys) */
 #ifndef WSP_SMALL_MOVEMENT_THRESHOLD
-#define WSP_SMALL_MOVEMENT_THRESHOLD 30
+#define WSP_SMALL_MOVEMENT_THRESHOLD      30
 #endif
 
 /* Distance-squared threshold for matching a finger with a known stroke */
@@ -88,7 +88,7 @@ __FBSDID("$FreeBSD$");
 
 /* Threshold of instantaneous deltas beyond which movement is considered fast.*/
 #ifndef ATP_FAST_MOVEMENT_TRESHOLD
-#define ATP_FAST_MOVEMENT_TRESHOLD 150
+#define ATP_FAST_MOVEMENT_TRESHOLD        150
 #endif
 
 /*
@@ -96,7 +96,7 @@ __FBSDID("$FreeBSD$");
  * considered to be a slide; and therefore a tap event isn't registered.
  */
 #ifndef ATP_TOUCH_TIMEOUT
-#define ATP_TOUCH_TIMEOUT 125000
+#define ATP_TOUCH_TIMEOUT                 125000
 #endif
 
 /*
@@ -107,26 +107,25 @@ __FBSDID("$FreeBSD$");
  * tap events preceding the slide for such a gesture.
  */
 #ifndef ATP_DOUBLE_TAP_N_DRAG_THRESHOLD
-#define ATP_DOUBLE_TAP_N_DRAG_THRESHOLD 200000
+#define ATP_DOUBLE_TAP_N_DRAG_THRESHOLD   200000
 #endif
 
 /*
  * The wait duration (in ticks) after losing a touch contact
  * before zombied strokes are reaped and turned into button events.
  */
-#define ATP_ZOMBIE_STROKE_REAP_INTERVAL 50
+#define ATP_ZOMBIE_STROKE_REAP_INTERVAL   50
 #if ATP_ZOMBIE_STROKE_REAP_INTERVAL > 100
 #error "ATP_ZOMBIE_STROKE_REAP_INTERVAL too large"
 #endif
 
 /* Ignore pressure spans with cumulative press. below this value. */
-#define FG_PSPAN_MIN_CUM_PRESSURE  10
+#define FG_PSPAN_MIN_CUM_PRESSURE         10
 
 /* Maximum allowed width for pressure-spans.*/
-#define FG_PSPAN_MAX_WIDTH         4
+#define FG_PSPAN_MAX_WIDTH                4
 
 /* end of driver specific options */
-
 
 /* Tunables */
 static SYSCTL_NODE(_hw_usb, OID_AUTO, atp, CTLFLAG_RW, 0, "USB atp");
