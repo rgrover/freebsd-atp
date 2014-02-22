@@ -1099,6 +1099,11 @@ atp_softc_populate(struct atp_softc *sc)
 		expected_data_len = params->data_len;
 	}
 	break;
+	case TRACKPAD_FAMILY_FOUNTAIN_GEYSER: {
+		const struct fg_dev_params *params = sc->sc_params;
+		expected_data_len = params->data_len;
+	}
+	break;
 
 	default:
 		/* TODO: fill this for fountain/geyser. */
