@@ -28,6 +28,8 @@
 /* todo: remove 'static' from function definitions */
 /* todo : merge scale factors for fg and wsp */
 /* TODO: relocate #defines for constants to the top */
+/* align definitions with declarations */
+/* FALSE to false; TRUE to true */
 
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
