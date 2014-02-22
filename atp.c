@@ -772,21 +772,20 @@ typedef struct fg_stroke_component {
  * touchpad. A stroke comprises two p-span components and some state.
  */
 typedef struct atp_stroke {
-	atp_stroke_type      type;
-	uint32_t             flags; /* the state of this stroke */
-#define ATSF_ZOMBIE          0x1
-	boolean_t matched;          /* to track match against fingers.*/
+	atp_stroke_type type;
+	uint32_t        flags; /* the state of this stroke */
+#define ATSF_ZOMBIE 0x1
+	boolean_t       matched;          /* to track match against fingers.*/
 
-	struct timeval       ctime; /* create time; for coincident siblings. */
-	u_int                age;   /*
-				     * Unit: interrupts; we maintain
-				     * this value in addition to
-				     * 'ctime' in order to avoid the
-				     * expensive call to microtime()
-				     * at every interrupt.
-				     */
+	struct timeval  ctime; /* create time; for coincident siblings. */
+	u_int           age;   /*
+				* Unit: interrupts; we maintain this value in
+				* addition to 'ctime' in order to avoid the
+				* expensive call to microtime() at every
+				* interrupt.
+				*/
 
-	int x, y;                   /* location */
+	int x, y;              /* location */
 
 	/* Fields containing information about movement. */
 	int   instantaneous_dx; /* curr. change in X location (un-smoothened) */
@@ -809,46 +808,46 @@ struct atp_softc; /* forward declaration */
 typedef void (*sensor_data_interpreter_t)(struct atp_softc *sc, unsigned len);
 
 struct atp_softc {
-	device_t             sc_dev;
-	struct usb_device   *sc_usb_device;
-	struct mtx           sc_mutex; /* for synchronization */
-	struct usb_fifo_sc   sc_fifo;
+	device_t            sc_dev;
+	struct usb_device  *sc_usb_device;
+	struct mtx          sc_mutex; /* for synchronization */
+	struct usb_fifo_sc  sc_fifo;
 
-	trackpad_family_t    sc_family;
-	const void          *sc_params; /* device configuration */
-	int8_t              *sensor_data; /* from interrupt packet */
+	trackpad_family_t   sc_family;
+	const void         *sc_params; /* device configuration */
+	int8_t             *sensor_data; /* from interrupt packet */
 	sensor_data_interpreter_t sensor_data_interpreter;
 
-	mousehw_t            sc_hw;
-	mousemode_t          sc_mode;
-	mousestatus_t        sc_status;
+	mousehw_t           sc_hw;
+	mousemode_t         sc_mode;
+	mousestatus_t       sc_status;
 
-	u_int                sc_state;
+	u_int               sc_state;
 #define ATP_ENABLED          0x01
 #define ATP_ZOMBIES_EXIST    0x02
 #define ATP_DOUBLE_TAP_DRAG  0x04
 #define ATP_VALID            0x08
 
-	struct usb_xfer     *sc_xfer[ATP_N_TRANSFER];
+	struct usb_xfer    *sc_xfer[ATP_N_TRANSFER];
 
-	u_int                sc_pollrate;
-	int                  sc_fflags;
+	u_int               sc_pollrate;
+	int                 sc_fflags;
 
-	atp_stroke_t         sc_strokes[ATP_MAX_STROKES];
-	u_int                sc_n_strokes;
+	atp_stroke_t        sc_strokes[ATP_MAX_STROKES];
+	u_int               sc_n_strokes;
 
-	struct callout	     sc_callout;
+	struct callout	    sc_callout;
 
-	uint8_t              sc_ibtn; /*
-				       * button status. Set to non-zero if the
-				       * mouse-button is physically pressed.
-				       * This state variable is exposed through
-				       * softc to allow reap_sibling_zombies
-				       * to avoid registering taps while the
-				       * trackpad button is pressed.
-				       */
+	uint8_t             sc_ibtn; /*
+				      * button status. Set to non-zero if the
+				      * mouse-button is physically pressed.
+				      * This state variable is exposed through
+				      * softc to allow reap_sibling_zombies
+				      * to avoid registering taps while the
+				      * trackpad button is pressed.
+				      */
 
-	struct timeval       sc_reap_time; /* time when zombies were reaped */
+	struct timeval      sc_reap_time; /* time when zombies were reaped */
 };
 
 /*
