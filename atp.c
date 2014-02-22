@@ -1482,12 +1482,11 @@ fg_update_strokes(struct atp_softc *sc, fg_pspan *pspans_x,
 	fg_match_strokes_against_pspans(sc, X, pspans_x, n_xpspans,
 	    (((repeat_count != 0) && ((n_xpspans < n_ypspans))) ?
 		repeat_count : 0));
-
-	#if 0
 	fg_match_strokes_against_pspans(sc, Y, pspans_y, n_ypspans,
 	    (((repeat_count != 0) && (n_ypspans < n_xpspans)) ?
 		repeat_count : 0));
 
+	#if 0
 	/* Update the state of strokes based on the above pspan matches. */
 	for (i = 0; i < sc->sc_n_strokes; i++) {
 		stroke = &sc->sc_strokes[i];
