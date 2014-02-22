@@ -1000,6 +1000,14 @@ atp_set_device_mode(struct atp_softc *sc, interface_mode newMode)
 	if (sc->sc_mode_bytes[0] == mode_value)
 		return (0);
 
+	/*
+	 * XXX Need to wait at least 250ms for hardware to get
+	 * ready. The device mode handling appears to be handled
+	 * asynchronously and we should not issue these commands too
+	 * quickly.
+	 */
+	pause("WHW", hz / 4);
+
 	sc->sc_mode_bytes[0] = mode_value;
 	return (usbd_req_set_report(sc->sc_usb_device, NULL /* mutex */,
 	    sc->sc_mode_bytes, sizeof(sc->sc_mode_bytes), 0 /* interface idx */,
