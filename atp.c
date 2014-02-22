@@ -332,7 +332,8 @@ typedef struct wsp_finger_to_match {
 
 #define WSP_MAX_FINGERS               16
 #define WSP_SIZEOF_FINGER_SENSOR_DATA sizeof(struct wsp_finger_sensor_data)
-#define WSP_SIZEOF_ALL_FINGER_DATA    (WSP_MAX_FINGERS * WSP_SIZEOF_FINGER_SENSOR_DATA)
+#define WSP_SIZEOF_ALL_FINGER_DATA    (WSP_MAX_FINGERS * \
+				       WSP_SIZEOF_FINGER_SENSOR_DATA)
 #define WSP_MAX_FINGER_ORIENTATION    16384
 
 #define ATP_MAX_STROKES               MAX(WSP_MAX_FINGERS, FG_MAX_STROKES)
