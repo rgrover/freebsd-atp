@@ -107,8 +107,8 @@ __FBSDID("$FreeBSD$");
 #define FG_MAX_DELTA_MICKEYS             ((3 * (FG_SCALE_FACTOR)) >> 1)
 
 /* The divisor used to translate sensor reported positions to mickeys. */
-#ifndef WSP_SCALE_FACTOR
-#define WSP_SCALE_FACTOR                  8
+#ifndef ATP_SCALE_FACTOR
+#define ATP_SCALE_FACTOR                  8
 #endif
 
 /* Threshold for small movement noise (in mickeys) */
@@ -187,7 +187,7 @@ SYSCTL_UINT(_hw_usb_atp, OID_AUTO, double_tap_threshold, CTLFLAG_RW,
     "maximum time (in micros) to allow association between a double-tap and "
     "drag gesture");
 
-static u_int atp_mickeys_scale_factor = WSP_SCALE_FACTOR;
+static u_int atp_mickeys_scale_factor = ATP_SCALE_FACTOR;
 static int atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS);
 SYSCTL_PROC(_hw_usb_atp, OID_AUTO, scale_factor, CTLTYPE_UINT | CTLFLAG_RW,
     &atp_mickeys_scale_factor, sizeof(atp_mickeys_scale_factor),
