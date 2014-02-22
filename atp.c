@@ -255,6 +255,9 @@ typedef struct fg_pspan {
 	boolean_t matched; /* to track pspans as they match against strokes. */
 } fg_pspan;
 
+#define FG_MAX_PSPANS_PER_AXIS 3
+#define FG_MAX_STROKES         (2 * FG_MAX_PSPANS_PER_AXIS)
+
 /* trackpad finger data offsets, le16-aligned */
 #define WSP_TYPE1_FINGER_DATA_OFFSET  (13 * 2)
 #define WSP_TYPE2_FINGER_DATA_OFFSET  (15 * 2)
@@ -288,12 +291,12 @@ typedef struct wsp_finger_to_match {
 	int       x,y;     /* location (scaled using the mickeys factor) */
 } wsp_finger_t;
 
-/* trackpad finger data size, empirically at least ten fingers */
 #define WSP_MAX_FINGERS               16
 #define WSP_SIZEOF_FINGER_SENSOR_DATA sizeof(struct wsp_finger_sensor_data)
 #define WSP_SIZEOF_ALL_FINGER_DATA    (WSP_MAX_FINGERS * WSP_SIZEOF_FINGER_SENSOR_DATA)
 #define WSP_MAX_FINGER_ORIENTATION    16384
 
+#define ATP_MAX_STROKES               MAX(WSP_MAX_FINGERS, FG_MAX_STROKES)
 
 /* logical signal quality */
 #define WSP_SN_PRESSURE 45      /* pressure signal-to-noise ratio */
@@ -727,8 +730,6 @@ typedef enum atp_axis {
 	Y = 1
 } atp_axis;
 
-#define ATP_MAX_STROKES         (WSP_MAX_FINGERS)
-
 #define ATP_FIFO_BUF_SIZE        8 /* bytes */
 #define ATP_FIFO_QUEUE_MAXLEN   50 /* units */
 
@@ -1036,7 +1037,6 @@ fg_interpret_sensor_data(struct atp_softc *sc, unsigned data_len)
 	static int base_y[FG_MAX_YSENSORS];
 	static int pressure_x[FG_MAX_XSENSORS]; /* computed pressures */
 	static int pressure_y[FG_MAX_YSENSORS];
-#define FG_MAX_PSPANS_PER_AXIS 3
 	fg_pspan   pspans_x[FG_MAX_PSPANS_PER_AXIS];
 	fg_pspan   pspans_y[FG_MAX_PSPANS_PER_AXIS];
 	u_int      n_xpspans = 0, n_ypspans = 0;
