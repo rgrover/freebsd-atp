@@ -1952,9 +1952,10 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 }
 
 /*
- * Terminate a stroke. While SLIDE strokes are dropped, TOUCH strokes
- * are retained as zombies so as to reap all their siblings together;
- * this helps establish the number of fingers involved in the tap.
+ * Terminate a stroke. Aside from immature strokes, a slide or touch is
+ * retained as a zombies so as to reap all their termination siblings
+ * together; this helps establish the number of fingers involved at the
+ * end of a multi-touch gesture.
  */
 static void
 atp_terminate_stroke(struct atp_softc *sc, atp_stroke_t *strokep)
