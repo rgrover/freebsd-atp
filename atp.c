@@ -2504,6 +2504,8 @@ atp_sysctl_scale_factor_handler(SYSCTL_HANDLER_ARGS)
 
 	if (tmp == atp_mickeys_scale_factor)
 		return (0);     /* no change */
+	if ((tmp == 0) || (tmp > (10 * ATP_SCALE_FACTOR)))
+		return (EINVAL);
 
 	atp_mickeys_scale_factor = tmp;
 	DPRINTFN(ATP_LLEVEL_INFO, "%s: resetting mickeys_scale_factor to %u\n",
