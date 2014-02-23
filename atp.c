@@ -621,7 +621,8 @@ typedef struct atp_stroke {
 	int   pending_dy;       /* cum. of pending short movements */
 	int   movement_dx;      /* interpreted smoothened movement */
 	int   movement_dy;      /* interpreted smoothened movement */
-	u_int cum_movement;     /* cum. absolute movement so far */
+	int   cum_movement_x;   /* cum. horizontal movement */
+	int   cum_movement_y;   /* cum. vertical movement */
 
 	/*
 	 * The following member is relevant only for fountain-geyser trackpads.
@@ -1740,7 +1741,8 @@ atp_advance_stroke_state(struct atp_softc *sc, atp_stroke_t *strokep,
 		return;
 
 	/* Convert touch strokes to slides upon detecting movement or age. */
-	if (strokep->cum_movement >= atp_slide_min_movement)
+	if ((abs(strokep->cum_movement_x) > atp_slide_min_movement) ||
+	    (abs(strokep->cum_movement_y) > atp_slide_min_movement))
 		atp_convert_to_slide(sc, strokep);
 	else {
 		/* Compute the stroke's age. */
@@ -1866,8 +1868,8 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 		strokep->movement_dy <<= 1;
 	}
 
-	strokep->cum_movement +=
-	    abs(strokep->movement_dx) + abs(strokep->movement_dy);
+	strokep->cum_movement_x += strokep->movement_dx;
+	strokep->cum_movement_y += strokep->movement_dy;
 
 	return ((strokep->movement_dx != 0) || (strokep->movement_dy != 0));
 }
