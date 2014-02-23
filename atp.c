@@ -684,14 +684,13 @@ struct atp_softc {
 
 	struct callout	    sc_callout;
 
-	uint8_t             sc_ibtn; /*
-				      * button status. Set to non-zero if the
-				      * mouse-button is physically pressed.
-				      * This state variable is exposed through
-				      * softc to allow reap_sibling_zombies
-				      * to avoid registering taps while the
-				      * trackpad button is pressed.
-				      */
+	/*
+	 * button status. Set to non-zero if the mouse-button is physically
+	 * pressed. This state variable is exposed through softc to allow
+	 * reap_sibling_zombies to avoid registering taps while the trackpad
+	 * button is pressed.
+         */
+	uint8_t             sc_ibtn;
 
 	struct timeval      sc_reap_time; /* time when zombies were reaped */
 
