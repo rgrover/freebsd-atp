@@ -854,7 +854,7 @@ atp_free_stroke(struct atp_softc *sc, atp_stroke_t *pstroke)
 }
 
 static void
-atp_init_stroke(struct atp_softc *sc)
+atp_init_stroke_pool(struct atp_softc *sc)
 {
 	u_int x;
 
@@ -960,7 +960,7 @@ atp_enable(struct atp_softc *sc)
 	/* reset status */
 	memset(&sc->sc_status, 0, sizeof(sc->sc_status));
 
-	atp_init_stroke(sc);
+	atp_init_stroke_pool(sc);
 
 	sc->sc_state |= ATP_ENABLED;
 
