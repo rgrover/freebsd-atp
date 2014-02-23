@@ -1899,25 +1899,17 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 		return;
 	}
 
-	if ((strokep->type == ATP_STROKE_TOUCH) &&
-	    (strokep->age > atp_stroke_maturity_threshold)) {
-		strokep->flags |= ATSF_ZOMBIE;
-		sc->sc_state   |= ATP_ZOMBIES_EXIST;
-		callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_INTERVAL,
-		    atp_reap_sibling_zombies, sc);
-	} else {
-		/* Drop this stroke. */
-		sc->sc_n_strokes--;
-		if (index < sc->sc_n_strokes)
-			memcpy(strokep, strokep + 1,
-			    (sc->sc_n_strokes - index) * sizeof(atp_stroke_t));
+	strokep->flags |= ATSF_ZOMBIE;
+	sc->sc_state   |= ATP_ZOMBIES_EXIST;
+	callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_INTERVAL,
+	    atp_reap_sibling_zombies, sc);
 
-		/*
-		 * Reset the double-click-n-drag at the termination of
-		 * any slide stroke.
-		 */
+	/*
+	 * Reset the double-click-n-drag at the termination of
+	 * any slide stroke.
+	 */
+	if (strokep->type == ATP_STROKE_SLIDE)
 		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
-	}
 }
 
 boolean_t
@@ -1949,14 +1941,28 @@ atp_reap_sibling_zombies(void *arg)
 	if (sc->sc_n_strokes == 0)
 		return;
 
-	unsigned n_reaped = 0;
-
+	unsigned n_touches_reaped = 0, n_slides_reaped = 0;
+	unsigned n_horizontal_scrolls = 0, n_vertical_scrolls = 0;
+	unsigned horizontal_scroll = 0, vertical_scroll = 0;
 	int i;
-	atp_stroke_t *strokep;
-	for (i = 0; i < sc->sc_n_strokes; i++) {
-		strokep = &sc->sc_strokes[i];
+	atp_stroke_t *strokep = sc->sc_strokes;
+	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
 		if ((strokep->flags & ATSF_ZOMBIE) == 0)
 			continue;
+
+		if (strokep->type == ATP_STROKE_TOUCH)
+			n_touches_reaped++;
+		else {
+			n_slides_reaped++;
+			if (atp_is_horizontal_scroll(strokep)) {
+				n_horizontal_scrolls++;
+				horizontal_scroll += strokep->cum_movement_x;
+			}
+			else if (is_vertical_scroll(strokep)) {
+				n_vertical_scrolls++;
+				vertical_scroll +=  strokep->cum_movement_y;
+			}
+		}
 
 		/* Erase the stroke from the sc. */
 		sc->sc_n_strokes--;
@@ -1964,21 +1970,25 @@ atp_reap_sibling_zombies(void *arg)
 			memcpy(strokep, strokep + 1,
 			    (sc->sc_n_strokes - i) * sizeof(atp_stroke_t));
 
-		n_reaped += 1;
 		--i; /* Decr. i to keep it unchanged for the next iteration */
 	}
 
-	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n", n_reaped);
+	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n",
+	    n_touches_reaped + n_slides_reaped);
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
 	microtime(&sc->sc_reap_time); /* remember this time */
 
-	if (n_reaped == 0)
+	/* No further processing necessary if physical button is depressed. */
+	if (sc->sc_ibtn > 0)
+		return;
+
+	if ((n_touches_reaped == 0) && (n_slides_reaped == 0))
 		return;
 
 	/* Add a pair of virtual button events (button-down and button-up) if
 	 * the physical button isn't pressed. */
-	if (sc->sc_ibtn == 0) {
-		switch (n_reaped) {
+	if (n_touches_reaped) {
+		switch (n_touches_reaped) {
 		case 1: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
 			break;
 		case 2: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON2DOWN);
