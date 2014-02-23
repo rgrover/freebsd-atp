@@ -1991,9 +1991,9 @@ atp_reap_sibling_zombies(void *arg)
 		switch (n_touches_reaped) {
 		case 1: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
 			break;
-		case 2: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON2DOWN);
+		case 2: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON3DOWN);
 			break;
-		case 3: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON3DOWN);
+		case 3: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON2DOWN);
 			break;
 		default:
 			break;/* handle taps of only up to 3 fingers */
