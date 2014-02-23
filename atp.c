@@ -1887,6 +1887,16 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 	if (strokep->flags & ATSF_ZOMBIE)
 		return;
 
+	/* Drop immature strokes rightaway. */
+	if (strokep->age <= atp_stroke_maturity_threshold) {
+		sc->sc_n_strokes--;
+		if (index < sc->sc_n_strokes)
+			memcpy(strokep, strokep + 1,
+			    (sc->sc_n_strokes - index) * sizeof(atp_stroke_t));
+
+		return;
+	}
+
 	if ((strokep->type == ATP_STROKE_TOUCH) &&
 	    (strokep->age > atp_stroke_maturity_threshold)) {
 		strokep->flags |= ATSF_ZOMBIE;
