@@ -1915,23 +1915,21 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 boolean_t
 atp_is_horizontal_scroll(const atp_stroke_t *strokep)
 {
-#define ATP_SCROLL_DIST_THRESHOLD 100
-	if ((abs(strokep->cum_movement_x) < ATP_SCROLL_DIST_THRESHOLD) ||
-	    (abs(strokep->cum_movement_y) < ATP_SCROLL_DIST_THRESHOLD))
+	if (abs(strokep->cum_movement_x) < atp_slide_min_movement)
 		return (false);
-
-	return (abs(strokep->cum_movement_x / strokep->cum_movement_y) >= 8);
+	if (strokep->cum_movement_y == 0)
+		return (true);
+	return (abs(strokep->cum_movement_x / strokep->cum_movement_y) >= 4);
 }
 
 boolean_t
 atp_is_vertical_scroll(const atp_stroke_t *strokep)
 {
-#define ATP_SCROLL_DIST_THRESHOLD 100
-	if ((abs(strokep->cum_movement_x) < ATP_SCROLL_DIST_THRESHOLD) ||
-	    (abs(strokep->cum_movement_y) < ATP_SCROLL_DIST_THRESHOLD))
+	if (abs(strokep->cum_movement_y) < atp_slide_min_movement)
 		return (false);
-
-	return (abs(strokep->cum_movement_y / strokep->cum_movement_x) >= 8);
+	if (strokep->cum_movement_x == 0)
+		return (true);
+	return (abs(strokep->cum_movement_y / strokep->cum_movement_x) >= 4);
 }
 
 void
