@@ -56,11 +56,6 @@
  * giving me an opportunity to do this work.
  */
 
-/* todo:
- * - sysctl to disable taps; only button press allowed
- * -
-*/
-
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
@@ -202,6 +197,10 @@ static u_int atp_small_movement_threshold = ATP_SMALL_MOVEMENT_THRESHOLD;
 SYSCTL_UINT(_hw_usb_atp, OID_AUTO, small_movement, CTLFLAG_RW,
     &atp_small_movement_threshold, ATP_SMALL_MOVEMENT_THRESHOLD,
     "the small movement black-hole for filtering noise");
+
+static u_int atp_enable_tap_detection = 1;
+SYSCTL_UINT(_hw_usb_atp, OID_AUTO, enable_tap_detection, CTLFLAG_RW,
+    &atp_enable_tap_detection, 1, "is tap detection enabled?");
 
 /*
  * Strokes which accumulate at least this amount of absolute movement
@@ -1986,17 +1985,19 @@ atp_reap_sibling_zombies(void *arg)
 	/* Add a pair of virtual button events (button-down and button-up) if
 	 * the physical button isn't pressed. */
 	if (n_touches_reaped) {
-		switch (n_touches_reaped) {
-		case 1: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
-			break;
-		case 2: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON3DOWN);
-			break;
-		case 3: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON2DOWN);
-			break;
-		default:
-			break;/* handle taps of only up to 3 fingers */
+		if (atp_enable_tap_detection) {
+			switch (n_touches_reaped) {
+			case 1: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
+				break;
+			case 2: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON3DOWN);
+				break;
+			case 3: atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON2DOWN);
+				break;
+			default:
+				break;/* handle taps of only up to 3 fingers */
+			}
+			atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
 		}
-		atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
 	} else if (n_slides_reaped == 2) {
 		if (n_horizontal_scrolls == 2) {
 			if (horizontal_scroll < 0)
