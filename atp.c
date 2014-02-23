@@ -756,8 +756,8 @@ static boolean_t     atp_compute_stroke_movement(atp_stroke_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 
 /* tap detection */
-__inline boolean_t atp_is_horizontal_scroll(const atp_stroke_t *);
-__inline boolean_t atp_is_vertical_scroll(const atp_stroke_t *);
+static __inline boolean_t atp_is_horizontal_scroll(const atp_stroke_t *);
+static __inline boolean_t atp_is_vertical_scroll(const atp_stroke_t *);
 static void          atp_reap_sibling_zombies(void *);
 static void          atp_convert_to_slide(struct atp_softc *, atp_stroke_t *);
 
@@ -1943,7 +1943,7 @@ atp_reap_sibling_zombies(void *arg)
 
 	unsigned n_touches_reaped = 0, n_slides_reaped = 0;
 	unsigned n_horizontal_scrolls = 0, n_vertical_scrolls = 0;
-	unsigned horizontal_scroll = 0, vertical_scroll = 0;
+	int      horizontal_scroll = 0, vertical_scroll = 0;
 	int i;
 	atp_stroke_t *strokep = sc->sc_strokes;
 	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
@@ -1958,7 +1958,7 @@ atp_reap_sibling_zombies(void *arg)
 				n_horizontal_scrolls++;
 				horizontal_scroll += strokep->cum_movement_x;
 			}
-			else if (is_vertical_scroll(strokep)) {
+			else if (atp_is_vertical_scroll(strokep)) {
 				n_vertical_scrolls++;
 				vertical_scroll +=  strokep->cum_movement_y;
 			}
@@ -1999,6 +1999,16 @@ atp_reap_sibling_zombies(void *arg)
 			break;/* handle taps of only up to 3 fingers */
 		}
 		atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
+	} else if (n_slides_reaped == 2) {
+		if (n_horizontal_scrolls == 2) {
+			if (horizontal_scroll < 0)
+				atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON4DOWN);
+			else
+				atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON5DOWN);
+			atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
+		} else {
+			/* DO something here for vertical scrolling */
+		}
 	}
 }
 
