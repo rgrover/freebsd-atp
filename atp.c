@@ -700,9 +700,9 @@ struct atp_softc {
 	u_int   sc_expected_sensor_data_len;
 	uint8_t sc_sensor_data[ATP_SENSOR_DATA_BUF_MAX] __aligned(4);
 
-	int sc_cur_x[FG_MAX_XSENSORS];  /* current sensor readings */
+	int sc_cur_x[FG_MAX_XSENSORS];      /* current sensor readings */
 	int sc_cur_y[FG_MAX_YSENSORS];
-	int sc_base_x[FG_MAX_XSENSORS]; /* base sensor readings */
+	int sc_base_x[FG_MAX_XSENSORS];     /* base sensor readings */
 	int sc_base_y[FG_MAX_YSENSORS];
 	int sc_pressure_x[FG_MAX_XSENSORS]; /* computed pressures */
 	int sc_pressure_y[FG_MAX_YSENSORS];
@@ -866,7 +866,8 @@ atp_init_stroke(struct atp_softc *sc)
 	memset(&sc->sc_strokes_data, 0, sizeof(sc->sc_strokes_data));
 
 	for (x = 0; x != ATP_MAX_STROKES; x++) {
-		TAILQ_INSERT_TAIL(&sc->sc_stroke_free, &sc->sc_strokes_data[x], entry);
+		TAILQ_INSERT_TAIL(&sc->sc_stroke_free, &sc->sc_strokes_data[x],
+		    entry);
 	}
 }
 
@@ -984,10 +985,10 @@ fg_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
 	const struct fg_dev_params *params =
 	    (const struct fg_dev_params *)sc->sc_params;
 
-	fg_extract_sensor_data(sc->sc_sensor_data, params->n_xsensors, X, sc->sc_cur_x,
-	    params->prot);
-	fg_extract_sensor_data(sc->sc_sensor_data, params->n_ysensors, Y, sc->sc_cur_y,
-	    params->prot);
+	fg_extract_sensor_data(sc->sc_sensor_data, params->n_xsensors, X,
+	    sc->sc_cur_x, params->prot);
+	fg_extract_sensor_data(sc->sc_sensor_data, params->n_ysensors, Y,
+	    sc->sc_cur_y, params->prot);
 
 	/*
 	 * If this is the initial update (from an untouched
@@ -1010,12 +1011,14 @@ fg_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
 	}
 
 	/* Get pressure readings and detect p-spans for both axes. */
-	fg_get_pressures(sc->sc_pressure_x, sc->sc_cur_x, sc->sc_base_x, params->n_xsensors);
-	fg_detect_pspans(sc->sc_pressure_x, params->n_xsensors, FG_MAX_PSPANS_PER_AXIS,
-	    sc->sc_pspans_x, &n_xpspans);
-	fg_get_pressures(sc->sc_pressure_y, sc->sc_cur_y, sc->sc_base_y, params->n_ysensors);
-	fg_detect_pspans(sc->sc_pressure_y, params->n_ysensors, FG_MAX_PSPANS_PER_AXIS,
-	    sc->sc_pspans_y, &n_ypspans);
+	fg_get_pressures(sc->sc_pressure_x, sc->sc_cur_x, sc->sc_base_x,
+	    params->n_xsensors);
+	fg_detect_pspans(sc->sc_pressure_x, params->n_xsensors,
+	    FG_MAX_PSPANS_PER_AXIS, sc->sc_pspans_x, &n_xpspans);
+	fg_get_pressures(sc->sc_pressure_y, sc->sc_cur_y, sc->sc_base_y,
+	    params->n_ysensors);
+	fg_detect_pspans(sc->sc_pressure_y, params->n_ysensors,
+	    FG_MAX_PSPANS_PER_AXIS, sc->sc_pspans_y, &n_ypspans);
 
 	/* Update strokes with new pspans to detect movements. */
 	if (fg_update_strokes(sc, sc->sc_pspans_x, n_xpspans, sc->sc_pspans_y, n_ypspans))
@@ -1289,17 +1292,17 @@ wsp_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
 	for (i = 0; i < n_source_fingers; i++, source_fingerp++) {
 		/* swap endianness, if any */
 		if (le16toh(0x1234) != 0x1234) {
-			source_fingerp->origin = le16toh((uint16_t)source_fingerp->origin);
-			source_fingerp->abs_x = le16toh((uint16_t)source_fingerp->abs_x);
-			source_fingerp->abs_y = le16toh((uint16_t)source_fingerp->abs_y);
-			source_fingerp->rel_x = le16toh((uint16_t)source_fingerp->rel_x);
-			source_fingerp->rel_y = le16toh((uint16_t)source_fingerp->rel_y);
-			source_fingerp->tool_major = le16toh((uint16_t)source_fingerp->tool_major);
-			source_fingerp->tool_minor = le16toh((uint16_t)source_fingerp->tool_minor);
+			source_fingerp->origin      = le16toh((uint16_t)source_fingerp->origin);
+			source_fingerp->abs_x       = le16toh((uint16_t)source_fingerp->abs_x);
+			source_fingerp->abs_y       = le16toh((uint16_t)source_fingerp->abs_y);
+			source_fingerp->rel_x       = le16toh((uint16_t)source_fingerp->rel_x);
+			source_fingerp->rel_y       = le16toh((uint16_t)source_fingerp->rel_y);
+			source_fingerp->tool_major  = le16toh((uint16_t)source_fingerp->tool_major);
+			source_fingerp->tool_minor  = le16toh((uint16_t)source_fingerp->tool_minor);
 			source_fingerp->orientation = le16toh((uint16_t)source_fingerp->orientation);
 			source_fingerp->touch_major = le16toh((uint16_t)source_fingerp->touch_major);
 			source_fingerp->touch_minor = le16toh((uint16_t)source_fingerp->touch_minor);
-			source_fingerp->multi = le16toh((uint16_t)source_fingerp->multi);
+			source_fingerp->multi       = le16toh((uint16_t)source_fingerp->multi);
 		}
 
 		/* check for minium threshold */
@@ -1307,8 +1310,8 @@ wsp_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
 			continue;
 
 		fingers[n_fingers].matched = false;
-		fingers[n_fingers].x = source_fingerp->abs_x;
-		fingers[n_fingers].y = -source_fingerp->abs_y;
+		fingers[n_fingers].x       = source_fingerp->abs_x;
+		fingers[n_fingers].y       = -source_fingerp->abs_y;
 
 		n_fingers++;
 	}
@@ -2018,7 +2021,6 @@ atp_reap_sibling_zombies(void *arg)
 	DPRINTF("\n");
 
 	TAILQ_FOREACH_SAFE(strokep, &sc->sc_stroke_used, entry, strokep_next) {
-
 		if ((strokep->flags & ATSF_ZOMBIE) == 0)
 			continue;
 
