@@ -694,18 +694,18 @@ struct atp_softc {
 
 	struct timeval      sc_reap_time; /* time when zombies were reaped */
 
-	u_int	sc_idlecount;
+	u_int	            sc_idlecount;
 
 	/* Regarding the data transferred from t-pad in USB INTR packets. */
 	u_int   sc_expected_sensor_data_len;
 	uint8_t sc_sensor_data[ATP_SENSOR_DATA_BUF_MAX] __aligned(4);
 
-	int sc_cur_x[FG_MAX_XSENSORS];      /* current sensor readings */
-	int sc_cur_y[FG_MAX_YSENSORS];
-	int sc_base_x[FG_MAX_XSENSORS];     /* base sensor readings */
-	int sc_base_y[FG_MAX_YSENSORS];
-	int sc_pressure_x[FG_MAX_XSENSORS]; /* computed pressures */
-	int sc_pressure_y[FG_MAX_YSENSORS];
+	int      sc_cur_x[FG_MAX_XSENSORS];      /* current sensor readings */
+	int      sc_cur_y[FG_MAX_YSENSORS];
+	int      sc_base_x[FG_MAX_XSENSORS];     /* base sensor readings */
+	int      sc_base_y[FG_MAX_YSENSORS];
+	int      sc_pressure_x[FG_MAX_XSENSORS]; /* computed pressures */
+	int      sc_pressure_y[FG_MAX_YSENSORS];
 	fg_pspan sc_pspans_x[FG_MAX_PSPANS_PER_AXIS];
 	fg_pspan sc_pspans_y[FG_MAX_PSPANS_PER_AXIS];
 };
@@ -2043,7 +2043,6 @@ atp_reap_sibling_zombies(void *arg)
 
 	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n",
 	    n_touches_reaped + n_slides_reaped);
-
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
 	microtime(&sc->sc_reap_time); /* remember this time */
 
