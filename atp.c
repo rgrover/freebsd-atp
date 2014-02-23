@@ -692,7 +692,11 @@ struct atp_softc {
          */
 	uint8_t             sc_ibtn;
 
-	struct timeval      sc_reap_time; /* time when zombies were reaped */
+	/*
+	 * Time when touch zombies were last reaped; useful for detecting
+	 * double-touch-n-drag.
+	 */
+	struct timeval      sc_touch_reap_time;
 
 	u_int	            sc_idlecount;
 
@@ -2044,7 +2048,6 @@ atp_reap_sibling_zombies(void *arg)
 	DPRINTFN(ATP_LLEVEL_INFO, "reaped %u zombies\n",
 	    n_touches_reaped + n_slides_reaped);
 	sc->sc_state &= ~ATP_ZOMBIES_EXIST;
-	microtime(&sc->sc_reap_time); /* remember this time */
 
 	/* No further processing necessary if physical button is depressed. */
 	if (sc->sc_ibtn != 0)
@@ -2062,6 +2065,7 @@ atp_reap_sibling_zombies(void *arg)
 		switch (n_touches_reaped) {
 		case 1:
 			atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON1DOWN);
+			microtime(&sc->sc_touch_reap_time); /* remember this time */
 			break;
 		case 2:
 			atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON3DOWN);
@@ -2097,7 +2101,7 @@ atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
 	/* Are we at the beginning of a double-click-n-drag? */
 	if ((sc->sc_n_strokes == 1) &&
 	    ((sc->sc_state & ATP_ZOMBIES_EXIST) == 0) &&
-	    timevalcmp(&strokep->ctime, &sc->sc_reap_time, >)) {
+	    timevalcmp(&strokep->ctime, &sc->sc_touch_reap_time, >)) {
 		struct timeval delta;
 		struct timeval window = {
 			atp_double_tap_threshold / 1000000,
@@ -2105,7 +2109,7 @@ atp_convert_to_slide(struct atp_softc *sc, atp_stroke_t *strokep)
 		};
 
 		delta = strokep->ctime;
-		timevalsub(&delta, &sc->sc_reap_time);
+		timevalsub(&delta, &sc->sc_touch_reap_time);
 		if (timevalcmp(&delta, &window, <=))
 			sc->sc_state |= ATP_DOUBLE_TAP_DRAG;
 	}
