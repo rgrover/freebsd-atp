@@ -622,7 +622,7 @@ typedef struct atp_stroke {
 	 * expensive call to microtime() at every
 	 * interrupt.
 	 */
-	uint32_t age; 
+	uint32_t age;
 
 	/* Location */
 	int x;
