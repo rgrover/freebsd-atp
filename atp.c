@@ -1941,8 +1941,8 @@ atp_reap_sibling_zombies(void *arg)
 	unsigned n_touches_reaped = 0, n_slides_reaped = 0;
 	unsigned n_horizontal_scrolls = 0, n_vertical_scrolls = 0;
 	int      horizontal_scroll = 0, vertical_scroll = 0;
-	int i;
 	atp_stroke_t *strokep = sc->sc_strokes;
+	int i;
 	for (i = 0; i < sc->sc_n_strokes; i++, strokep++) {
 		if ((strokep->flags & ATSF_ZOMBIE) == 0)
 			continue;
