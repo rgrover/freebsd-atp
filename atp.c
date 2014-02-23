@@ -756,6 +756,8 @@ static boolean_t     atp_compute_stroke_movement(atp_stroke_t *);
 static void          atp_terminate_stroke(struct atp_softc *, u_int);
 
 /* tap detection */
+__inline boolean_t atp_is_horizontal_scroll(const atp_stroke_t *);
+__inline boolean_t atp_is_vertical_scroll(const atp_stroke_t *);
 static void          atp_reap_sibling_zombies(void *);
 static void          atp_convert_to_slide(struct atp_softc *, atp_stroke_t *);
 
@@ -1916,6 +1918,28 @@ atp_terminate_stroke(struct atp_softc *sc, u_int index)
 		 */
 		sc->sc_state &= ~ATP_DOUBLE_TAP_DRAG;
 	}
+}
+
+boolean_t
+atp_is_horizontal_scroll(const atp_stroke_t *strokep)
+{
+#define ATP_SCROLL_DIST_THRESHOLD 100
+	if ((abs(strokep->cum_movement_x) < ATP_SCROLL_DIST_THRESHOLD) ||
+	    (abs(strokep->cum_movement_y) < ATP_SCROLL_DIST_THRESHOLD))
+		return (false);
+
+	return (abs(strokep->cum_movement_x / strokep->cum_movement_y) >= 8);
+}
+
+boolean_t
+atp_is_vertical_scroll(const atp_stroke_t *strokep)
+{
+#define ATP_SCROLL_DIST_THRESHOLD 100
+	if ((abs(strokep->cum_movement_x) < ATP_SCROLL_DIST_THRESHOLD) ||
+	    (abs(strokep->cum_movement_y) < ATP_SCROLL_DIST_THRESHOLD))
+		return (false);
+
+	return (abs(strokep->cum_movement_y / strokep->cum_movement_x) >= 8);
 }
 
 void
