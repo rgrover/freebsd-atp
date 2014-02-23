@@ -56,6 +56,11 @@
  * giving me an opportunity to do this work.
  */
 
+/* todo:
+ * - sysctl to disable taps; only button press allowed
+ * -
+*/
+
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
 
