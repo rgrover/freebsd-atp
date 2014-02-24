@@ -2367,8 +2367,12 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 			u_int8_t n_movements = 0;
 			int dx = 0;
 			int dy = 0;
+			int dz = 0;
 
 			TAILQ_FOREACH(strokep, &sc->sc_stroke_used, entry) {
+				if (strokep->flags & ATSF_ZOMBIE)
+					continue;
+
 				dx += strokep->movement_dx;
 				dy += strokep->movement_dy;
 				if (strokep->movement_dx ||
@@ -2382,9 +2386,26 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 				dy /= (int)n_movements;
 			}
 
+			/* detect two-finger vertical scrolls */
+			if (n_movements == 2) {
+				boolean_t all_vertical_scrolls = true;
+				TAILQ_FOREACH(strokep, &sc->sc_stroke_used, entry) {
+					if (strokep->flags & ATSF_ZOMBIE)
+						continue;
+
+					if (!atp_is_vertical_scroll(strokep))
+						all_vertical_scrolls = false;
+				}
+				if (all_vertical_scrolls) {
+					dz = dy;
+					dy = dx = 0;
+				}
+			}
+
 			sc->sc_status.dx += dx;
 			sc->sc_status.dy += dy;
-			atp_add_to_queue(sc, dx, -dy, 0, sc->sc_status.button);
+			sc->sc_status.dz += dz;
+			atp_add_to_queue(sc, dx, -dy, -dz, sc->sc_status.button);
 		}
 
 	case USB_ST_SETUP:
