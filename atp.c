@@ -2022,7 +2022,7 @@ atp_reap_sibling_zombies(void *arg)
 	atp_stroke_t *strokep;
 	atp_stroke_t *strokep_next;
 
-	DPRINTF("\n");
+	DPRINTFN(ATP_LLEVEL_INFO, "\n");
 
 	TAILQ_FOREACH_SAFE(strokep, &sc->sc_stroke_used, entry, strokep_next) {
 		if ((strokep->flags & ATSF_ZOMBIE) == 0)
@@ -2086,8 +2086,6 @@ atp_reap_sibling_zombies(void *arg)
 			else
 				atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON5DOWN);
 			atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
-		} else {
-			/* Do something here for vertical scrolling */
 		}
 	}
 }
