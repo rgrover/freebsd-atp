@@ -2075,7 +2075,7 @@ atp_reap_sibling_zombies(void *arg)
 			break;
 		default:
 			/* we handle taps of only up to 3 fingers */
-			break;
+			return;
 		}
 		atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
 
