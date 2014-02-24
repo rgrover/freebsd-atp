@@ -2079,14 +2079,12 @@ atp_reap_sibling_zombies(void *arg)
 		}
 		atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
 
-	} else if (n_slides_reaped == 2) {
-		if (n_horizontal_scrolls == 2) {
-			if (horizontal_scroll < 0)
-				atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON4DOWN);
-			else
-				atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON5DOWN);
-			atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
-		}
+	} else if ((n_slides_reaped == 2) && (n_horizontal_scrolls == 2)) {
+		if (horizontal_scroll < 0)
+			atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON4DOWN);
+		else
+			atp_add_to_queue(sc, 0, 0, 0, MOUSE_BUTTON5DOWN);
+		atp_add_to_queue(sc, 0, 0, 0, 0); /* button release */
 	}
 }
 
