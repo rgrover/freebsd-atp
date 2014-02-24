@@ -1976,7 +1976,7 @@ atp_terminate_stroke(struct atp_softc *sc, atp_stroke_t *strokep)
 	}
 
 	strokep->flags |= ATSF_ZOMBIE;
-	sc->sc_state |= ATP_ZOMBIES_EXIST;
+	sc->sc_state   |= ATP_ZOMBIES_EXIST;
 
 	callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_INTERVAL,
 	    atp_reap_sibling_zombies, sc);
