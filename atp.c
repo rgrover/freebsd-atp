@@ -1976,7 +1976,7 @@ atp_terminate_stroke(struct atp_softc *sc, atp_stroke_t *strokep)
 	}
 
 	strokep->flags |= ATSF_ZOMBIE;
-	sc->sc_state   |= ATP_ZOMBIES_EXIST;
+	sc->sc_state |= ATP_ZOMBIES_EXIST;
 
 	callout_reset(&sc->sc_callout, ATP_ZOMBIE_STROKE_REAP_INTERVAL,
 	    atp_reap_sibling_zombies, sc);
@@ -2386,8 +2386,8 @@ atp_intr(struct usb_xfer *xfer, usb_error_t error)
 				dy /= (int)n_movements;
 			}
 
-			/* detect two-finger vertical scrolls */
-			if (n_movements == 2) {
+			/* detect multi-finger vertical scrolls */
+			if (n_movements >= 2) {
 				boolean_t all_vertical_scrolls = true;
 				TAILQ_FOREACH(strokep, &sc->sc_stroke_used, entry) {
 					if (strokep->flags & ATSF_ZOMBIE)
