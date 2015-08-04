@@ -1019,6 +1019,15 @@ fg_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
 	fg_detect_pspans(sc->sc_pressure_y, params->n_ysensors,
 	    FG_MAX_PSPANS_PER_AXIS, sc->sc_pspans_y, &n_ypspans);
 
+	for (u_int index = 0; index < n_xpspans; index++) {
+		DPRINTFN(ATP_LLEVEL_INFO, "{%u}", sc->sc_pspans_x[index].loc);
+	}
+	DPRINTFN(ATP_LLEVEL_INFO, " ");
+	for (u_int index = 0; index < n_ypspans; index++) {
+		DPRINTFN(ATP_LLEVEL_INFO, "{%u}", sc->sc_pspans_y[index].loc);
+	}
+	DPRINTFN(ATP_LLEVEL_INFO, "\n");
+
 	/* Update strokes with new pspans to detect movements. */
 	if (fg_update_strokes(sc, sc->sc_pspans_x, n_xpspans, sc->sc_pspans_y, n_ypspans))
 		sc->sc_status.flags |= MOUSE_POSCHANGED;
@@ -1961,6 +1970,10 @@ atp_compute_stroke_movement(atp_stroke_t *strokep)
 static void
 atp_terminate_stroke(struct atp_softc *sc, atp_stroke_t *strokep)
 {
+	DPRINTFN(ATP_LLEVEL_INFO, "terminate stroke %c %u [%u, %u]\n",
+		(strokep->type == ATP_STROKE_TOUCH) ? 'T' : 'S',
+		strokep->age, strokep->x, strokep->y);
+
 	if (strokep->flags & ATSF_ZOMBIE)
 		return;
 
