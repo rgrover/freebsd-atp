@@ -1019,14 +1019,16 @@ fg_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
 	fg_detect_pspans(sc->sc_pressure_y, params->n_ysensors,
 	    FG_MAX_PSPANS_PER_AXIS, sc->sc_pspans_y, &n_ypspans);
 
-	for (u_int index = 0; index < n_xpspans; index++) {
-		DPRINTFN(ATP_LLEVEL_INFO, "{%u}", sc->sc_pspans_x[index].loc);
+	if (n_xpspans || n_ypspans) {
+		for (u_int index = 0; index < n_xpspans; index++) {
+			DPRINTFN(ATP_LLEVEL_INFO, "{%u}", sc->sc_pspans_x[index].loc);
+		}
+		DPRINTFN(ATP_LLEVEL_INFO, " ");
+		for (u_int index = 0; index < n_ypspans; index++) {
+			DPRINTFN(ATP_LLEVEL_INFO, "{%u}", sc->sc_pspans_y[index].loc);
+		}
+		DPRINTFN(ATP_LLEVEL_INFO, "\n");
 	}
-	DPRINTFN(ATP_LLEVEL_INFO, " ");
-	for (u_int index = 0; index < n_ypspans; index++) {
-		DPRINTFN(ATP_LLEVEL_INFO, "{%u}", sc->sc_pspans_y[index].loc);
-	}
-	DPRINTFN(ATP_LLEVEL_INFO, "\n");
 
 	/* Update strokes with new pspans to detect movements. */
 	if (fg_update_strokes(sc, sc->sc_pspans_x, n_xpspans, sc->sc_pspans_y, n_ypspans))
