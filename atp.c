@@ -1028,6 +1028,8 @@ fg_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
 			DPRINTFN(ATP_LLEVEL_INFO, "{%u}", sc->sc_pspans_y[index].loc);
 		}
 		DPRINTFN(ATP_LLEVEL_INFO, "\n");
+	} else {
+		DPRINTFN(ATP_LLEVEL_INFO, "no pspans\n");
 	}
 
 	/* Update strokes with new pspans to detect movements. */
