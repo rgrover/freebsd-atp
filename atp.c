@@ -997,7 +997,7 @@ fg_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
 	 */
 	status_bits = sc->sc_sensor_data[params->data_len - 1];
 	if ((((params->prot == FG_TRACKPAD_TYPE_GEYSER3) ||
-	      (params->prot == FG_TRACKPAD_TYPE_GEYSER4))  &&
+	      (params->prot == FG_TRACKPAD_TYPE_GEYSER4)) &&
 	     (status_bits & FG_STATUS_BASE_UPDATE)) ||
 	    ((sc->sc_state & ATP_VALID) == 0)) {
 	    DPRINTFN(ATP_LLEVEL_INFO, "FG_STATUS_BASE_UPDATE\n");
