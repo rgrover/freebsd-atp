@@ -1000,7 +1000,6 @@ fg_interpret_sensor_data(struct atp_softc *sc, u_int data_len)
 	      (params->prot == FG_TRACKPAD_TYPE_GEYSER4)) &&
 	     (status_bits & FG_STATUS_BASE_UPDATE)) ||
 	    ((sc->sc_state & ATP_VALID) == 0)) {
-	    DPRINTFN(ATP_LLEVEL_INFO, "FG_STATUS_BASE_UPDATE\n");
 	    memcpy(sc->sc_base_x, sc->sc_cur_x,
 	           params->n_xsensors * sizeof(*sc->sc_base_x));
 	    memcpy(sc->sc_base_y, sc->sc_cur_y,
